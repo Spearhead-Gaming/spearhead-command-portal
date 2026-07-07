@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  --background: #07111d;
+  --foreground: #e7edf5;
+  --card: rgba(11, 21, 35, 0.92);
+  --card-foreground: #f4f7fb;
+  --popover: #0d1725;
+  --popover-foreground: #eef4fb;
+  --primary: #6f98c9;
+  --primary-foreground: #04111f;
+  --secondary: #13253b;
+  --secondary-foreground: #d9e4f2;
+  --muted: #102033;
+  --muted-foreground: #8ea2bb;
+  --accent: #d8a756;
+  --accent-foreground: #0f1724;
+  --destructive: #d06f6f;
+  --destructive-foreground: #fff6f6;
+  --border: rgba(143, 168, 196, 0.18);
+  --input: rgba(12, 24, 39, 0.88);
+  --ring: rgba(111, 152, 201, 0.55);
+  --success: #5fa37d;
+  --warning: #d8a756;
+  --danger: #d06f6f;
+  --info: #6f98c9;
+  --radius: 0.95rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-barlow);
+  --font-mono: var(--font-ibm-plex-mono);
+  --radius-sm: calc(var(--radius) - 0.375rem);
+  --radius-md: calc(var(--radius) - 0.175rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.375rem);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(111, 152, 201, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(216, 167, 86, 0.08), transparent 22%),
+    linear-gradient(180deg, #081321 0%, #050c16 100%);
+  color: var(--foreground);
+  font-family: var(--font-barlow), sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  outline-color: var(--ring);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(7, 17, 29, 0.92);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(7, 17, 29, 0.92);
+  border-radius: 999px;
+  background: rgba(143, 168, 196, 0.28);
+}
+
+::selection {
+  background: rgba(216, 167, 86, 0.28);
+  color: var(--foreground);
+}

@@ -1,0 +1,1553 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Prisma uses the MySQL connector for MariaDB deployments.
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                                 String                        @id @default(uuid()) @db.VarChar(36)
+  discordId                          String?                       @unique @db.VarChar(32)
+  name                               String?                       @db.VarChar(120)
+  email                              String?                       @unique @db.VarChar(191)
+  emailVerified                      DateTime?
+  image                              String?                       @db.VarChar(512)
+  displayName                        String?                       @db.VarChar(120)
+  callsign                           String?                       @db.VarChar(120)
+  avatarUrl                          String?                       @db.VarChar(512)
+  isActive                           Boolean                       @default(true)
+  deletedAt                          DateTime?
+  createdAt                          DateTime                      @default(now())
+  updatedAt                          DateTime                      @updatedAt
+  accounts                           Account[]
+  sessions                           Session[]
+  memberProfile                      MemberProfile?
+  userRoles                          UserRole[]
+  awardedRecords                     MemberQualification[]         @relation("QualificationAwardedBy")
+  recordedAttendance                 AttendanceRecord[]            @relation("AttendanceRecordedBy")
+  createdNotifications               Notification[]                @relation("NotificationCreatedBy")
+  notificationDeliveries             NotificationDelivery[]        @relation("NotificationRecipient")
+  auditEvents                        AuditLog[]                    @relation("AuditActor")
+  reviewedAars                       Aar[]                         @relation("AarReviewedBy")
+  createdFormTemplates               FormTemplate[]                @relation("FormTemplateCreatedBy")
+  submittedForms                     FormSubmission[]              @relation("FormSubmissionSubmittedBy")
+  assignedFormReviews                FormSubmission[]              @relation("FormSubmissionReviewer")
+  formComments                       SubmissionComment[]           @relation("FormSubmissionCommentAuthor")
+  formDecisions                      ApprovalDecision[]            @relation("ApprovalDecisionActor")
+  authoredDocuments                  Document[]                    @relation("DocumentAuthor")
+  ownedDocuments                     Document[]                    @relation("DocumentOwner")
+  documentVersions                   DocumentVersion[]             @relation("DocumentVersionCreatedBy")
+  documentAttachments                DocumentAttachment[]          @relation("DocumentAttachmentCreatedBy")
+  documentReadReceipts               DocumentReadReceipt[]         @relation("DocumentReadReceiptUser")
+  documentRevisionEvents             DocumentRevisionHistory[]     @relation("DocumentRevisionActor")
+  uploadedDeploymentResourceVersions DeploymentResourceVersion[]   @relation("DeploymentResourceVersionUploadedBy")
+  discordMemberLinks                 DiscordMemberLink[]           @relation("DiscordMemberLinkUser")
+  discordGuildStates                 DiscordGuildMemberState[]     @relation("DiscordGuildMemberStateUser")
+  discordSyncLogs                    DiscordSyncLog[]              @relation("DiscordSyncLogActor")
+  discordModerationTargets           DiscordModerationAction[]     @relation("DiscordModerationTargetUser")
+  discordModerationActions           DiscordModerationAction[]     @relation("DiscordModerationModerator")
+  createdDeployments                 Campaign[]                    @relation("CampaignCreatedBy")
+  zeusDeployments                    Campaign[]                    @relation("CampaignZeus")
+  deploymentZeusAssignments          DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentAssignedTo")
+  changedDeploymentZeusAssignments   DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentChangedBy")
+  ledPatrolEvents                    Event[]                       @relation("EventPatrolLeader")
+  submittedAars                      Aar[]                         @relation("AarSubmittedBy")
+  uploadedAarAttachments             AarAttachment[]               @relation("AarAttachmentUploadedBy")
+  addedPatrolParticipants            PatrolParticipant[]           @relation("PatrolParticipantAddedBy")
+  patrolRsvps                        PatrolRsvp[]                  @relation("PatrolRsvpUser")
+  pendingDiscordAarSubmissions       PendingDiscordAarSubmission[] @relation("PendingDiscordAarSubmittedBy")
+  discordInteractionSessions         DiscordInteractionSession[]   @relation("DiscordInteractionSessionUser")
+  publishedOperationsReleases        OperationsRelease[]           @relation("OperationsReleasePublishedBy")
+  approvedOperationsReleases         OperationsRelease[]           @relation("OperationsReleaseApprovedBy")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.VarChar(36)
+  userId            String  @db.VarChar(36)
+  type              String  @db.VarChar(191)
+  provider          String  @db.VarChar(191)
+  providerAccountId String  @db.VarChar(191)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(191)
+  scope             String? @db.VarChar(191)
+  id_token          String? @db.Text
+  session_state     String? @db.VarChar(191)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  sessionToken String   @unique @db.VarChar(191)
+  userId       String   @db.VarChar(36)
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(191)
+  token      String   @db.VarChar(191)
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model MemberProfile {
+  id                         String                      @id @default(uuid()) @db.VarChar(36)
+  userId                     String?                     @unique @db.VarChar(36)
+  firstName                  String?                     @db.VarChar(80)
+  lastName                   String?                     @db.VarChar(80)
+  displayName                String                      @db.VarChar(120)
+  callsign                   String?                     @db.VarChar(120)
+  joinDate                   DateTime?
+  statusId                   String                      @db.VarChar(36)
+  rankId                     String?                     @db.VarChar(36)
+  currentUnitId              String?                     @db.VarChar(36)
+  currentPositionId          String?                     @db.VarChar(36)
+  isActive                   Boolean                     @default(true)
+  deletedAt                  DateTime?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  user                       User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status                     ProfileStatus               @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  currentRank                Rank?                       @relation("CurrentRank", fields: [rankId], references: [id], onDelete: SetNull)
+  currentUnit                Unit?                       @relation("CurrentUnit", fields: [currentUnitId], references: [id], onDelete: SetNull)
+  currentPosition            Position?                   @relation("CurrentPosition", fields: [currentPositionId], references: [id], onDelete: SetNull)
+  rosterAssignments          RosterAssignment[]
+  qualifications             MemberQualification[]
+  attendanceRecords          AttendanceRecord[]
+  patrolParticipants         PatrolParticipant[]
+  patrolRsvps                PatrolRsvp[]
+  discordMemberLinks         DiscordMemberLink[]         @relation("DiscordMemberLinkProfile")
+  discordGuildStates         DiscordGuildMemberState[]   @relation("DiscordGuildMemberStateProfile")
+  discordModerationActions   DiscordModerationAction[]   @relation("DiscordModerationTargetProfile")
+  discordInteractionSessions DiscordInteractionSession[] @relation("DiscordInteractionSessionProfile")
+
+  @@index([statusId])
+  @@index([rankId])
+  @@index([currentUnitId])
+  @@index([currentPositionId])
+  @@index([displayName])
+}
+
+model ProfileStatus {
+  id          String          @id @default(uuid()) @db.VarChar(36)
+  key         String          @unique @db.VarChar(100)
+  label       String          @db.VarChar(120)
+  description String?         @db.VarChar(255)
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  profiles    MemberProfile[]
+}
+
+model Rank {
+  id                  String               @id @default(uuid()) @db.VarChar(36)
+  key                 String               @unique @db.VarChar(100)
+  label               String               @db.VarChar(120)
+  abbreviation        String               @unique @db.VarChar(30)
+  sortOrder           Int                  @default(0)
+  isOfficer           Boolean              @default(false)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  currentProfiles     MemberProfile[]      @relation("CurrentRank")
+  rosterAssignments   RosterAssignment[]
+  discordRoleMappings DiscordRoleMapping[]
+}
+
+model Unit {
+  id                        String                     @id @default(uuid()) @db.VarChar(36)
+  key                       String                     @unique @db.VarChar(100)
+  name                      String                     @db.VarChar(120)
+  shortName                 String                     @unique @db.VarChar(80)
+  parentUnitId              String?                    @db.VarChar(36)
+  sortOrder                 Int                        @default(0)
+  isActive                  Boolean                    @default(true)
+  deletedAt                 DateTime?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  parentUnit                Unit?                      @relation("UnitHierarchy", fields: [parentUnitId], references: [id], onDelete: SetNull)
+  childUnits                Unit[]                     @relation("UnitHierarchy")
+  currentMembers            MemberProfile[]            @relation("CurrentUnit")
+  positions                 Position[]
+  rosterAssignments         RosterAssignment[]
+  hostedEvents              Event[]                    @relation("HostedEvents")
+  qualificationRequirements QualificationRequirement[] @relation("UnitQualificationRequirements")
+  documents                 Document[]
+  documentPermissions       DocumentPermission[]
+  discordServers            DiscordServer[]
+  discordRoleMappings       DiscordRoleMapping[]
+  scopedUserRoles           UserRole[]                 @relation("ScopedUnitRoles")
+  notifications             Notification[]             @relation("NotificationTargetUnit")
+  formTemplates             FormTemplate[]             @relation("FormTemplateTargetUnit")
+  formSubmissions           FormSubmission[]           @relation("FormSubmissionTargetUnit")
+  unitTaskings              UnitTasking[]              @relation("UnitTaskingUnit")
+
+  @@index([parentUnitId])
+}
+
+model DocumentCategory {
+  id          String     @id @default(uuid()) @db.VarChar(36)
+  key         String     @unique @db.VarChar(100)
+  label       String     @db.VarChar(120)
+  description String?    @db.VarChar(255)
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  documents   Document[]
+
+  @@index([sortOrder, label])
+}
+
+model Document {
+  id                   String                    @id @default(uuid()) @db.VarChar(36)
+  title                String                    @db.VarChar(191)
+  slug                 String                    @unique @db.VarChar(191)
+  description          String?                   @db.Text
+  categoryId           String?                   @db.VarChar(36)
+  status               String                    @default("draft") @db.VarChar(50)
+  visibility           String                    @default("members") @db.VarChar(50)
+  authorUserId         String?                   @db.VarChar(36)
+  ownerUserId          String?                   @db.VarChar(36)
+  unitId               String?                   @db.VarChar(36)
+  currentVersionId     String?                   @db.VarChar(36)
+  currentVersionNumber Int                       @default(1)
+  isPinned             Boolean                   @default(false)
+  publishedAt          DateTime?
+  lastReviewedAt       DateTime?
+  nextReviewAt         DateTime?
+  archivedAt           DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  category             DocumentCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author               User?                     @relation("DocumentAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  owner                User?                     @relation("DocumentOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  unit                 Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  currentVersion       DocumentVersion?          @relation("CurrentDocumentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions             DocumentVersion[]         @relation("DocumentVersions")
+  attachments          DocumentAttachment[]
+  readReceipts         DocumentReadReceipt[]
+  tags                 DocumentTag[]
+  permissions          DocumentPermission[]
+  revisionHistory      DocumentRevisionHistory[]
+
+  @@index([categoryId, status])
+  @@index([visibility, status])
+  @@index([unitId, status])
+  @@index([authorUserId])
+  @@index([ownerUserId])
+  @@index([publishedAt])
+  @@index([nextReviewAt])
+  @@index([archivedAt])
+}
+
+model DocumentVersion {
+  id                  String                    @id @default(uuid()) @db.VarChar(36)
+  documentId          String                    @db.VarChar(36)
+  versionNumber       Int
+  titleSnapshot       String                    @db.VarChar(191)
+  descriptionSnapshot String?                   @db.Text
+  body                String?                   @db.LongText
+  bodyFormat          String                    @default("markdown") @db.VarChar(50)
+  changeSummary       String?                   @db.VarChar(255)
+  createdByUserId     String?                   @db.VarChar(36)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  document            Document                  @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  currentForDocuments Document[]                @relation("CurrentDocumentVersion")
+  createdBy           User?                     @relation("DocumentVersionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  attachments         DocumentAttachment[]
+  readReceipts        DocumentReadReceipt[]
+  revisionHistory     DocumentRevisionHistory[]
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId, createdAt])
+  @@index([createdByUserId])
+}
+
+model DocumentAttachment {
+  id                String           @id @default(uuid()) @db.VarChar(36)
+  documentId        String           @db.VarChar(36)
+  documentVersionId String?          @db.VarChar(36)
+  label             String           @db.VarChar(160)
+  fileName          String           @db.VarChar(191)
+  mimeType          String           @db.VarChar(120)
+  storageKey        String?          @db.VarChar(255)
+  sourceUrl         String?          @db.VarChar(512)
+  sizeBytes         Int?
+  description       String?          @db.VarChar(255)
+  createdByUserId   String?          @db.VarChar(36)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  document          Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  createdBy         User?            @relation("DocumentAttachmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, createdAt])
+  @@index([documentVersionId])
+  @@index([createdByUserId])
+}
+
+model DocumentReadReceipt {
+  id                String          @id @default(uuid()) @db.VarChar(36)
+  documentId        String          @db.VarChar(36)
+  documentVersionId String          @db.VarChar(36)
+  userId            String          @db.VarChar(36)
+  readAt            DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  user              User            @relation("DocumentReadReceiptUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, documentVersionId, userId])
+  @@index([userId, readAt])
+}
+
+model DocumentTag {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  documentId String   @db.VarChar(36)
+  key        String   @db.VarChar(100)
+  label      String   @db.VarChar(120)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, key])
+  @@index([key])
+}
+
+model DocumentPermission {
+  id            String   @id @default(uuid()) @db.VarChar(36)
+  documentId    String   @db.VarChar(36)
+  permissionKey String   @db.VarChar(150)
+  unitId        String?  @db.VarChar(36)
+  notes         String?  @db.VarChar(255)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  unit          Unit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, permissionKey])
+  @@index([unitId])
+}
+
+model DocumentRevisionHistory {
+  id                String           @id @default(uuid()) @db.VarChar(36)
+  documentId        String           @db.VarChar(36)
+  documentVersionId String?          @db.VarChar(36)
+  actorUserId       String?          @db.VarChar(36)
+  action            String           @db.VarChar(120)
+  summary           String           @db.VarChar(255)
+  oldValue          Json?
+  newValue          Json?
+  metadata          Json?
+  reason            String?          @db.VarChar(255)
+  createdAt         DateTime         @default(now())
+  document          Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  actor             User?            @relation("DocumentRevisionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, createdAt])
+  @@index([documentVersionId])
+  @@index([actorUserId])
+  @@index([action])
+}
+
+model Position {
+  id                        String                     @id @default(uuid()) @db.VarChar(36)
+  key                       String                     @unique @db.VarChar(100)
+  title                     String                     @db.VarChar(120)
+  unitId                    String                     @db.VarChar(36)
+  description               String?                    @db.VarChar(255)
+  sortOrder                 Int                        @default(0)
+  isLeadership              Boolean                    @default(false)
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  unit                      Unit                       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  currentMembers            MemberProfile[]            @relation("CurrentPosition")
+  rosterAssignments         RosterAssignment[]
+  qualificationRequirements QualificationRequirement[] @relation("PositionQualificationRequirements")
+
+  @@unique([unitId, title])
+  @@index([unitId, sortOrder])
+}
+
+model RosterAssignment {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  memberProfileId String        @db.VarChar(36)
+  unitId          String        @db.VarChar(36)
+  positionId      String?       @db.VarChar(36)
+  rankId          String?       @db.VarChar(36)
+  startsAt        DateTime
+  endsAt          DateTime?
+  isPrimary       Boolean       @default(true)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  unit            Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  position        Position?     @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  rank            Rank?         @relation(fields: [rankId], references: [id], onDelete: SetNull)
+
+  @@index([memberProfileId, startsAt])
+  @@index([unitId, endsAt])
+  @@index([positionId])
+  @@index([rankId])
+}
+
+model QualificationCategory {
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  key            String          @unique @db.VarChar(100)
+  label          String          @db.VarChar(120)
+  description    String?         @db.VarChar(255)
+  sortOrder      Int             @default(0)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  qualifications Qualification[]
+}
+
+model Qualification {
+  id                  String                     @id @default(uuid()) @db.VarChar(36)
+  key                 String                     @unique @db.VarChar(100)
+  label               String                     @db.VarChar(120)
+  description         String?                    @db.VarChar(255)
+  categoryId          String                     @db.VarChar(36)
+  expiresAfterDays    Int?
+  isActive            Boolean                    @default(true)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  category            QualificationCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  memberRecords       MemberQualification[]
+  requirements        QualificationRequirement[]
+  discordRoleMappings DiscordRoleMapping[]
+
+  @@index([categoryId, label])
+}
+
+model MemberQualification {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  memberProfileId String        @db.VarChar(36)
+  qualificationId String        @db.VarChar(36)
+  awardedByUserId String?       @db.VarChar(36)
+  status          String        @default("qualified") @db.VarChar(50)
+  awardedAt       DateTime      @default(now())
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Restrict)
+  awardedBy       User?         @relation("QualificationAwardedBy", fields: [awardedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([memberProfileId, qualificationId])
+  @@index([awardedByUserId])
+  @@index([status])
+}
+
+model QualificationRequirement {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  qualificationId String        @db.VarChar(36)
+  unitId          String?       @db.VarChar(36)
+  positionId      String?       @db.VarChar(36)
+  isRequired      Boolean       @default(true)
+  dueWithinDays   Int?
+  notes           String?       @db.VarChar(255)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+  unit            Unit?         @relation("UnitQualificationRequirements", fields: [unitId], references: [id], onDelete: Cascade)
+  position        Position?     @relation("PositionQualificationRequirements", fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([qualificationId])
+  @@index([unitId])
+  @@index([positionId])
+}
+
+model Event {
+  id                       String                        @id @default(uuid()) @db.VarChar(36)
+  campaignId               String?                       @db.VarChar(36)
+  hostUnitId               String?                       @db.VarChar(36)
+  patrolLeaderUserId       String?                       @db.VarChar(36)
+  title                    String                        @db.VarChar(160)
+  description              String?                       @db.Text
+  eventType                String                        @db.VarChar(80)
+  status                   String                        @db.VarChar(50)
+  missionStatus            String                        @default("draft") @db.VarChar(50)
+  deploymentWeek           Int?
+  patrolStatus             String?                       @db.VarChar(50)
+  patrolType               String?                       @db.VarChar(80)
+  patrolCallsign           String?                       @db.VarChar(80)
+  estimatedDurationMinutes Int?
+  missionMakerName         String?                       @db.VarChar(120)
+  zeusName                 String?                       @db.VarChar(120)
+  missionCommanderName     String?                       @db.VarChar(120)
+  operationVersionLabel    String?                       @db.VarChar(120)
+  selectedOperationVersion String?                       @db.VarChar(120)
+  aarRequired              Boolean                       @default(false)
+  aarSubmittedAt           DateTime?
+  startsAt                 DateTime
+  endsAt                   DateTime?
+  publishedAt              DateTime?
+  deletedAt                DateTime?
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  campaign                 Campaign?                     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  hostUnit                 Unit?                         @relation("HostedEvents", fields: [hostUnitId], references: [id], onDelete: SetNull)
+  patrolLeader             User?                         @relation("EventPatrolLeader", fields: [patrolLeaderUserId], references: [id], onDelete: SetNull)
+  attendanceRecords        AttendanceRecord[]
+  patrolParticipants       PatrolParticipant[]
+  patrolRsvps              PatrolRsvp[]
+  pendingDiscordAars       PendingDiscordAarSubmission[]
+  conops                   Conop[]
+  aars                     Aar[]
+  aarAttachments           AarAttachment[]
+  weeklyTasking            WeeklyTasking?
+  resources                DeploymentResource[]
+  operationsReleases       OperationsRelease[]
+
+  @@index([campaignId])
+  @@index([hostUnitId])
+  @@index([patrolLeaderUserId])
+  @@index([startsAt])
+  @@index([status])
+  @@index([missionStatus])
+  @@index([patrolStatus])
+  @@index([eventType, aarRequired])
+}
+
+model PatrolParticipant {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  eventId         String        @db.VarChar(36)
+  memberProfileId String        @db.VarChar(36)
+  addedByUserId   String?       @db.VarChar(36)
+  source          String        @default("manual") @db.VarChar(50)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  addedBy         User?         @relation("PatrolParticipantAddedBy", fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, memberProfileId])
+  @@index([memberProfileId])
+  @@index([addedByUserId])
+}
+
+model PatrolRsvp {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  eventId         String         @db.VarChar(36)
+  userId          String?        @db.VarChar(36)
+  memberProfileId String?        @db.VarChar(36)
+  discordUserId   String?        @db.VarChar(32)
+  status          String         @default("interested") @db.VarChar(50)
+  source          String         @default("portal") @db.VarChar(50)
+  respondedAt     DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User?          @relation("PatrolRsvpUser", fields: [userId], references: [id], onDelete: SetNull)
+  memberProfile   MemberProfile? @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, status])
+  @@index([userId])
+  @@index([memberProfileId])
+  @@index([discordUserId])
+}
+
+model AttendanceRecord {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  eventId          String        @db.VarChar(36)
+  memberProfileId  String        @db.VarChar(36)
+  recordedByUserId String?       @db.VarChar(36)
+  rsvpStatus       String?       @db.VarChar(50)
+  finalStatus      String?       @db.VarChar(50)
+  respondedAt      DateTime?
+  recordedAt       DateTime?
+  lockedAt         DateTime?
+  notes            String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberProfile    MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  recordedBy       User?         @relation("AttendanceRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, memberProfileId])
+  @@index([memberProfileId])
+  @@index([recordedByUserId])
+}
+
+model Campaign {
+  id                      String                     @id @default(uuid()) @db.VarChar(36)
+  key                     String                     @unique @db.VarChar(100)
+  title                   String                     @db.VarChar(160)
+  summary                 String?                    @db.Text
+  status                  String                     @db.VarChar(50)
+  phase                   String?                    @db.VarChar(120)
+  deploymentDurationWeeks Int?
+  createdByUserId         String?                    @db.VarChar(36)
+  zeusUserId              String?                    @db.VarChar(36)
+  zeusAssignmentType      String                     @default("unassigned") @db.VarChar(50)
+  publishedAt             DateTime?
+  startsAt                DateTime?
+  endsAt                  DateTime?
+  archivedAt              DateTime?
+  deletedAt               DateTime?
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  createdBy               User?                      @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  zeus                    User?                      @relation("CampaignZeus", fields: [zeusUserId], references: [id], onDelete: SetNull)
+  events                  Event[]
+  conops                  Conop[]
+  aars                    Aar[]
+  aarAttachments          AarAttachment[]
+  deploymentWeeks         DeploymentWeek[]
+  operationsReleases      OperationsRelease[]
+  zeusAssignmentHistory   DeploymentZeusAssignment[]
+  weeklyTaskings          WeeklyTasking[]
+  resources               DeploymentResource[]
+
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([zeusUserId])
+}
+
+model DeploymentWeek {
+  id                    String              @id @default(uuid()) @db.VarChar(36)
+  campaignId            String              @db.VarChar(36)
+  weekNumber            Int
+  label                 String?             @db.VarChar(120)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  planningStatus        String              @default("planning") @db.VarChar(50)
+  notes                 String?             @db.Text
+  planningNotes         String?             @db.Text
+  operationalObjectives String?             @db.Text
+  planningAssumptions   String?             @db.Text
+  friendlySituation     String?             @db.Text
+  enemySituation        String?             @db.Text
+  intelligenceSummary   String?             @db.Text
+  logistics             String?             @db.Text
+  weather               String?             @db.VarChar(255)
+  specialInstructions   String?             @db.Text
+  operationalNotes      String?             @db.Text
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  campaign              Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  operationsReleases    OperationsRelease[]
+
+  @@unique([campaignId, weekNumber])
+  @@index([campaignId])
+  @@index([planningStatus])
+}
+
+model OperationsRelease {
+  id                  String         @id @default(uuid()) @db.VarChar(36)
+  campaignId          String         @db.VarChar(36)
+  deploymentWeekId    String         @db.VarChar(36)
+  eventId             String?        @db.VarChar(36)
+  weekNumber          Int
+  releaseVersion      String         @db.VarChar(32)
+  status              String         @db.VarChar(50)
+  releaseNotes        String?        @db.Text
+  amendmentSummary    String?        @db.Text
+  packageSnapshot     Json
+  publishedByUserId   String?        @db.VarChar(36)
+  approvedByUserId    String?        @db.VarChar(36)
+  scheduledFor        DateTime?
+  publishedAt         DateTime?
+  supersededAt        DateTime?
+  archivedAt          DateTime?
+  discordMessageId    String?        @db.VarChar(191)
+  discordChannelId    String?        @db.VarChar(32)
+  discordDeliveryId   String?        @db.VarChar(36)
+  discordStatus       String         @default("not-sent") @db.VarChar(50)
+  discordErrorMessage String?        @db.VarChar(255)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  campaign            Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  deploymentWeek      DeploymentWeek @relation(fields: [deploymentWeekId], references: [id], onDelete: Cascade)
+  event               Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  publishedBy         User?          @relation("OperationsReleasePublishedBy", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  approvedBy          User?          @relation("OperationsReleaseApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, weekNumber, releaseVersion])
+  @@index([campaignId, weekNumber, status])
+  @@index([deploymentWeekId, status])
+  @@index([eventId])
+  @@index([publishedByUserId])
+  @@index([publishedAt])
+}
+
+model DeploymentZeusAssignment {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  campaignId       String   @db.VarChar(36)
+  assignedToUserId String?  @db.VarChar(36)
+  changedByUserId  String?  @db.VarChar(36)
+  assignmentType   String   @db.VarChar(50)
+  previousType     String?  @db.VarChar(50)
+  previousUserId   String?  @db.VarChar(36)
+  reason           String?  @db.Text
+  effectiveAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+  campaign         Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  assignedTo       User?    @relation("DeploymentZeusAssignmentAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  changedBy        User?    @relation("DeploymentZeusAssignmentChangedBy", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, effectiveAt])
+  @@index([assignedToUserId])
+  @@index([changedByUserId])
+}
+
+model DeploymentResource {
+  id           String                      @id @default(uuid()) @db.VarChar(36)
+  campaignId   String                      @db.VarChar(36)
+  eventId      String?                     @db.VarChar(36)
+  resourceType String                      @db.VarChar(60)
+  displayName  String                      @db.VarChar(160)
+  description  String?                     @db.Text
+  visibility   String                      @default("members") @db.VarChar(50)
+  displayOrder Int                         @default(0)
+  isArchived   Boolean                     @default(false)
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  campaign     Campaign                    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  event        Event?                      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  versions     DeploymentResourceVersion[]
+
+  @@index([campaignId, resourceType])
+  @@index([eventId, resourceType])
+  @@index([visibility, isArchived])
+}
+
+model DeploymentResourceVersion {
+  id               String             @id @default(uuid()) @db.VarChar(36)
+  resourceId       String             @db.VarChar(36)
+  versionNumber    Int
+  sourceType       String             @db.VarChar(20)
+  url              String?            @db.VarChar(1024)
+  storageKey       String?            @db.VarChar(512)
+  originalFileName String?            @db.VarChar(255)
+  mimeType         String?            @db.VarChar(120)
+  fileSizeBytes    Int?
+  checksum         String?            @db.VarChar(128)
+  parsedName       String?            @db.VarChar(160)
+  parsedModCount   Int?
+  parsedMetadata   Json?
+  uploadedByUserId String?            @db.VarChar(36)
+  uploadedAt       DateTime           @default(now())
+  isCurrent        Boolean            @default(false)
+  archivedAt       DateTime?
+  changeNote       String?            @db.Text
+  resource         DeploymentResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  uploadedBy       User?              @relation("DeploymentResourceVersionUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([resourceId, versionNumber])
+  @@index([resourceId, isCurrent])
+  @@index([uploadedByUserId])
+  @@index([uploadedAt])
+}
+
+model WeeklyTasking {
+  id                  String        @id @default(uuid()) @db.VarChar(36)
+  campaignId          String?       @db.VarChar(36)
+  eventId             String        @unique @db.VarChar(36)
+  weekNumber          Int
+  operationalSummary  String?       @db.Text
+  commandersIntent    String?       @db.Text
+  friendlySituation   String?       @db.Text
+  enemySituation      String?       @db.Text
+  intelligenceSummary String?       @db.Text
+  logisticsNotes      String?       @db.Text
+  weather             String?       @db.VarChar(255)
+  specialInstructions String?       @db.Text
+  operationalNotes    String?       @db.Text
+  timeline            String?       @db.Text
+  publishStatus       String        @default("draft") @db.VarChar(50)
+  sentAt              DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  campaign            Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  event               Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  unitTaskings        UnitTasking[]
+
+  @@index([campaignId, weekNumber])
+  @@index([publishStatus])
+}
+
+model UnitTasking {
+  id                  String        @id @default(uuid()) @db.VarChar(36)
+  weeklyTaskingId     String        @db.VarChar(36)
+  unitId              String        @db.VarChar(36)
+  primaryObjective    String?       @db.Text
+  secondaryObjective  String?       @db.Text
+  specialEquipment    String?       @db.Text
+  specialInstructions String?       @db.Text
+  supportingAssets    String?       @db.Text
+  optionalAttachments Json?
+  unitNotes           String?       @db.Text
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  weeklyTasking       WeeklyTasking @relation(fields: [weeklyTaskingId], references: [id], onDelete: Cascade)
+  unit                Unit          @relation("UnitTaskingUnit", fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([weeklyTaskingId, unitId])
+  @@index([unitId])
+}
+
+model Conop {
+  id                        String    @id @default(uuid()) @db.VarChar(36)
+  eventId                   String?   @db.VarChar(36)
+  campaignId                String?   @db.VarChar(36)
+  title                     String    @db.VarChar(160)
+  status                    String    @db.VarChar(50)
+  situation                 String?   @db.Text
+  mission                   String?   @db.Text
+  execution                 String?   @db.Text
+  sustainment               String?   @db.Text
+  commandSignal             String?   @db.Text
+  mapName                   String?   @db.VarChar(120)
+  modPreset                 String?   @db.VarChar(120)
+  participatingUnitsSummary String?   @db.VarChar(255)
+  missionMakerName          String?   @db.VarChar(120)
+  zeusName                  String?   @db.VarChar(120)
+  missionCommanderName      String?   @db.VarChar(120)
+  specialInstructions       String?   @db.Text
+  publishedAt               DateTime?
+  deletedAt                 DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  event                     Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  campaign                  Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([campaignId])
+  @@index([status])
+}
+
+model Aar {
+  id                           String                        @id @default(uuid()) @db.VarChar(36)
+  eventId                      String?                       @db.VarChar(36)
+  campaignId                   String?                       @db.VarChar(36)
+  submittedByUserId            String?                       @db.VarChar(36)
+  reviewedByUserId             String?                       @db.VarChar(36)
+  title                        String                        @db.VarChar(160)
+  status                       String                        @db.VarChar(50)
+  patrolLeaderName             String?                       @db.VarChar(120)
+  summary                      String?                       @db.Text
+  wentWell                     String?                       @db.Text
+  needsImprovement             String?                       @db.Text
+  friendlyCasualties           String?                       @db.Text
+  enemyCasualties              String?                       @db.Text
+  equipmentLosses              String?                       @db.Text
+  additionalNotes              String?                       @db.Text
+  actionItems                  String?                       @db.Text
+  dtg                          String?                       @db.VarChar(80)
+  tasking                      String?                       @db.Text
+  callsigns                    String?                       @db.Text
+  fkia                         String?                       @db.VarChar(80)
+  fwia                         String?                       @db.VarChar(80)
+  fmia                         String?                       @db.VarChar(80)
+  ekia                         String?                       @db.VarChar(80)
+  report                       String?                       @db.Text
+  aarProgressionRecommendation String?                       @db.Text
+  aarNextVersionRecommendation String?                       @db.VarChar(160)
+  aarProgressionDecision       String?                       @db.VarChar(120)
+  aarProgressionNotes          String?                       @db.Text
+  aarEnemyActivityNotes        String?                       @db.Text
+  aarFriendlyActivityNotes     String?                       @db.Text
+  aarUnitPerformanceNotes      String?                       @db.Text
+  aarTaskingAdjustments        String?                       @db.Text
+  aarPlanningNotesNextWeek     String?                       @db.Text
+  aarLessonsLearned            String?                       @db.Text
+  submittedAt                  DateTime?
+  reviewedAt                   DateTime?
+  deletedAt                    DateTime?
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  event                        Event?                        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  campaign                     Campaign?                     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  submittedBy                  User?                         @relation("AarSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  reviewedBy                   User?                         @relation("AarReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  attachments                  AarAttachment[]
+  pendingDiscordSubmissions    PendingDiscordAarSubmission[]
+
+  @@index([eventId])
+  @@index([campaignId])
+  @@index([submittedByUserId])
+  @@index([reviewedByUserId])
+  @@index([status])
+}
+
+model AarAttachment {
+  id               String    @id @default(uuid()) @db.VarChar(36)
+  aarId            String    @db.VarChar(36)
+  campaignId       String?   @db.VarChar(36)
+  eventId          String?   @db.VarChar(36)
+  uploadedByUserId String?   @db.VarChar(36)
+  attachmentType   String    @db.VarChar(50)
+  label            String    @db.VarChar(160)
+  fileName         String    @db.VarChar(191)
+  mimeType         String    @db.VarChar(120)
+  storageKey       String    @db.VarChar(512)
+  fileSizeBytes    Int?
+  deploymentWeek   Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  aar              Aar       @relation(fields: [aarId], references: [id], onDelete: Cascade)
+  campaign         Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  event            Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  uploadedBy       User?     @relation("AarAttachmentUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([aarId, attachmentType])
+  @@index([campaignId, deploymentWeek])
+  @@index([eventId])
+  @@index([uploadedByUserId])
+}
+
+model PendingDiscordAarSubmission {
+  id                String    @id @default(uuid()) @db.VarChar(36)
+  eventId           String    @db.VarChar(36)
+  aarId             String?   @db.VarChar(36)
+  submittedByUserId String?   @db.VarChar(36)
+  discordUserId     String    @db.VarChar(32)
+  channelId         String?   @db.VarChar(32)
+  interactionId     String?   @db.VarChar(32)
+  status            String    @default("awaiting-screenshot") @db.VarChar(50)
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  event             Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  aar               Aar?      @relation(fields: [aarId], references: [id], onDelete: SetNull)
+  submittedBy       User?     @relation("PendingDiscordAarSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, status])
+  @@index([aarId])
+  @@index([discordUserId, status])
+}
+
+model FormTemplate {
+  id              String           @id @default(uuid()) @db.VarChar(36)
+  key             String           @unique @db.VarChar(120)
+  title           String           @db.VarChar(160)
+  description     String?          @db.Text
+  formType        String           @db.VarChar(80)
+  targetUnitId    String?          @db.VarChar(36)
+  createdByUserId String?          @db.VarChar(36)
+  isEnabled       Boolean          @default(true)
+  archivedAt      DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  targetUnit      Unit?            @relation("FormTemplateTargetUnit", fields: [targetUnitId], references: [id], onDelete: SetNull)
+  createdBy       User?            @relation("FormTemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  fields          FormField[]
+  submissions     FormSubmission[]
+  approvalSteps   ApprovalStep[]
+
+  @@index([formType, isEnabled])
+  @@index([targetUnitId, isEnabled])
+  @@index([createdByUserId])
+}
+
+model FormField {
+  id           String                 @id @default(uuid()) @db.VarChar(36)
+  templateId   String                 @db.VarChar(36)
+  key          String                 @db.VarChar(120)
+  label        String                 @db.VarChar(160)
+  description  String?                @db.VarChar(255)
+  fieldType    String                 @db.VarChar(80)
+  placeholder  String?                @db.VarChar(191)
+  helpText     String?                @db.VarChar(255)
+  options      Json?
+  defaultValue Json?
+  isRequired   Boolean                @default(false)
+  isEnabled    Boolean                @default(true)
+  sortOrder    Int                    @default(0)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  template     FormTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answers      FormSubmissionAnswer[]
+
+  @@unique([templateId, key])
+  @@index([templateId, sortOrder])
+}
+
+model SubmissionStatus {
+  id          String             @id @default(uuid()) @db.VarChar(36)
+  key         String             @unique @db.VarChar(80)
+  label       String             @db.VarChar(120)
+  description String?            @db.VarChar(255)
+  sortOrder   Int                @default(0)
+  isDefault   Boolean            @default(false)
+  isTerminal  Boolean            @default(false)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  submissions FormSubmission[]   @relation("CurrentSubmissionStatus")
+  previousFor ApprovalDecision[] @relation("ApprovalDecisionPreviousStatus")
+  nextFor     ApprovalDecision[] @relation("ApprovalDecisionNextStatus")
+
+  @@index([sortOrder, isActive])
+}
+
+model FormSubmission {
+  id                    String                 @id @default(uuid()) @db.VarChar(36)
+  templateId            String                 @db.VarChar(36)
+  submissionStatusId    String                 @db.VarChar(36)
+  submittedByUserId     String?                @db.VarChar(36)
+  targetUnitId          String?                @db.VarChar(36)
+  reviewerUserId        String?                @db.VarChar(36)
+  currentApprovalStepId String?                @db.VarChar(36)
+  titleSnapshot         String                 @db.VarChar(160)
+  descriptionSnapshot   String?                @db.Text
+  submittedAt           DateTime?
+  reviewedAt            DateTime?
+  archivedAt            DateTime?
+  withdrawnAt           DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  template              FormTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  status                SubmissionStatus       @relation("CurrentSubmissionStatus", fields: [submissionStatusId], references: [id], onDelete: Restrict)
+  submittedBy           User?                  @relation("FormSubmissionSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  targetUnit            Unit?                  @relation("FormSubmissionTargetUnit", fields: [targetUnitId], references: [id], onDelete: SetNull)
+  reviewer              User?                  @relation("FormSubmissionReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  currentApprovalStep   ApprovalStep?          @relation("CurrentApprovalStep", fields: [currentApprovalStepId], references: [id], onDelete: SetNull)
+  answers               FormSubmissionAnswer[]
+  comments              SubmissionComment[]
+  decisions             ApprovalDecision[]
+
+  @@index([templateId, submissionStatusId])
+  @@index([submittedByUserId, createdAt])
+  @@index([reviewerUserId, createdAt])
+  @@index([targetUnitId, createdAt])
+  @@index([currentApprovalStepId])
+}
+
+model FormSubmissionAnswer {
+  id                 String         @id @default(uuid()) @db.VarChar(36)
+  submissionId       String         @db.VarChar(36)
+  fieldId            String?        @db.VarChar(36)
+  fieldKeySnapshot   String         @db.VarChar(120)
+  fieldLabelSnapshot String         @db.VarChar(160)
+  valueJson          Json?
+  valueText          String?        @db.Text
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  submission         FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field              FormField?     @relation(fields: [fieldId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId])
+  @@index([fieldId])
+}
+
+model SubmissionComment {
+  id           String         @id @default(uuid()) @db.VarChar(36)
+  submissionId String         @db.VarChar(36)
+  authorUserId String?        @db.VarChar(36)
+  body         String         @db.Text
+  isInternal   Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  submission   FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  author       User?          @relation("FormSubmissionCommentAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId, createdAt])
+  @@index([authorUserId])
+}
+
+model ApprovalStep {
+  id                    String             @id @default(uuid()) @db.VarChar(36)
+  templateId            String             @db.VarChar(36)
+  roleId                String?            @db.VarChar(36)
+  stepKey               String             @db.VarChar(120)
+  title                 String             @db.VarChar(160)
+  description           String?            @db.VarChar(255)
+  sortOrder             Int                @default(0)
+  reviewerPermissionKey String?            @db.VarChar(150)
+  reviewerUnitMode      String             @default("none") @db.VarChar(50)
+  isRequired            Boolean            @default(true)
+  isActive              Boolean            @default(true)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  template              FormTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  targetRole            Role?              @relation("ApprovalStepTargetRole", fields: [roleId], references: [id], onDelete: SetNull)
+  currentSubmissions    FormSubmission[]   @relation("CurrentApprovalStep")
+  decisions             ApprovalDecision[]
+
+  @@unique([templateId, stepKey])
+  @@index([templateId, sortOrder])
+  @@index([roleId])
+}
+
+model ApprovalDecision {
+  id               String            @id @default(uuid()) @db.VarChar(36)
+  submissionId     String            @db.VarChar(36)
+  approvalStepId   String?           @db.VarChar(36)
+  decidedByUserId  String?           @db.VarChar(36)
+  decision         String            @db.VarChar(50)
+  comment          String?           @db.Text
+  previousStatusId String?           @db.VarChar(36)
+  nextStatusId     String?           @db.VarChar(36)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  submission       FormSubmission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  approvalStep     ApprovalStep?     @relation(fields: [approvalStepId], references: [id], onDelete: SetNull)
+  decidedBy        User?             @relation("ApprovalDecisionActor", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  previousStatus   SubmissionStatus? @relation("ApprovalDecisionPreviousStatus", fields: [previousStatusId], references: [id], onDelete: SetNull)
+  nextStatus       SubmissionStatus? @relation("ApprovalDecisionNextStatus", fields: [nextStatusId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId, createdAt])
+  @@index([approvalStepId])
+  @@index([decidedByUserId])
+}
+
+model WorkflowTemplate {
+  id                    String                 @id @default(uuid()) @db.VarChar(36)
+  key                   String                 @unique @db.VarChar(120)
+  name                  String                 @db.VarChar(160)
+  description           String?                @db.Text
+  triggerType           String                 @db.VarChar(80)
+  formType              String?                @db.VarChar(80)
+  reviewerPermissionKey String?                @db.VarChar(150)
+  reviewerUnitMode      String                 @default("none") @db.VarChar(50)
+  statusTransitionMap   Json?
+  notificationHooks     Json?
+  isEnabled             Boolean                @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  steps                 WorkflowTemplateStep[]
+
+  @@index([triggerType, isEnabled])
+  @@index([formType])
+}
+
+model WorkflowTemplateStep {
+  id                    String           @id @default(uuid()) @db.VarChar(36)
+  workflowTemplateId    String           @db.VarChar(36)
+  stepKey               String           @db.VarChar(120)
+  title                 String           @db.VarChar(160)
+  description           String?          @db.VarChar(255)
+  sortOrder             Int              @default(0)
+  reviewerPermissionKey String?          @db.VarChar(150)
+  reviewerUnitMode      String           @default("none") @db.VarChar(50)
+  isRequired            Boolean          @default(true)
+  isActive              Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  workflowTemplate      WorkflowTemplate @relation(fields: [workflowTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowTemplateId, stepKey])
+  @@index([workflowTemplateId, sortOrder])
+}
+
+model AutomationRule {
+  id            String    @id @default(uuid()) @db.VarChar(36)
+  key           String    @unique @db.VarChar(120)
+  name          String    @db.VarChar(160)
+  description   String?   @db.Text
+  triggerType   String    @db.VarChar(80)
+  conditions    Json?
+  actions       Json?
+  isEnabled     Boolean   @default(false)
+  lastRunStatus String?   @db.VarChar(50)
+  lastRunAt     DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([triggerType, isEnabled])
+  @@index([lastRunStatus])
+}
+
+model DashboardLayout {
+  id                  String                     @id @default(uuid()) @db.VarChar(36)
+  key                 String                     @unique @db.VarChar(120)
+  name                String                     @db.VarChar(160)
+  description         String?                    @db.Text
+  dashboardType       String                     @db.VarChar(80)
+  targetPermissionKey String?                    @db.VarChar(150)
+  isUnitScoped        Boolean                    @default(false)
+  isEnabled           Boolean                    @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  widgets             DashboardWidgetPlacement[]
+
+  @@index([dashboardType, isEnabled])
+  @@index([targetPermissionKey])
+}
+
+model DashboardWidgetPlacement {
+  id                    String          @id @default(uuid()) @db.VarChar(36)
+  dashboardLayoutId     String          @db.VarChar(36)
+  widgetKey             String          @db.VarChar(120)
+  title                 String?         @db.VarChar(160)
+  sortOrder             Int             @default(0)
+  isVisible             Boolean         @default(true)
+  requiredPermissionKey String?         @db.VarChar(150)
+  config                Json?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  dashboardLayout       DashboardLayout @relation(fields: [dashboardLayoutId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardLayoutId, sortOrder])
+  @@index([widgetKey])
+}
+
+model Notification {
+  id              String                 @id @default(uuid()) @db.VarChar(36)
+  createdByUserId String?                @db.VarChar(36)
+  targetUnitId    String?                @db.VarChar(36)
+  type            String                 @db.VarChar(80)
+  urgency         String                 @default("info") @db.VarChar(32)
+  title           String                 @db.VarChar(160)
+  message         String                 @db.Text
+  actionUrl       String?                @db.VarChar(512)
+  metadata        Json?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  createdBy       User?                  @relation("NotificationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  targetUnit      Unit?                  @relation("NotificationTargetUnit", fields: [targetUnitId], references: [id], onDelete: SetNull)
+  deliveries      NotificationDelivery[]
+
+  @@index([createdByUserId])
+  @@index([targetUnitId])
+  @@index([type])
+  @@index([urgency])
+  @@index([createdAt])
+}
+
+model NotificationDelivery {
+  id                      String                 @id @default(uuid()) @db.VarChar(36)
+  notificationId          String                 @db.VarChar(36)
+  discordChannelMappingId String?                @db.VarChar(36)
+  recipientUserId         String?                @db.VarChar(36)
+  channelType             String                 @db.VarChar(50)
+  destinationKey          String                 @db.VarChar(160)
+  status                  String                 @db.VarChar(50)
+  providerMessageId       String?                @db.VarChar(191)
+  errorMessage            String?                @db.VarChar(255)
+  retryCount              Int                    @default(0)
+  readAt                  DateTime?
+  clearedAt               DateTime?
+  lastAttemptAt           DateTime?
+  deliveredAt             DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  notification            Notification           @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  discordChannelMapping   DiscordChannelMapping? @relation(fields: [discordChannelMappingId], references: [id], onDelete: SetNull)
+  recipientUser           User?                  @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+
+  @@index([notificationId])
+  @@index([discordChannelMappingId])
+  @@index([recipientUserId])
+  @@index([channelType, status])
+  @@index([recipientUserId, channelType, readAt])
+  @@index([recipientUserId, channelType, clearedAt])
+  @@index([status])
+}
+
+model DiscordServer {
+  id                String                    @id @default(uuid()) @db.VarChar(36)
+  unitId            String?                   @db.VarChar(36)
+  guildId           String                    @unique @db.VarChar(32)
+  name              String                    @db.VarChar(120)
+  isPrimary         Boolean                   @default(false)
+  isActive          Boolean                   @default(true)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  unit              Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  channelMappings   DiscordChannelMapping[]
+  roleMappings      DiscordRoleMapping[]
+  memberStates      DiscordGuildMemberState[]
+  syncLogs          DiscordSyncLog[]
+  moderationActions DiscordModerationAction[]
+
+  @@index([unitId])
+}
+
+model DiscordChannelMapping {
+  id                     String                 @id @default(uuid()) @db.VarChar(36)
+  discordServerId        String                 @db.VarChar(36)
+  key                    String                 @db.VarChar(100)
+  channelId              String                 @db.VarChar(32)
+  description            String?                @db.VarChar(255)
+  isActive               Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  discordServer          DiscordServer          @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  notificationDeliveries NotificationDelivery[]
+
+  @@unique([discordServerId, key])
+  @@unique([discordServerId, channelId])
+  @@index([discordServerId])
+}
+
+model DiscordRoleMapping {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId String         @db.VarChar(36)
+  mappingType     String         @db.VarChar(50)
+  discordRoleId   String         @db.VarChar(32)
+  discordRoleName String?        @db.VarChar(120)
+  unitId          String?        @db.VarChar(36)
+  qualificationId String?        @db.VarChar(36)
+  roleId          String?        @db.VarChar(36)
+  rankId          String?        @db.VarChar(36)
+  description     String?        @db.VarChar(255)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  discordServer   DiscordServer  @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  unit            Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  qualification   Qualification? @relation(fields: [qualificationId], references: [id], onDelete: SetNull)
+  role            Role?          @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  rank            Rank?          @relation(fields: [rankId], references: [id], onDelete: SetNull)
+
+  @@unique([discordServerId, discordRoleId])
+  @@index([discordServerId, mappingType])
+  @@index([unitId])
+  @@index([qualificationId])
+  @@index([roleId])
+  @@index([rankId])
+  @@index([isActive])
+}
+
+model DiscordMemberLink {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  userId          String         @db.VarChar(36)
+  memberProfileId String?        @db.VarChar(36)
+  discordUserId   String         @unique @db.VarChar(32)
+  username        String?        @db.VarChar(120)
+  displayName     String?        @db.VarChar(120)
+  avatarUrl       String?        @db.VarChar(512)
+  primaryGuildId  String?        @db.VarChar(32)
+  firstSeenAt     DateTime       @default(now())
+  lastSeenAt      DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation("DiscordMemberLinkUser", fields: [userId], references: [id], onDelete: Cascade)
+  memberProfile   MemberProfile? @relation("DiscordMemberLinkProfile", fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([memberProfileId])
+  @@index([primaryGuildId])
+  @@index([lastSeenAt])
+}
+
+model DiscordGuildMemberState {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId String         @db.VarChar(36)
+  guildId         String         @db.VarChar(32)
+  discordUserId   String         @db.VarChar(32)
+  userId          String?        @db.VarChar(36)
+  memberProfileId String?        @db.VarChar(36)
+  username        String?        @db.VarChar(120)
+  displayName     String?        @db.VarChar(120)
+  avatarUrl       String?        @db.VarChar(512)
+  joinedAt        DateTime?
+  leftAt          DateTime?
+  isBot           Boolean        @default(false)
+  syncStatus      String         @default("present") @db.VarChar(50)
+  lastSyncedAt    DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  discordServer   DiscordServer  @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  user            User?          @relation("DiscordGuildMemberStateUser", fields: [userId], references: [id], onDelete: SetNull)
+  memberProfile   MemberProfile? @relation("DiscordGuildMemberStateProfile", fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@unique([discordServerId, discordUserId])
+  @@index([guildId])
+  @@index([discordUserId])
+  @@index([userId])
+  @@index([memberProfileId])
+  @@index([syncStatus])
+  @@index([lastSyncedAt])
+}
+
+model DiscordSyncLog {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId String?        @db.VarChar(36)
+  actorUserId     String?        @db.VarChar(36)
+  syncType        String         @db.VarChar(50)
+  status          String         @db.VarChar(50)
+  scannedCount    Int            @default(0)
+  importedCount   Int            @default(0)
+  updatedCount    Int            @default(0)
+  leftCount       Int            @default(0)
+  skippedBotCount Int            @default(0)
+  errorMessage    String?        @db.VarChar(255)
+  metadata        Json?
+  startedAt       DateTime       @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  discordServer   DiscordServer? @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+  actor           User?          @relation("DiscordSyncLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId])
+  @@index([actorUserId])
+  @@index([syncType, status])
+  @@index([startedAt])
+}
+
+model DiscordInteractionSession {
+  id                String         @id @default(uuid()) @db.VarChar(36)
+  discordUserId     String         @db.VarChar(32)
+  portalUserId      String?        @db.VarChar(36)
+  memberProfileId   String?        @db.VarChar(36)
+  guildId           String?        @db.VarChar(32)
+  channelId         String?        @db.VarChar(32)
+  commandName       String         @db.VarChar(100)
+  workflowType      String         @db.VarChar(80)
+  currentStep       String         @db.VarChar(100)
+  status            String         @default("ACTIVE") @db.VarChar(40)
+  temporaryPayload  Json?
+  relatedEntityType String?        @db.VarChar(120)
+  relatedEntityId   String?        @db.VarChar(100)
+  expiresAt         DateTime
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  portalUser        User?          @relation("DiscordInteractionSessionUser", fields: [portalUserId], references: [id], onDelete: SetNull)
+  memberProfile     MemberProfile? @relation("DiscordInteractionSessionProfile", fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([discordUserId, status, workflowType])
+  @@index([portalUserId, status])
+  @@index([memberProfileId])
+  @@index([guildId, channelId])
+  @@index([status, expiresAt])
+  @@index([relatedEntityType, relatedEntityId])
+}
+
+model DiscordModerationAction {
+  id                    String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId       String         @db.VarChar(36)
+  moderatorUserId       String?        @db.VarChar(36)
+  targetUserId          String?        @db.VarChar(36)
+  targetMemberProfileId String?        @db.VarChar(36)
+  targetDiscordUserId   String         @db.VarChar(32)
+  action                String         @db.VarChar(50)
+  reason                String         @db.VarChar(255)
+  result                String         @db.VarChar(50)
+  errorMessage          String?        @db.VarChar(255)
+  providerActionId      String?        @db.VarChar(191)
+  metadata              Json?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  discordServer         DiscordServer  @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  moderator             User?          @relation("DiscordModerationModerator", fields: [moderatorUserId], references: [id], onDelete: SetNull)
+  targetUser            User?          @relation("DiscordModerationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetMemberProfile   MemberProfile? @relation("DiscordModerationTargetProfile", fields: [targetMemberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId])
+  @@index([moderatorUserId])
+  @@index([targetUserId])
+  @@index([targetMemberProfileId])
+  @@index([targetDiscordUserId])
+  @@index([action, result])
+  @@index([createdAt])
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.VarChar(36)
+  key             String           @unique @db.VarChar(150)
+  label           String           @db.VarChar(120)
+  description     String?          @db.VarChar(255)
+  module          String           @db.VarChar(50)
+  category        String           @db.VarChar(80)
+  isSystem        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@index([module, category])
+}
+
+model Role {
+  id                  String               @id @default(uuid()) @db.VarChar(36)
+  name                String               @unique @db.VarChar(100)
+  label               String               @db.VarChar(120)
+  description         String?              @db.VarChar(255)
+  isSystem            Boolean              @default(false)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  rolePermissions     RolePermission[]
+  userRoles           UserRole[]
+  approvalSteps       ApprovalStep[]       @relation("ApprovalStepTargetRole")
+  discordRoleMappings DiscordRoleMapping[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.VarChar(36)
+  roleId       String     @db.VarChar(36)
+  permissionId String     @db.VarChar(36)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  userId    String    @db.VarChar(36)
+  roleId    String    @db.VarChar(36)
+  unitId    String?   @db.VarChar(36)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  unit      Unit?     @relation("ScopedUnitRoles", fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([unitId])
+  @@index([startsAt, endsAt, isActive])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  actorUserId String?  @db.VarChar(36)
+  action      String   @db.VarChar(120)
+  entityType  String   @db.VarChar(120)
+  entityId    String?  @db.VarChar(100)
+  summary     String   @db.VarChar(255)
+  oldValue    Json?
+  newValue    Json?
+  metadata    Json?
+  reason      String?  @db.VarChar(255)
+  ipAddress   String?  @db.VarChar(64)
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

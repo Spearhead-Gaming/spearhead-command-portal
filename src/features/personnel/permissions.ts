@@ -1,0 +1,32 @@
+export const personnelPermissions = {
+  membersList: ["personnel.profile.view", "personnel.profile.create"],
+  memberProfile: [
+    "personnel.profile.view",
+    "personnel.profile.edit",
+    "personnel.profile.service_record.view",
+    "personnel.profile.service_record.edit",
+    "roster.rank.change",
+    "roster.unit.assign",
+    "roster.position.assign",
+    "personnel.profile.notes.view",
+    "personnel.profile.notes.create",
+    "personnel.profile.logs.view",
+    "audit.view",
+  ],
+  roster: [
+    "roster.member.view",
+    "roster.member.edit",
+    "roster.rank.change",
+    "roster.unit.assign",
+    "roster.position.assign",
+    "roster.status.change",
+    "roster.bulk_update",
+  ],
+  qualifications: [
+    "qualifications.view",
+    "qualifications.create",
+    "qualifications.edit",
+    "qualifications.archive",
+    "qualifications.categories.manage",
+  ],
+} as const;

@@ -1,0 +1,35 @@
+=dev-bootstrap-test-secret-1234567890 : The term '=dev-bootstrap-test-secret-1234567890' is not recognized as the name 
+of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, 
+verify that the path is correct and try again.
+At line:1 char:1
++ ='dev-bootstrap-test-secret-1234567890'; ='http://127.0.0.1:3001'; =' ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=dev-bootstrap-test-secret-1234567890:String) [], CommandNotFoundExcept 
+   ion
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=http://127.0.0.1:3001 : The term '=http://127.0.0.1:3001' is not recognized as the name of a cmdlet, function, script 
+file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct 
+and try again.
+At line:1 char:42
++ ... v-bootstrap-test-secret-1234567890'; ='http://127.0.0.1:3001'; ='true ...
++                                          ~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=http://127.0.0.1:3001:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=true : The term '=true' is not recognized as the name of a cmdlet, function, script file, or operable program. Check 
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:68
++ ... ap-test-secret-1234567890'; ='http://127.0.0.1:3001'; ='true'; npm.cm ...
++                                                           ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=true:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          70152
+- Dir:          G:\Github Repos\spearhead-command-portal
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 70152 /F to stop it.
