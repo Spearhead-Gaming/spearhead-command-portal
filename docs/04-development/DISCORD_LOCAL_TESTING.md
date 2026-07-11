@@ -13,13 +13,13 @@ Implemented:
 - Slash command, button, and modal routing.
 - Discord message delivery through REST when portal workflows post messages.
 
-Not currently implemented:
+Optional real-time layer:
 
-- Long-running Discord gateway bot worker.
-- `discord.js` client process.
-- Presence/online status through a local gateway process.
+- `npm run dev:gateway` starts the Discord Gateway worker when `DISCORD_GATEWAY_ENABLED=true`.
+- The Gateway worker consumes guild/member/voice/message events for portal services.
+- Slash commands, buttons, and modals still use the interaction webhook and do not move to the Gateway worker.
 
-Because there is no gateway worker, the bot may appear offline while slash commands still work. Slash commands are delivered to the interaction webhook configured in the Discord Developer Portal.
+If the Gateway worker is not running, the bot may appear offline while slash commands still work. Slash commands are delivered to the interaction webhook configured in the Discord Developer Portal.
 
 ## Required Environment
 
@@ -36,6 +36,10 @@ DISCORD_DEV_GUILD_ID=
 DISCORD_INTERACTIONS_URL=https://your-tunnel.example.com/api/discord/interactions
 DISCORD_INTERACTION_SESSION_TTL_MINUTES=15
 SYNC_DISCORD_BOTS=false
+DISCORD_GATEWAY_ENABLED=false
+DISCORD_GATEWAY_INTENTS=Guilds,GuildMembers,GuildVoiceStates
+DISCORD_GATEWAY_SHARD_COUNT=1
+DISCORD_PRIMARY_GUILD_ID=
 ```
 
 Notes:
@@ -49,6 +53,10 @@ Notes:
 - `DISCORD_INTERACTION_SESSION_TTL_MINUTES` controls short-lived modal/upload session expiration. The default is 15 minutes.
 - `SYNC_DISCORD_BOTS=false` keeps bot accounts out of portal users, profiles,
   roster statistics, readiness, attendance, and qualification data.
+- `DISCORD_GATEWAY_ENABLED=false` keeps the long-running Gateway worker disabled
+  by default. Enable it only when testing real-time guild events.
+- `DISCORD_GATEWAY_INTENTS` should stay minimal. `MessageContent` is not required
+  for slash commands, RSVP buttons, or attachment-option uploads.
 
 ## Local Startup
 
@@ -58,7 +66,14 @@ Notes:
 npm run dev
 ```
 
-2. Start a public HTTPS tunnel to local port 3000.
+2. Optional: start the Gateway worker in a second terminal when testing real-time
+   guild/member/voice events:
+
+```powershell
+npm run dev:gateway
+```
+
+3. Start a public HTTPS tunnel to local port 3000.
 
 Ngrok example:
 
@@ -72,7 +87,7 @@ Cloudflare Tunnel example:
 cloudflared tunnel --url http://localhost:3000
 ```
 
-3. Set:
+4. Set:
 
 ```text
 DISCORD_INTERACTIONS_URL=https://your-tunnel.example.com/api/discord/interactions
@@ -80,7 +95,7 @@ NEXT_PUBLIC_APP_URL=https://your-tunnel.example.com
 AUTH_URL=https://your-tunnel.example.com
 ```
 
-4. In Discord Developer Portal, set Interactions Endpoint URL to:
+5. In Discord Developer Portal, set Interactions Endpoint URL to:
 
 ```text
 https://your-tunnel.example.com/api/discord/interactions
@@ -150,6 +165,12 @@ npm run discord:commands:clear:guild
 ```
 
 The clear command only clears guild commands. It does not clear global commands.
+
+Check Gateway health:
+
+```powershell
+npm run discord:gateway:health
+```
 
 ## Testing `/help`
 
@@ -254,7 +275,7 @@ Troubleshooting:
 | Symptom | Likely Cause | Fix |
 | --- | --- | --- |
 | Commands do not appear | Commands not registered, wrong guild ID, missing `applications.commands` scope | Set `DISCORD_REGISTER_MODE=guild`, set `DISCORD_DEV_GUILD_ID`, run `npm run discord:commands:register`, reinvite bot with scopes |
-| Bot appears offline | No gateway worker is currently implemented | This is expected for webhook-first testing |
+| Bot appears offline | Gateway worker is disabled or not running | This is expected for webhook-only testing; set `DISCORD_GATEWAY_ENABLED=true` and run `npm run dev:gateway` when online Gateway status is required |
 | Discord Developer Portal rejects endpoint | Public key missing, route not reachable, tunnel down, invalid response | Set `DISCORD_PUBLIC_KEY`, run `npm run dev`, verify tunnel, set `/api/discord/interactions` URL |
 | Command appears but says interaction failed | Webhook route unreachable or timed out | Check tunnel, Next dev server, endpoint URL, and logs |
 | `/patrol create` modal opens but submit fails | User lacks patrol create permissions or portal cannot infer deployment defaults | Grant `patrols.create`, `patrols.lead`, or `discord.patrols.create`; verify at least one active/planning deployment exists if defaults are expected |
@@ -272,9 +293,11 @@ Troubleshooting:
 
 ```powershell
 npm run dev
+npm run dev:gateway
 npm run discord:health
+npm run discord:gateway:health
 npm run discord:commands:register
 npm run discord:commands:list
 ```
 
-There is no `npm run dev:bot` at this time because the project does not currently run a gateway bot process.
+There is no `npm run dev:bot`; the long-running real-time process is `npm run dev:gateway`.

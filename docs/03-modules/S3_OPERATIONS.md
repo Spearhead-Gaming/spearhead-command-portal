@@ -41,6 +41,29 @@ Archived
 
 `/operations` is the primary S3 landing page for operational awareness. It should show the current deployment, next weekend operation, pending weekly tasking/publication work, active patrols, patrol AAR backlog, upcoming patrols, assigned Zeus, recent activity, and deployment progress.
 
+The Operations Center is the unified Command Dashboard for daily command-and-control use. It is not a CRUD surface. It consumes existing services and registered dashboard widgets to answer:
+
+- What is happening?
+- What needs attention?
+- What should Command consider doing next?
+
+The page should surface:
+
+- top command banner
+- current deployment/week/operation/release/Zeus context
+- operational health
+- operational and publication readiness
+- Go / No-Go state
+- command recommendations
+- active patrols and Patrol AAR review queues
+- pending publications
+- personnel readiness
+- notification and failed-delivery health
+- recent operational activity
+- deployment timeline
+
+Widgets are registered with title, icon, priority, permissions, refresh interval, size, collapsed default, and data provider metadata. The dashboard must render widgets by permission and priority instead of hard-coding future widget behavior into the page.
+
 `/operations/s3` remains the detailed S3 lifecycle board for filtering and moving operation records through Draft, S3 Review, Approved, Published, Completed, AAR Submitted, and Archived.
 
 ## Weekly Operation Package
@@ -92,6 +115,34 @@ Readiness is split into:
 - Publication Readiness for future publication safety.
 
 The Go / No-Go Board should surface the readiness scores, blocking issues, warnings, completed checks, recommended actions, and last evaluated time. Publishing and Discord delivery remain disabled until the later publishing phase.
+
+## Operational Health
+
+Operational Health answers how healthy the current Deployment is during execution. It is not the same as readiness.
+
+The Operations Center should surface:
+
+- Planning Health for package structure, tasking, resources, and Zeus ownership.
+- Execution Health for Weekend Operation state, patrol activity, Patrol AAR submission, and review follow-up.
+- Community Health for RSVP/attendance signals, active staffing, and unit assignment coverage.
+
+Health is provider-based. Providers return rule results, and the service derives scores, status labels, trend, warnings, critical issues, and recommended actions. Command Decision Support consumes these results without making decisions automatically.
+
+## Command Decision Support
+
+The Commander Dashboard expands the Operations Center with persistent recommendations generated from rule evidence.
+
+CDSS should show:
+
+- current deployment and week
+- Planning, Execution, and Community Health
+- Operational and Publication Readiness
+- top recommended actions
+- critical issues
+- recent operational activity
+- Go / No-Go
+
+Recommendations explain why they exist, list supporting rules, and can be dismissed or marked resolved by staff. CDSS does not make decisions automatically.
 
 ## Operations Release Publishing
 

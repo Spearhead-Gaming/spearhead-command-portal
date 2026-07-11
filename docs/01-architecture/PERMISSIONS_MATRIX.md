@@ -189,11 +189,18 @@ Recommended modules:
 core.dashboard.view
 core.search.use
 core.notifications.view
+rules.view
+rules.evaluate
+recommendations.view
+recommendations.manage
+operations.command.view
+operations.command.manage
 ```
 
 ## 9.2 Personnel
 
 ```text
+personnel.dashboard.view
 personnel.profile.view
 personnel.profile.create
 personnel.profile.edit
@@ -205,7 +212,11 @@ personnel.profile.notes.view
 personnel.profile.notes.create
 personnel.profile.notes.edit
 personnel.profile.notes.delete
+personnel.profile.notes.manage
 personnel.profile.logs.view
+personnel.timeline.view
+personnel.actions.view
+personnel.actions.manage
 ```
 
 ## 9.3 Forms and Workflow
@@ -256,6 +267,11 @@ units.positions.archive
 units.slots.view
 units.slots.manage
 units.dashboard.view
+units.manage
+units.assignments.manage
+units.positions.manage
+units.readiness.view
+units.requirements.manage
 ```
 
 ## 9.6 Qualifications
@@ -264,12 +280,16 @@ units.dashboard.view
 qualifications.view
 qualifications.create
 qualifications.edit
+qualifications.manage
 qualifications.archive
 qualifications.categories.manage
 qualifications.record.view
 qualifications.record.award
 qualifications.record.revoke
 qualifications.record.edit
+qualifications.records.view
+qualifications.records.award
+qualifications.records.revoke
 qualifications.matrix.view
 qualifications.requirements.view
 qualifications.requirements.manage
@@ -293,6 +313,7 @@ events.calendar.view
 
 ```text
 attendance.view
+attendance.manage
 attendance.rsvp.view
 attendance.rsvp.manage
 attendance.record
@@ -300,6 +321,20 @@ attendance.edit
 attendance.override
 attendance.lock
 attendance.reports.view
+attendance.policies.manage
+```
+
+## 9.8.1 Personnel Readiness
+
+```text
+readiness.member.view
+readiness.unit.view
+transfers.view
+transfers.submit
+transfers.review
+loa.view
+loa.submit
+loa.review
 ```
 
 ## 9.9 Campaigns
@@ -337,6 +372,12 @@ operations.planning.view
 operations.planning.edit
 operations.readiness.view
 operations.readiness.evaluate
+operations.health.view
+operations.health.manage
+operations.dashboard.customize
+operations.recommendations.view
+operations.command.view
+operations.command.manage
 operations.release.view
 operations.release.publish
 operations.release.history
@@ -360,6 +401,12 @@ s3.conops.publish
 s3.aars.view
 s3.aars.submit
 s3.aars.review
+```
+
+## 9.11 Dashboard Widgets
+
+```text
+dashboard.widgets.manage
 ```
 
 ## 9.11 Patrols
@@ -396,12 +443,63 @@ documents.categories.manage
 ```text
 notifications.view
 notifications.send
+notifications.manage
 notifications.templates.manage
 notifications.delivery.view
 notifications.delivery.retry
 ```
 
-## 9.14 Discord
+## 9.14 Communications
+
+```text
+communications.view
+communications.manage
+communications.send
+communications.retry
+communications.history.view
+communications.templates.manage
+communications.preferences.manage
+announcements.view
+announcements.manage
+announcements.send
+```
+
+## 9.15 Community Management
+
+```text
+community.view
+community.manage
+community.dashboard.view
+cases.view
+cases.create
+cases.edit
+cases.assign
+cases.transition
+cases.close
+cases.reopen
+cases.archive
+cases.restricted.view
+cases.command.view
+evidence.view
+evidence.manage
+notes.view
+notes.manage
+incidents.view
+incidents.create
+incidents.manage
+appeals.view
+appeals.submit
+appeals.review
+moderation.view
+moderation.warn
+moderation.kick
+moderation.timeout
+moderation.ban
+moderation.reverse
+moderation.history.view
+```
+
+## 9.16 Discord
 
 ```text
 discord.view
@@ -426,7 +524,7 @@ discord.bot.health.view
 admin.discord.manage
 ```
 
-## 9.15 Administration
+## 9.17 Administration
 
 ```text
 admin.dashboard.view
@@ -442,7 +540,7 @@ admin.settings.view
 admin.settings.manage
 ```
 
-## 9.15 Audit
+## 9.18 Audit
 
 ```text
 audit.view

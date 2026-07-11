@@ -9,6 +9,7 @@ import {
   createSamplePortalNotification,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  pinNotification,
   updateNotificationDeliveryStatus,
 } from "@/server/notifications/service";
 import { isNotificationTypeKey } from "@/server/notifications/constants";
@@ -56,6 +57,18 @@ export async function clearNotificationAction(formData: FormData) {
   const deliveryId = getRequiredString(formData, "deliveryId", "Notification delivery");
 
   await clearNotification(deliveryId, user.id);
+}
+
+export async function toggleNotificationPinnedAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error("An authenticated user is required.");
+  }
+
+  const deliveryId = getRequiredString(formData, "deliveryId", "Notification delivery");
+
+  await pinNotification(deliveryId, user.id);
 }
 
 export async function clearReadNotificationsAction() {

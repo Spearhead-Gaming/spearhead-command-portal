@@ -111,6 +111,9 @@ export async function getNotificationCenterDataForUser(
       },
       orderBy: [
         {
+          pinnedAt: "desc",
+        },
+        {
           readAt: "asc",
         },
         {
@@ -148,6 +151,7 @@ export async function getNotificationCenterDataForUser(
         : "pending",
       id: delivery.notification.id,
       isRead: Boolean(delivery.readAt),
+      isPinned: Boolean(delivery.pinnedAt),
       message: delivery.notification.message,
       targetUnitName: delivery.notification.targetUnit?.name ?? null,
       title: delivery.notification.title,

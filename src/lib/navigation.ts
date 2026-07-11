@@ -5,9 +5,11 @@ import {
   ClipboardList,
   FileText,
   Flag,
+  Gavel,
   LayoutDashboard,
   RadioTower,
   Shield,
+  ShieldCheck,
   ShieldEllipsis,
   ShieldPlus,
   ShieldUser,
@@ -35,6 +37,13 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Personnel",
     items: [
+      {
+        title: "Readiness Center",
+        href: "/personnel",
+        icon: ShieldCheck,
+        exact: true,
+        requiredPermissions: ["personnel.dashboard.view"],
+      },
       {
         title: "Members",
         href: "/personnel/members",
@@ -204,6 +213,17 @@ const navigationGroups: NavigationGroup[] = [
     ],
   },
   {
+    title: "Community",
+    items: [
+      {
+        title: "Management Center",
+        href: "/community-management",
+        icon: Gavel,
+        requiredPermissions: ["community.view"],
+      },
+    ],
+  },
+  {
     title: "Administration",
     items: [
       {
@@ -247,6 +267,12 @@ const navigationGroups: NavigationGroup[] = [
         href: "/administration/notifications",
         icon: Bell,
         requiredPermissions: ["notifications.delivery.view"],
+      },
+      {
+        title: "Communications",
+        href: "/communications",
+        icon: Bell,
+        requiredPermissions: ["communications.view"],
       },
       {
         title: "Audit Logs",

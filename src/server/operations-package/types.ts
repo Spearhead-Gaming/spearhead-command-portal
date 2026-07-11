@@ -1,4 +1,6 @@
 import type { DeploymentResourceView } from "@/server/deployment-resources/types";
+import type { CommandIntentAssessmentView, CommandRecommendationView } from "@/server/recommendations/types";
+import type { RuleEvaluationResult, RuleSeverity, RuleStatus } from "@/server/rules/types";
 
 export type ReadinessRuleStatus = "PASS" | "WARNING" | "FAIL" | "NOT_APPLICABLE";
 export type ReadinessRuleSeverity = "info" | "warning" | "blocking";
@@ -42,6 +44,39 @@ export type GoNoGoStatus = {
   canContinueToPreview: boolean;
   canPublish: boolean;
   lastEvaluatedAt: Date;
+};
+
+export type OperationalHealthCategory = "planning" | "execution" | "community";
+export type OperationalHealthRuleStatus = RuleStatus;
+export type OperationalHealthSeverity = RuleSeverity;
+export type OperationalHealthTrend = "improving" | "stable" | "declining";
+export type OperationalHealthStatusLabel = "Excellent" | "Good" | "Fair" | "Poor" | "Critical";
+
+export type HealthRuleResult = RuleEvaluationResult & {
+  category: OperationalHealthCategory;
+};
+
+export type OperationalHealthCategoryScore = {
+  category: OperationalHealthCategory;
+  criticalIssues: number;
+  lastEvaluatedAt: Date;
+  rules: HealthRuleResult[];
+  score: number;
+  statusLabel: OperationalHealthStatusLabel;
+  totalChecks: number;
+  trend: OperationalHealthTrend;
+  warnings: number;
+};
+
+export type OperationalHealthSummary = {
+  blockingIssues: HealthRuleResult[];
+  categories: Record<OperationalHealthCategory, OperationalHealthCategoryScore>;
+  lastEvaluatedAt: Date;
+  overallScore: number;
+  overallStatus: OperationalHealthStatusLabel;
+  recommendations: HealthRuleResult[];
+  trend: OperationalHealthTrend;
+  warnings: HealthRuleResult[];
 };
 
 export type OperationsReleaseStatus =
@@ -131,6 +166,10 @@ export type OperationsPackageData = {
     planningNotes: string | null;
     operationalObjectives: string | null;
     planningAssumptions: string | null;
+    commandersIntent: string | null;
+    commanderEndState: string | null;
+    successCriteria: string | null;
+    failureConditions: string | null;
     friendlySituation: string | null;
     enemySituation: string | null;
     intelligenceSummary: string | null;
@@ -203,8 +242,15 @@ export type OperationsPackageData = {
     canManageTasking: boolean;
     canAssignZeus: boolean;
     canEvaluateReadiness: boolean;
+    canViewHealth: boolean;
     canPublishPackage: boolean;
   };
+  health: OperationalHealthSummary | null;
+  recommendations: {
+    active: CommandRecommendationView[];
+    history: CommandRecommendationView[];
+  };
+  intentAssessment: CommandIntentAssessmentView;
   readiness: GoNoGoStatus | null;
   release: {
     current: OperationsReleaseHistoryItem | null;
@@ -212,4 +258,18 @@ export type OperationsPackageData = {
     nextVersion: string;
     preview: OperationsReleasePreview | null;
   } | null;
+};
+
+export type CommanderDashboardData = {
+  criticalIssues: CommandRecommendationView[];
+  currentPackage: OperationsPackageData | null;
+  operationalSummary: {
+    currentDeploymentTitle: string | null;
+    currentWeekNumber: number | null;
+    healthStatus: string | null;
+    operationalReadiness: string | null;
+    publicationReadiness: string | null;
+    recommendationCount: number;
+  };
+  recommendations: CommandRecommendationView[];
 };

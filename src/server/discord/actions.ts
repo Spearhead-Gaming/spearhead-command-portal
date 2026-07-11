@@ -48,12 +48,17 @@ export async function saveDiscordServerMappingAction(formData: FormData) {
 
   await upsertDiscordServerMapping({
     actorUserId: actor.id,
+    gatewayEnabled: getBooleanValue(formData, "gatewayEnabled"),
     guildId: getRequiredString(formData, "guildId", "Guild ID"),
     id: getOptionalString(formData, "id") ?? undefined,
     isActive: getBooleanValue(formData, "isActive"),
     isPrimary: getBooleanValue(formData, "isPrimary"),
+    memberSyncPolicy: getOptionalString(formData, "memberSyncPolicy"),
     name: getRequiredString(formData, "name", "Server name"),
+    nicknameSyncPolicy: getOptionalString(formData, "nicknameSyncPolicy"),
+    roleSyncPolicy: getOptionalString(formData, "roleSyncPolicy"),
     unitId: getOptionalString(formData, "unitId"),
+    voiceAwarenessEnabled: getBooleanValue(formData, "voiceAwarenessEnabled"),
   });
 }
 

@@ -1,0 +1,761 @@
+import { getCurrentUser } from "@/server/auth/current-user";
+import { getCommandDashboardData } from "@/server/dashboard/service";
+import type {
+  CommandDashboardData,
+  DashboardActivityItem,
+  DashboardTone,
+  DashboardWidgetDefinition,
+  OperationsCenterDashboardData,
+  OperationsCenterQuickAction,
+  OperationsCenterTimelineItem,
+} from "@/server/dashboard/types";
+import { getNotificationCenterDataForUser, getNotificationDeliveryOverviewForUser } from "@/server/notifications/queries";
+import { operationsPackageService } from "@/server/operations-package/service";
+import { can } from "@/server/permissions/access";
+import { listPatrolDashboard } from "@/server/patrols/queries";
+import { getS3DashboardData } from "@/server/s3/queries";
+
+const operationsCenterWidgetRegistry: DashboardWidgetDefinition[] = [
+  {
+    collapsedByDefault: false,
+    dataProvider: "operations-center.command-banner",
+    icon: "radio-tower",
+    id: "command-banner",
+    permissions: ["operations.center.view"],
+    priority: 10,
+    refreshIntervalSeconds: 60,
+    size: "xl",
+    title: "Command Banner",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "s3.dashboard",
+    icon: "map",
+    id: "deployment-summary",
+    permissions: ["campaigns.view", "deployments.progression.view"],
+    priority: 20,
+    refreshIntervalSeconds: 120,
+    size: "md",
+    title: "Deployment Summary",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "operations-package.health",
+    icon: "activity",
+    id: "operational-health",
+    permissions: ["operations.health.view"],
+    priority: 30,
+    refreshIntervalSeconds: 120,
+    size: "lg",
+    title: "Operational Health",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "operations-package.readiness",
+    icon: "shield-check",
+    id: "operational-readiness",
+    permissions: ["operations.readiness.view"],
+    priority: 40,
+    refreshIntervalSeconds: 120,
+    size: "lg",
+    title: "Operational Readiness",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "recommendations.engine",
+    icon: "sparkles",
+    id: "command-recommendations",
+    permissions: ["recommendations.view", "operations.recommendations.view"],
+    priority: 50,
+    refreshIntervalSeconds: 120,
+    size: "lg",
+    title: "Command Recommendations",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "patrols.dashboard",
+    icon: "footprints",
+    id: "patrol-operations",
+    permissions: ["patrols.view"],
+    priority: 60,
+    refreshIntervalSeconds: 90,
+    size: "md",
+    title: "Patrol Operations",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "s3.publication-queues",
+    icon: "send",
+    id: "pending-publications",
+    permissions: ["operations.release.view", "s3.missions.view"],
+    priority: 70,
+    refreshIntervalSeconds: 120,
+    size: "md",
+    title: "Pending Publications",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "dashboard.personnel-readiness",
+    icon: "users",
+    id: "personnel-readiness",
+    permissions: ["personnel.profile.view", "qualifications.record.view", "attendance.reports.view"],
+    priority: 80,
+    refreshIntervalSeconds: 300,
+    size: "md",
+    title: "Personnel Readiness",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.unit-strength",
+    icon: "shield",
+    id: "personnel-unit-strength",
+    permissions: ["personnel.dashboard.view", "units.dashboard.view"],
+    priority: 81,
+    refreshIntervalSeconds: 300,
+    size: "sm",
+    title: "Unit Strength",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.member-readiness",
+    icon: "user-check",
+    id: "personnel-member-readiness",
+    permissions: ["personnel.dashboard.view", "readiness.member.view"],
+    priority: 82,
+    refreshIntervalSeconds: 300,
+    size: "md",
+    title: "Member Readiness",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.unit-readiness",
+    icon: "shield-check",
+    id: "personnel-unit-readiness",
+    permissions: ["personnel.dashboard.view", "readiness.unit.view"],
+    priority: 83,
+    refreshIntervalSeconds: 300,
+    size: "md",
+    title: "Unit Readiness",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.missing-qualifications",
+    icon: "award",
+    id: "personnel-missing-qualifications",
+    permissions: ["personnel.dashboard.view", "qualifications.requirements.view"],
+    priority: 84,
+    refreshIntervalSeconds: 300,
+    size: "sm",
+    title: "Missing Qualifications",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "personnel.center.expiring-qualifications",
+    icon: "timer",
+    id: "personnel-expiring-qualifications",
+    permissions: ["personnel.dashboard.view", "qualifications.record.view"],
+    priority: 85,
+    refreshIntervalSeconds: 300,
+    size: "sm",
+    title: "Expiring Qualifications",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.attendance-concerns",
+    icon: "calendar-x",
+    id: "personnel-attendance-concerns",
+    permissions: ["personnel.dashboard.view", "attendance.reports.view"],
+    priority: 86,
+    refreshIntervalSeconds: 300,
+    size: "md",
+    title: "Attendance Concerns",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "personnel.center.vacant-positions",
+    icon: "briefcase",
+    id: "personnel-vacant-positions",
+    permissions: ["personnel.dashboard.view", "units.positions.manage"],
+    priority: 87,
+    refreshIntervalSeconds: 300,
+    size: "sm",
+    title: "Vacant Positions",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "personnel.center.pending-actions",
+    icon: "clipboard-list",
+    id: "personnel-pending-actions",
+    permissions: ["personnel.dashboard.view", "personnel.actions.view"],
+    priority: 88,
+    refreshIntervalSeconds: 300,
+    size: "md",
+    title: "Pending Personnel Actions",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "personnel.center.loa-returns",
+    icon: "calendar-clock",
+    id: "personnel-loa-returns",
+    permissions: ["personnel.dashboard.view", "loa.view"],
+    priority: 89,
+    refreshIntervalSeconds: 300,
+    size: "sm",
+    title: "LOA Returns",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "personnel.center.recent-activity",
+    icon: "history",
+    id: "personnel-recent-activity",
+    permissions: ["personnel.timeline.view", "audit.view"],
+    priority: 89,
+    refreshIntervalSeconds: 300,
+    size: "lg",
+    title: "Recent Personnel Activity",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "notifications.center",
+    icon: "bell",
+    id: "notification-center",
+    permissions: ["notifications.view", "notifications.delivery.view"],
+    priority: 90,
+    refreshIntervalSeconds: 120,
+    size: "md",
+    title: "Notifications",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "communications.unread-notifications",
+    icon: "mail",
+    id: "communications-unread",
+    permissions: ["communications.view", "notifications.view"],
+    priority: 92,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Unread Notifications",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "communications.failed-deliveries",
+    icon: "alert-triangle",
+    id: "communications-failed-deliveries",
+    permissions: ["communications.view", "notifications.delivery.view"],
+    priority: 94,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Failed Deliveries",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "communications.recent-announcements",
+    icon: "megaphone",
+    id: "communications-announcements",
+    permissions: ["announcements.view"],
+    priority: 96,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Recent Announcements",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "communications.discord-health",
+    icon: "radio",
+    id: "communications-discord-health",
+    permissions: ["communications.view", "discord.bot.health.view"],
+    priority: 98,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Discord Delivery Health",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "discord.gateway.health",
+    icon: "wifi",
+    id: "discord-gateway-health",
+    permissions: ["discord.gateway.health.view", "discord.bot.health.view"],
+    priority: 98,
+    refreshIntervalSeconds: 60,
+    size: "md",
+    title: "Gateway Health",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.bot-connection",
+    icon: "bot",
+    id: "discord-bot-connection",
+    permissions: ["discord.gateway.health.view"],
+    priority: 98,
+    refreshIntervalSeconds: 60,
+    size: "sm",
+    title: "Bot Connection",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.guild-availability",
+    icon: "server",
+    id: "discord-guild-availability",
+    permissions: ["discord.gateway.events.view"],
+    priority: 98,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Guild Availability",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.member-joins",
+    icon: "user-plus",
+    id: "discord-recent-member-joins",
+    permissions: ["discord.gateway.events.view", "discord.members.view"],
+    priority: 98,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Recent Member Joins",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.member-leaves",
+    icon: "user-minus",
+    id: "discord-recent-member-leaves",
+    permissions: ["discord.gateway.events.view", "discord.members.view"],
+    priority: 98,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Recent Member Leaves",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.voice-awareness",
+    icon: "volume-2",
+    id: "discord-voice-awareness",
+    permissions: ["discord.voice.view"],
+    priority: 98,
+    refreshIntervalSeconds: 60,
+    size: "sm",
+    title: "Voice Awareness Status",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.role-sync-health",
+    icon: "badge-check",
+    id: "discord-role-sync-health",
+    permissions: ["discord.roles.sync", "discord.sync.view"],
+    priority: 98,
+    refreshIntervalSeconds: 180,
+    size: "sm",
+    title: "Role Sync Health",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "discord.gateway.error-queue",
+    icon: "alert-triangle",
+    id: "discord-gateway-error-queue",
+    permissions: ["discord.gateway.events.view"],
+    priority: 98,
+    refreshIntervalSeconds: 120,
+    size: "sm",
+    title: "Gateway Error Queue",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.open-cases",
+    icon: "briefcase-business",
+    id: "community-open-cases",
+    permissions: ["community.dashboard.view", "cases.view"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "sm",
+    title: "Open Cases",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.critical-cases",
+    icon: "shield-alert",
+    id: "community-critical-cases",
+    permissions: ["community.dashboard.view", "cases.view"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "sm",
+    title: "Critical Cases",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.pending-appeals",
+    icon: "gavel",
+    id: "community-pending-appeals",
+    permissions: ["community.dashboard.view", "appeals.view"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "sm",
+    title: "Pending Appeals",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.overdue-cases",
+    icon: "alert-triangle",
+    id: "community-overdue-cases",
+    permissions: ["community.dashboard.view", "cases.view"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "sm",
+    title: "Overdue Cases",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.staff-workload",
+    icon: "users",
+    id: "community-staff-workload",
+    permissions: ["community.dashboard.view", "cases.assign"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Staff Workload",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "community-management.failed-moderation",
+    icon: "ban",
+    id: "community-failed-moderation",
+    permissions: ["community.dashboard.view", "moderation.history.view"],
+    priority: 99,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Failed Moderation Actions",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "dashboard.activity",
+    icon: "history",
+    id: "activity-feed",
+    permissions: ["audit.view", "operations.center.view"],
+    priority: 100,
+    refreshIntervalSeconds: 180,
+    size: "lg",
+    title: "Recent Activity",
+  },
+  {
+    collapsedByDefault: true,
+    dataProvider: "operations-center.timeline",
+    icon: "git-branch",
+    id: "deployment-timeline",
+    permissions: ["campaigns.view", "operations.release.history"],
+    priority: 110,
+    refreshIntervalSeconds: 180,
+    size: "lg",
+    title: "Deployment Timeline",
+  },
+];
+
+function hasAnyPermission(
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+  permissions: string[],
+) {
+  return permissions.length === 0 || permissions.some((permission) => can(user, permission));
+}
+
+function getVisibleWidgets(user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
+  return operationsCenterWidgetRegistry
+    .filter((widget) => hasAnyPermission(user, widget.permissions))
+    .sort((left, right) => left.priority - right.priority);
+}
+
+function getDefaultCommandDashboardData(): CommandDashboardData {
+  return {
+    admin: {
+      auditActivity: [],
+      discordConnectedServers: 0,
+      discordStatusLabel: "Hidden",
+      failedDeliveries: [],
+      pendingSystemActions: [],
+    },
+    attendance: {
+      averageAttendance: null,
+      lowAttendanceMembers: [],
+      missingRsvps: 0,
+      openAttendanceEvents: [],
+      recentNoShows: [],
+    },
+    community: {
+      activeCampaigns: 0,
+      activeMembers: 0,
+      attendanceAverage: null,
+      discordHealthLabel: "Hidden",
+      failedNotifications: 0,
+      inactiveMembers: 0,
+      loaMembers: 0,
+      pendingForms: 0,
+      qualificationReadiness: null,
+      totalMembers: 0,
+      unitStrength: [],
+      upcomingEvents: [],
+    },
+    member: {
+      attendancePercent: null,
+      campaignLabel: "No deployment",
+      currentModPreset: null,
+      discordLinked: false,
+      missingRequiredQualifications: 0,
+      nextEvent: null,
+      profileLinked: false,
+      qualificationCount: 0,
+      unitLabel: null,
+    },
+    personnel: {
+      pendingApplications: 0,
+      recentChanges: [],
+      statusBreakdown: [],
+      unlinkedUsers: 0,
+    },
+    readiness: {
+      attendancePercent: null,
+      campaignPercent: null,
+      memberPercent: null,
+      qualificationPercent: null,
+      unitPercent: null,
+    },
+    s3: {
+      activeCampaigns: [],
+      aarQueue: 0,
+      approvedUnpublishedMissions: 0,
+      conopReviewQueue: 0,
+      missionReviewQueue: 0,
+      upcomingMissions: [],
+    },
+    training: {
+      expiringSoon: 0,
+      missingRequired: 0,
+      pendingSignoffs: 0,
+      qualifiedMemberCount: 0,
+      totalQualifications: 0,
+      unitQualificationReadiness: [],
+    },
+    unitLeadership: {
+      attendanceIssues: [],
+      missingQualifications: [],
+      recentRosterChanges: [],
+      unitReadiness: [],
+    },
+    visibility: {
+      admin: false,
+      attendance: false,
+      audit: false,
+      campaigns: false,
+      discordHealth: false,
+      member: false,
+      notifications: false,
+      personnel: false,
+      qualificationMatrix: false,
+      qualifications: false,
+      roster: false,
+      s3: false,
+      units: false,
+    },
+  };
+}
+
+function buildQuickActions(input: {
+  canCreateDeployment: boolean;
+  packageHref: string | null;
+}): OperationsCenterQuickAction[] {
+  return [
+    input.packageHref
+      ? {
+          href: input.packageHref,
+          id: "open-package",
+          label: "Open Operations Package",
+          primary: true,
+          requiredPermissions: ["operations.package.view"],
+        }
+      : {
+          href: "/operations/campaigns",
+          id: "open-deployments",
+          label: "Open Deployments",
+          primary: true,
+          requiredPermissions: ["campaigns.view"],
+        },
+    {
+      href: "/operations/patrols?panel=start",
+      id: "start-patrol",
+      label: "Start Patrol",
+      requiredPermissions: ["patrols.create", "patrols.lead"],
+    },
+    {
+      href: "/operations/aar-queue",
+      id: "review-aars",
+      label: "Review AARs",
+      requiredPermissions: ["patrols.aar.review", "s3.aars.review"],
+    },
+    {
+      href: input.packageHref ? `${input.packageHref}#planning` : "/operations/campaigns",
+      id: "review-planning",
+      label: "Review Planning",
+      requiredPermissions: ["operations.planning.view"],
+    },
+    {
+      href: input.packageHref ? `${input.packageHref}#release` : "/operations/s3",
+      id: "publish-package",
+      label: "Publish Package",
+      requiredPermissions: ["operations.release.publish", "operations.package.publish"],
+    },
+    {
+      href: "/personnel",
+      id: "open-personnel",
+      label: "Open Personnel",
+      requiredPermissions: ["personnel.dashboard.view", "personnel.profile.view"],
+    },
+    {
+      href: "/administration/notifications",
+      id: "open-notifications",
+      label: "Open Notifications",
+      requiredPermissions: ["notifications.delivery.view"],
+    },
+    ...(input.canCreateDeployment
+      ? [
+          {
+            href: "/operations/campaigns?panel=create",
+            id: "create-deployment",
+            label: "Create Deployment",
+            requiredPermissions: ["deployments.create", "campaigns.create"],
+          },
+        ]
+      : []),
+  ];
+}
+
+function buildTimeline(input: {
+  activityFeed: DashboardActivityItem[];
+  packageHref: string | null;
+  s3Dashboard: Awaited<ReturnType<typeof getS3DashboardData>>;
+}): OperationsCenterTimelineItem[] {
+  const deploymentItems = input.s3Dashboard.activeCampaigns.slice(0, 3).map((campaign) => ({
+    href: campaign.packageHref ?? `/operations/campaigns/${campaign.id}`,
+    id: `deployment:${campaign.id}`,
+    label: campaign.title,
+    meta: `Week ${campaign.currentWeekNumber ?? "TBD"} / ${campaign.releaseVersion ?? "No release"} / ${campaign.planningStatus}`,
+    timestamp: null,
+    tone: campaign.releaseStatus === "published" ? "success" : ("info" as DashboardTone),
+    type: "Deployment",
+  }));
+  const operationItems = input.s3Dashboard.upcomingMissions.slice(0, 4).map((mission) => ({
+    href: `/operations/events/${mission.id}`,
+    id: `operation:${mission.id}`,
+    label: mission.title,
+    meta: `${mission.eventTypeLabel} / ${mission.zeusName ?? mission.missionMakerName ?? "Zeus TBD"}`,
+    timestamp: mission.startsAt,
+    tone: "info" as DashboardTone,
+    type: "Weekend Operation",
+  }));
+  const aarItems = input.s3Dashboard.recentProgressionRecommendations.slice(0, 4).map((aar) => ({
+    href: `/operations/aar-queue?aarId=${aar.id}`,
+    id: `aar:${aar.id}`,
+    label: aar.title,
+    meta: aar.event?.title ?? aar.campaign?.title ?? "Patrol AAR",
+    timestamp: aar.reviewedAt ?? aar.updatedAt,
+    tone: "warning" as DashboardTone,
+    type: "Progression",
+  }));
+  const activityItems = input.activityFeed.slice(0, 4).map((activity) => ({
+    href: activity.href,
+    id: `activity:${activity.id}`,
+    label: activity.summary,
+    meta: activity.action,
+    timestamp: activity.createdAt,
+    tone: activity.tone,
+    type: activity.entityType,
+  }));
+
+  return [...deploymentItems, ...operationItems, ...aarItems, ...activityItems].slice(0, 12);
+}
+
+export async function getOperationsCenterDashboardData(): Promise<OperationsCenterDashboardData> {
+  const user = await getCurrentUser();
+
+  if (!user || (!can(user, "operations.center.view") && !can(user, "s3.dashboard.view"))) {
+    return {
+      activityFeed: [],
+      currentPackage: null,
+      dashboard: getDefaultCommandDashboardData(),
+      lastRefreshedAt: new Date(),
+      notificationCenter: {
+        enabled: false,
+        items: [],
+        unreadCount: 0,
+      },
+      notificationDeliveryOverview: {
+        enabled: false,
+        failedDeliveries: [],
+        recentDeliveries: [],
+        summary: {
+          failed: 0,
+          pending: 0,
+          retrying: 0,
+          sent: 0,
+        },
+      },
+      patrolDashboard: null,
+      quickActions: [],
+      s3Dashboard: await getS3DashboardData(),
+      timeline: [],
+      widgets: [],
+    };
+  }
+
+  const s3Dashboard = await getS3DashboardData();
+  const currentDeployment = s3Dashboard.activeCampaigns[0] ?? null;
+  const currentPackage =
+    currentDeployment?.currentWeekNumber && currentDeployment.packageHref
+      ? await operationsPackageService.getPackage({
+          campaignId: currentDeployment.id,
+          weekNumber: currentDeployment.currentWeekNumber,
+        })
+      : null;
+  const [dashboard, patrolDashboard, notificationCenter, notificationDeliveryOverview] = await Promise.all([
+    can(user, "core.dashboard.view")
+      ? getCommandDashboardData()
+      : Promise.resolve(getDefaultCommandDashboardData()),
+    can(user, "patrols.view")
+      ? listPatrolDashboard().catch(() => null)
+      : Promise.resolve(null),
+    getNotificationCenterDataForUser(user),
+    getNotificationDeliveryOverviewForUser(user),
+  ]);
+  const activityFeed = [
+    ...currentPackage?.activity.map((entry) => ({
+      action: entry.action,
+      createdAt: entry.createdAt,
+      entityType: "Operations Package",
+      href: currentDeployment?.packageHref ?? undefined,
+      id: entry.id,
+      summary: entry.summary,
+      tone: "info" as DashboardTone,
+    })) ?? [],
+    ...dashboard.admin.auditActivity,
+    ...dashboard.personnel.recentChanges,
+    ...dashboard.unitLeadership.recentRosterChanges,
+  ]
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+    .slice(0, 12);
+  const quickActions = buildQuickActions({
+    canCreateDeployment: can(user, "deployments.create") || can(user, "campaigns.create"),
+    packageHref: currentDeployment?.packageHref ?? null,
+  }).filter((action) => !action.requiredPermissions || hasAnyPermission(user, action.requiredPermissions));
+
+  return {
+    activityFeed,
+    currentPackage,
+    dashboard,
+    lastRefreshedAt: new Date(),
+    notificationCenter,
+    notificationDeliveryOverview,
+    patrolDashboard,
+    quickActions,
+    s3Dashboard,
+    timeline: buildTimeline({
+      activityFeed,
+      packageHref: currentDeployment?.packageHref ?? null,
+      s3Dashboard,
+    }),
+    widgets: getVisibleWidgets(user),
+  };
+}

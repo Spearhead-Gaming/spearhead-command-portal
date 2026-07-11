@@ -195,6 +195,21 @@ function revalidateDiscordMemberSurfaces() {
   revalidatePath("/personnel/members");
 }
 
+function canCreateProfileFromDiscordServer(input: {
+  isPrimary: boolean;
+  memberSyncPolicy?: string | null;
+}) {
+  if (input.memberSyncPolicy === "disabled" || input.memberSyncPolicy === "link_only") {
+    return false;
+  }
+
+  if (input.memberSyncPolicy === "create_profiles") {
+    return true;
+  }
+
+  return input.isPrimary;
+}
+
 async function upsertDiscordMemberIdentity(input: {
   actorUserId?: string | null;
   member: DiscordGuildMemberInput;
@@ -207,6 +222,7 @@ async function upsertDiscordMemberIdentity(input: {
   const joinedAt = normalizeDate(input.member.joinedAt);
   const now = new Date();
   const isBot = Boolean(input.member.isBot);
+  const canCreateProfile = canCreateProfileFromDiscordServer(input.server);
 
   const result = await prisma.$transaction(async (transaction) => {
     const existingUser = !isBot
@@ -215,7 +231,7 @@ async function upsertDiscordMemberIdentity(input: {
           discordUserId: input.member.discordUserId,
         })
       : null;
-    const user = isBot
+    const user = isBot || (!existingUser && !canCreateProfile)
       ? null
       : existingUser
         ? await transaction.user.update({
@@ -256,14 +272,16 @@ async function upsertDiscordMemberIdentity(input: {
               displayName,
             },
           })
-        : await transaction.memberProfile.create({
-            data: {
-              displayName,
-              joinDate: joinedAt ?? now,
-              statusId: await getDefaultProfileStatusId(),
-              userId: user.id,
-            },
-          });
+        : canCreateProfile
+          ? await transaction.memberProfile.create({
+              data: {
+                displayName,
+                joinDate: joinedAt ?? now,
+                statusId: await getDefaultProfileStatusId(),
+                userId: user.id,
+              },
+            })
+          : null;
 
     const link =
       user && !isBot
@@ -329,6 +347,7 @@ async function upsertDiscordMemberIdentity(input: {
     return {
       isImported: Boolean(user && !existingUser),
       isProfileCreated: Boolean(user && !existingUser?.memberProfile && memberProfile),
+      isTrackedOnly: !user && !isBot,
       link,
       memberProfile,
       state,
@@ -347,9 +366,12 @@ async function upsertDiscordMemberIdentity(input: {
       discordUserId: input.member.discordUserId,
       guildId: input.server.guildId,
       source: input.source,
+      syncPolicy: input.server.memberSyncPolicy,
     },
     summary: result.isImported
       ? `${displayName} was imported from ${input.server.name}.`
+      : result.isTrackedOnly
+        ? `${displayName} was tracked in ${input.server.name} without creating a portal profile.`
       : `${displayName} Discord identity was synced from ${input.server.name}.`,
   });
 

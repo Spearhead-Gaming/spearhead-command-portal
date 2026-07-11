@@ -168,6 +168,45 @@ The publish preview should render close to the Discord announcement and include:
 
 Scheduling is architecture-only until a scheduler/worker exists. A scheduled release records `scheduled` status and `scheduledFor`, but no fake execution should occur.
 
+## Operational Health Engine
+
+Epic 5D adds Operational Health.
+
+Operational Health asks:
+
+```text
+How healthy is the current Deployment?
+```
+
+It is separate from Operational Readiness, Publication Readiness, and later Command Decision Support. Health is execution assessment. Readiness is planning/publication validation.
+
+Operational Health is provider-based. Registered providers return standardized `HealthRuleResult` objects, and the service derives category scores, overall score, status labels, trend, warnings, critical issues, and recommended actions.
+
+Initial categories:
+
+- Planning Health.
+- Execution Health.
+- Community Health.
+
+Future modules should be able to contribute providers without modifying Command Dashboard UI or the core scoring contract.
+
+## Command Decision Support
+
+Epic 5E adds Command Decision Support.
+
+The CDSS consumes Rule Engine, Operational Health, Operational Readiness, Publication Readiness, patrol/AAR, attendance, resource, and future provider evidence to generate persistent recommendations.
+
+Recommendations are informational. They do not approve, publish, assign, or modify operational data automatically.
+
+Operations Packages may also store Commander's Intent planning context:
+
+- Commander's Intent.
+- Commander End State.
+- Success Criteria.
+- Failure Conditions.
+
+After execution and Patrol AAR review, staff can record a human-authored Commander Intent Assessment with status, supporting evidence, lessons learned, and next-week recommendations.
+
 ## Permissions
 
 - `operations.package.view`
@@ -179,6 +218,12 @@ Scheduling is architecture-only until a scheduler/worker exists. A scheduled rel
 - `operations.planning.edit`
 - `operations.readiness.view`
 - `operations.readiness.evaluate`
+- `operations.health.view`
+- `operations.health.manage`
+- `recommendations.view`
+- `recommendations.manage`
+- `operations.command.view`
+- `operations.command.manage`
 - `operations.release.view`
 - `operations.release.publish`
 - `operations.release.history`
@@ -192,12 +237,11 @@ Existing deployment resource permissions still govern resource upload, edit, and
 
 Operations Package logic should be centralized behind `OperationsPackageService` in `src/server/operations-package/service.ts`.
 
-The service owns package lookup/creation, planning updates, Weekly Tasking updates, Unit Tasking updates, resource/CONOP association boundaries, Zeus assignment boundaries, planning progress calculation, package activity lookup, skeleton validation, readiness evaluation, Go/No-Go summaries, release preview generation, publication validation, release creation, amendment publishing, release history, audit logging, and permission checks.
+The service owns package lookup/creation, planning updates, Weekly Tasking updates, Unit Tasking updates, resource/CONOP association boundaries, Zeus assignment boundaries, planning progress calculation, package activity lookup, skeleton validation, readiness evaluation, Go/No-Go summaries, operational health evaluation, CDSS recommendations, commander dashboard summaries, intent assessment updates, release preview generation, publication validation, release creation, amendment publishing, release history, audit logging, and permission checks.
 
 UI components, server actions, route handlers, Discord handlers, and future automation should call this service instead of duplicating Operations Package planning logic.
 
 ## Out of Scope Until Later Epic 5 Phases
 
-- Operational Health
 - Commander's Intent assessment
 - Decision Support

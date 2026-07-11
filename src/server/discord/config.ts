@@ -12,6 +12,30 @@ function normalizeDiscordRegisterMode(value: string): "global" | "guild" {
   return value.toLowerCase() === "global" ? "global" : "guild";
 }
 
+function normalizeBoolean(value: string, defaultValue = false) {
+  if (!value) {
+    return defaultValue;
+  }
+
+  return value.toLowerCase() === "true";
+}
+
+function normalizePositiveInteger(value: string, defaultValue: number) {
+  const parsed = Number(value);
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : defaultValue;
+}
+
+function normalizeIntents(value: string) {
+  const defaultIntents = ["Guilds", "GuildMembers", "GuildVoiceStates"] as const;
+  const raw = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return raw.length > 0 ? raw : Array.from(defaultIntents);
+}
+
 function isLikelyDiscordSnowflake(value: string) {
   return /^\d{17,20}$/.test(value);
 }
@@ -138,4 +162,58 @@ export function getDiscordSafeConfigDiagnostics() {
 
 export function shouldSyncDiscordBotAccounts() {
   return getTrimmedEnvValue(process.env.SYNC_DISCORD_BOTS).toLowerCase() === "true";
+}
+
+export function getDiscordGatewayConfig() {
+  const config = getDiscordIntegrationConfig();
+  const enabled = normalizeBoolean(getTrimmedEnvValue(process.env.DISCORD_GATEWAY_ENABLED));
+  const intents = normalizeIntents(getTrimmedEnvValue(process.env.DISCORD_GATEWAY_INTENTS));
+  const shardCount = normalizePositiveInteger(
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_SHARD_COUNT),
+    1,
+  );
+  const heartbeatTimeoutMs = normalizePositiveInteger(
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_HEARTBEAT_TIMEOUT),
+    45000,
+  );
+  const reconnectMaxDelayMs = normalizePositiveInteger(
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_RECONNECT_MAX_DELAY),
+    30000,
+  );
+  const eventLogLevel =
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_EVENT_LOG_LEVEL).toLowerCase() || "summary";
+  const primaryGuildId =
+    getTrimmedEnvValue(process.env.DISCORD_PRIMARY_GUILD_ID) ||
+    config.devGuildId ||
+    config.legacyGuildId;
+
+  return {
+    applicationId: config.applicationId,
+    botToken: config.botToken,
+    enabled,
+    eventLogLevel,
+    heartbeatTimeoutMs,
+    intents,
+    primaryGuildId,
+    reconnectMaxDelayMs,
+    shardCount,
+  };
+}
+
+export function getDiscordGatewaySafeDiagnostics() {
+  const config = getDiscordGatewayConfig();
+
+  return {
+    applicationIdPresent: config.applicationId.length > 0,
+    botTokenPresent: config.botToken.length > 0,
+    enabled: config.enabled,
+    eventLogLevel: config.eventLogLevel,
+    heartbeatTimeoutMs: config.heartbeatTimeoutMs,
+    intents: config.intents,
+    primaryGuildConfigured: config.primaryGuildId.length > 0,
+    primaryGuildLooksValid:
+      config.primaryGuildId.length === 0 || isLikelyDiscordSnowflake(config.primaryGuildId),
+    reconnectMaxDelayMs: config.reconnectMaxDelayMs,
+    shardCount: config.shardCount,
+  };
 }

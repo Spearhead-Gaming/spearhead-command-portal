@@ -1,5 +1,6 @@
 import { getPortalBaseUrl } from "@/server/discord/config";
-import { sendDiscordNotificationToMappedUnits } from "@/server/discord/delivery/provider";
+import { processCommunicationRequest } from "@/server/communications/pipeline";
+import type { CommunicationAudience, CommunicationChannelRequest } from "@/server/communications/types";
 import {
   buildAttendanceSummaryDiscordMessage,
   buildCampaignUpdateDiscordMessage,
@@ -9,7 +10,6 @@ import {
 import type { DiscordChannelMappingKey } from "@/server/discord/constants";
 import type { DiscordMessagePayload } from "@/server/discord/types";
 import type { CreateNotificationInput } from "@/server/notifications/types";
-import { buildPortalNotificationDelivery, createNotification } from "@/server/notifications/service";
 
 type NotificationRoutingOptions = {
   actorUserId?: string | null;
@@ -23,30 +23,61 @@ export async function createNotificationWithDiscordRouting(
   input: CreateNotificationInput,
   options?: NotificationRoutingOptions,
 ) {
-  const notification = await createNotification({
-    ...input,
-    deliveries: [
-      ...(input.deliveries ?? []),
-      ...Array.from(
-        new Set((options?.recipientUserIds ?? []).filter((userId): userId is string => Boolean(userId))),
-      ).map(buildPortalNotificationDelivery),
-    ],
-  });
-
+  const userIds = Array.from(
+    new Set((options?.recipientUserIds ?? []).filter((userId): userId is string => Boolean(userId))),
+  );
+  const audiences: CommunicationAudience[] = [];
+  const channels: CommunicationChannelRequest[] = [];
   const mappingKey = options?.channelMappingKey ?? null;
-  const message = options?.discordMessageFactory?.(notification.id) ?? null;
+  const previewMessage = options?.discordMessageFactory?.("preview") ?? null;
 
-  if (mappingKey && message) {
-    await sendDiscordNotificationToMappedUnits({
-      actorUserId: options?.actorUserId ?? null,
+  if (userIds.length > 0) {
+    audiences.push({ type: "users", userIds });
+    channels.push({ type: "portal" });
+  }
+
+  if (mappingKey && previewMessage) {
+    audiences.push({
       mappingKey,
-      notificationId: notification.id,
-      payload: message,
+      type: "discord_channel",
+      unitIds: options?.targetUnitIds,
+    });
+    channels.push({
+      mappingKey,
+      type: "discord_channel",
       unitIds: options?.targetUnitIds,
     });
   }
 
-  return notification;
+  return processCommunicationRequest({
+    body: previewMessage?.body ?? input.message,
+    category: "system",
+    idempotencyKey:
+      typeof input.metadata === "object" && input.metadata && "idempotencyKey" in input.metadata
+        ? String(input.metadata.idempotencyKey)
+        : null,
+    priority:
+      input.urgency === "critical"
+        ? "critical"
+        : input.urgency === "warning" || input.urgency === "action_required"
+          ? "high"
+          : "normal",
+    relatedEntityId:
+      typeof input.metadata === "object" && input.metadata && "eventId" in input.metadata
+        ? String(input.metadata.eventId)
+        : null,
+    relatedEntityType:
+      typeof input.metadata === "object" && input.metadata && "eventId" in input.metadata
+        ? "Event"
+        : null,
+    requestedByUserId: options?.actorUserId ?? input.createdByUserId ?? null,
+    requestedChannels: channels.length > 0 ? channels : [{ type: "portal" }],
+    sourceEvent: input.type,
+    sourceModule: "notifications",
+    targetAudience: audiences.length > 0 ? audiences : [{ type: "users", userIds }],
+    title: previewMessage?.title ?? input.title,
+    type: input.type,
+  });
 }
 
 export function buildQualificationAwardDiscordMessage(input: {

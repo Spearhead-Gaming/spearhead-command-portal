@@ -75,6 +75,21 @@ function getRoleMappingTypeLabel(value: string) {
   }
 }
 
+function getMemberSyncPolicyLabel(value: string) {
+  switch (value) {
+    case "primary_create_secondary_link":
+      return "Primary creates, secondary links";
+    case "create_profiles":
+      return "Create profiles";
+    case "link_only":
+      return "Link only";
+    case "disabled":
+      return "Disabled";
+    default:
+      return value;
+  }
+}
+
 function CheckboxField(props: {
   defaultChecked?: boolean;
   label: string;
@@ -170,6 +185,171 @@ export async function DiscordSettingsPage() {
           value={String(overview.guildMembers.length)}
         />
       </section>
+
+      {overview.gatewayHealth ? (
+        <Card className="border-border/70 bg-card/78">
+          <CardHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge
+                label={`Gateway ${overview.gatewayHealth.status}`}
+                tone={
+                  overview.gatewayHealth.status === "connected"
+                    ? "success"
+                    : overview.gatewayHealth.status === "disabled"
+                      ? "muted"
+                      : overview.gatewayHealth.status === "failed"
+                        ? "danger"
+                        : "warning"
+                }
+              />
+              <StatusBadge
+                label={overview.gatewayHealth.enabled ? "Enabled" : "Disabled"}
+                tone={overview.gatewayHealth.enabled ? "info" : "muted"}
+              />
+              <StatusBadge
+                label={`${overview.gatewayHealth.eventHandlers.filter((handler) => handler.enabled).length} handlers`}
+                tone="info"
+              />
+            </div>
+            <CardTitle>Gateway health</CardTitle>
+            <CardDescription>
+              Real-time Gateway events supplement OAuth, REST, and interaction webhooks. The web
+              app remains functional when this worker is offline.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <KpiCard
+                hint="Current Gateway socket latency when connected."
+                label="Latency"
+                tone={overview.gatewayHealth.latencyMs === null ? "muted" : "success"}
+                value={overview.gatewayHealth.latencyMs === null ? "N/A" : `${overview.gatewayHealth.latencyMs}ms`}
+              />
+              <KpiCard
+                hint="Guilds visible to the Gateway worker."
+                label="Guild Count"
+                tone={overview.gatewayHealth.guildCount > 0 ? "success" : "muted"}
+                value={String(overview.gatewayHealth.guildCount)}
+              />
+              <KpiCard
+                hint="Recorded reconnect attempts."
+                label="Reconnects"
+                tone={overview.gatewayHealth.reconnectCount > 5 ? "warning" : "info"}
+                value={String(overview.gatewayHealth.reconnectCount)}
+              />
+              <KpiCard
+                hint="Sanitized Gateway session marker."
+                label="Session"
+                tone={overview.gatewayHealth.sessionId ? "info" : "muted"}
+                value={overview.gatewayHealth.sessionId ?? "None"}
+              />
+            </div>
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-2xl border border-border/70 bg-background/35 p-4">
+                <h3 className="text-sm font-semibold text-foreground">Runtime separation</h3>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <p>Web: <code>npm run dev</code></p>
+                  <p>Gateway worker: <code>npm run dev:gateway</code></p>
+                  <p>Command registration: <code>npm run discord:commands:register</code></p>
+                  <p>Health script: <code>npm run discord:health</code></p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/35 p-4">
+                <h3 className="text-sm font-semibold text-foreground">Enabled intents</h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {overview.gatewayHealth.enabledIntents.map((intent) => (
+                    <StatusBadge key={intent} label={intent} tone="muted" />
+                  ))}
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Message Content is not required for attachment continuation and should remain
+                  disabled unless a documented workflow explicitly needs it.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/35 p-4">
+                <h3 className="text-sm font-semibold text-foreground">Recent timestamps</h3>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <p>Connected: {overview.gatewayHealth.lastConnectedAtLabel ?? "Not recorded"}</p>
+                  <p>Disconnected: {overview.gatewayHealth.lastDisconnectedAtLabel ?? "Not recorded"}</p>
+                  <p>Last event: {overview.gatewayHealth.lastEventAtLabel ?? "Not recorded"}</p>
+                  <p>Bot: {overview.gatewayHealth.botUsername ?? "Unknown"}</p>
+                </div>
+              </div>
+            </div>
+            {overview.gatewayHealth.lastErrorSummary ? (
+              <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+                {overview.gatewayHealth.lastErrorSummary}
+              </div>
+            ) : null}
+            {overview.gatewayHealth.recommendations.length > 0 ? (
+              <div className="rounded-2xl border border-border/70 bg-background/35 p-4">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Gateway recommendations
+                </h3>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {overview.gatewayHealth.recommendations.map((recommendation) => (
+                    <div
+                      className="rounded-xl border border-border/70 bg-card/55 p-3"
+                      key={recommendation.id}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          {recommendation.title}
+                        </p>
+                        <StatusBadge label={recommendation.priority} tone="info" />
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {recommendation.action}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Gateway event handlers
+                </h3>
+                {overview.gatewayHealth.eventHandlers.map((handler) => (
+                  <div key={handler.handlerId} className="rounded-xl border border-border/70 bg-background/35 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold text-foreground">{handler.eventName}</p>
+                      <StatusBadge label={handler.enabled ? "Enabled" : "Disabled"} tone={handler.enabled ? "success" : "muted"} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{handler.description}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {handler.owningDomain} / {handler.requiredIntents.join(", ") || "No intent"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Recent Gateway events
+                </h3>
+                {overview.gatewayHealth.recentEvents.length === 0 ? (
+                  <EmptyState
+                    description="Gateway events will appear after the worker connects and receives real-time Discord events."
+                    title="No Gateway events yet"
+                  />
+                ) : (
+                  overview.gatewayHealth.recentEvents.map((event) => (
+                    <div key={event.id} className="rounded-xl border border-border/70 bg-background/35 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-semibold text-foreground">{event.eventName}</p>
+                        <StatusBadge label={event.status} tone={getStatusTone(event.status)} />
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{event.summary}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{event.occurredAtLabel}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.95fr)]">
         <div className="space-y-6">
@@ -350,6 +530,14 @@ export async function DiscordSettingsPage() {
                             {server.isPrimary ? (
                               <StatusBadge label="Primary" tone="info" />
                             ) : null}
+                            <StatusBadge
+                              label={server.gatewayEnabled ? "Gateway" : "Gateway off"}
+                              tone={server.gatewayEnabled ? "success" : "muted"}
+                            />
+                            <StatusBadge
+                              label={getMemberSyncPolicyLabel(server.memberSyncPolicy)}
+                              tone={server.memberSyncPolicy === "disabled" ? "warning" : "info"}
+                            />
                           </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell">{server.updatedAtLabel}</TableCell>
@@ -389,7 +577,45 @@ export async function DiscordSettingsPage() {
                                     label="Primary"
                                     name="isPrimary"
                                   />
+                                  <CheckboxField
+                                    defaultChecked={server.gatewayEnabled}
+                                    label="Gateway"
+                                    name="gatewayEnabled"
+                                  />
+                                  <CheckboxField
+                                    defaultChecked={server.voiceAwarenessEnabled}
+                                    label="Voice awareness"
+                                    name="voiceAwarenessEnabled"
+                                  />
                                 </div>
+                                <select
+                                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                  defaultValue={server.memberSyncPolicy}
+                                  name="memberSyncPolicy"
+                                >
+                                  <option value="primary_create_secondary_link">
+                                    Primary creates, secondary links
+                                  </option>
+                                  <option value="create_profiles">Create profiles</option>
+                                  <option value="link_only">Link only</option>
+                                  <option value="disabled">Disabled</option>
+                                </select>
+                                <select
+                                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                  defaultValue={server.roleSyncPolicy}
+                                  name="roleSyncPolicy"
+                                >
+                                  <option value="manual">Manual role sync</option>
+                                  <option value="disabled">Role sync disabled</option>
+                                </select>
+                                <select
+                                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                  defaultValue={server.nicknameSyncPolicy}
+                                  name="nicknameSyncPolicy"
+                                >
+                                  <option value="disabled">Nickname sync disabled</option>
+                                  <option value="preview_only">Nickname preview only</option>
+                                </select>
                                 <Button size="sm" type="submit">
                                   Save Server
                                 </Button>
@@ -431,7 +657,37 @@ export async function DiscordSettingsPage() {
                     <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border/70 bg-card/60 px-3 py-2">
                       <CheckboxField defaultChecked label="Active" name="isActive" />
                       <CheckboxField label="Primary" name="isPrimary" />
+                      <CheckboxField defaultChecked label="Gateway" name="gatewayEnabled" />
+                      <CheckboxField label="Voice awareness" name="voiceAwarenessEnabled" />
                     </div>
+                    <select
+                      className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      defaultValue="primary_create_secondary_link"
+                      name="memberSyncPolicy"
+                    >
+                      <option value="primary_create_secondary_link">
+                        Primary creates, secondary links
+                      </option>
+                      <option value="create_profiles">Create profiles</option>
+                      <option value="link_only">Link only</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                    <select
+                      className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      defaultValue="manual"
+                      name="roleSyncPolicy"
+                    >
+                      <option value="manual">Manual role sync</option>
+                      <option value="disabled">Role sync disabled</option>
+                    </select>
+                    <select
+                      className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      defaultValue="disabled"
+                      name="nicknameSyncPolicy"
+                    >
+                      <option value="disabled">Nickname sync disabled</option>
+                      <option value="preview_only">Nickname preview only</option>
+                    </select>
                     <div className="md:col-span-2">
                       <Button type="submit">Save Server Mapping</Button>
                     </div>

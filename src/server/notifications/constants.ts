@@ -85,8 +85,48 @@ export const notificationTypeCatalog = [
     defaultUrgency: "action_required",
   },
   {
+    key: "transfer.approved",
+    label: "Transfer Approved",
+    defaultUrgency: "info",
+  },
+  {
+    key: "transfer.denied",
+    label: "Transfer Denied",
+    defaultUrgency: "warning",
+  },
+  {
+    key: "personnel.action_assigned",
+    label: "Personnel Action Assigned",
+    defaultUrgency: "action_required",
+  },
+  {
+    key: "personnel.action_resolved",
+    label: "Personnel Action Resolved",
+    defaultUrgency: "info",
+  },
+  {
     key: "loa.requested",
     label: "LOA Requested",
+    defaultUrgency: "action_required",
+  },
+  {
+    key: "loa.approved",
+    label: "LOA Approved",
+    defaultUrgency: "info",
+  },
+  {
+    key: "loa.denied",
+    label: "LOA Denied",
+    defaultUrgency: "warning",
+  },
+  {
+    key: "loa.returned",
+    label: "LOA Returned",
+    defaultUrgency: "info",
+  },
+  {
+    key: "loa.return_due",
+    label: "LOA Return Due",
     defaultUrgency: "action_required",
   },
   {
@@ -200,9 +240,39 @@ export const notificationTypeCatalog = [
     defaultUrgency: "warning",
   },
   {
+    key: "recommendation.generated",
+    label: "Recommendation Generated",
+    defaultUrgency: "info",
+  },
+  {
+    key: "recommendation.critical",
+    label: "Critical Recommendation",
+    defaultUrgency: "action_required",
+  },
+  {
+    key: "recommendation.resolved",
+    label: "Recommendation Resolved",
+    defaultUrgency: "info",
+  },
+  {
+    key: "recommendation.dismissed",
+    label: "Recommendation Dismissed",
+    defaultUrgency: "info",
+  },
+  {
     key: "patrol.rsvp_recorded",
     label: "Patrol RSVP Recorded",
     defaultUrgency: "info",
+  },
+  {
+    key: "community.announcement",
+    label: "Community Announcement",
+    defaultUrgency: "info",
+  },
+  {
+    key: "system.alert",
+    label: "System Alert",
+    defaultUrgency: "critical",
   },
   {
     key: "discord.delivery_failed",

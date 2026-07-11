@@ -2,6 +2,8 @@ export * from "@/server/discord/actions";
 export * from "@/server/discord/config";
 export * from "@/server/discord/constants";
 export * from "@/server/discord/events";
+export * from "@/server/discord/gateway/health";
+export * from "@/server/discord/gateway/service";
 export * from "@/server/discord/notifications";
 export * from "@/server/discord/queries";
 export * from "@/server/discord/role-sync";

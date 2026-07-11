@@ -41,6 +41,7 @@ export type NotificationCenterItem = {
   deliveryStatus: NotificationDeliveryStatus;
   id: string;
   isRead: boolean;
+  isPinned: boolean;
   message: string;
   targetUnitName: string | null;
   title: string;

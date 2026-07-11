@@ -62,6 +62,21 @@ Use this library when planning, implementing, reviewing, testing, or documenting
 | [27-Operations-Package-Planning-Workflow.md](27-Operations-Package-Planning-Workflow.md) | Weekly Operations Package planning workspace |
 | [28-Operations-Readiness-Workflow.md](28-Operations-Readiness-Workflow.md) | Operations Package readiness and Go / No-Go validation |
 | [29-Operations-Release-Workflow.md](29-Operations-Release-Workflow.md) | Operations Package publishing, release history, and amendments |
+| [30-Operational-Health-Workflow.md](30-Operational-Health-Workflow.md) | Operational Health provider engine and Command Dashboard health signals |
+| [31-Commanders-Intent-Workflow.md](31-Commanders-Intent-Workflow.md) | Commander's Intent planning, assessment, and next-week recommendation workflow |
+| [32-Unified-Operations-Center-Workflow.md](32-Unified-Operations-Center-Workflow.md) | Unified Operations Center widget dashboard and command refresh workflow |
+| [33-Communications-Center-Workflow.md](33-Communications-Center-Workflow.md) | Unified communication pipeline, announcements, templates, preferences, and delivery review |
+| [34-Case-Management-Workflow.md](34-Case-Management-Workflow.md) | Universal case engine lifecycle, assignment, timeline, decisions, and closure |
+| [35-Moderation-Workflow.md](35-Moderation-Workflow.md) | Portal-recorded moderation, warning, Discord kick, and provider-pending actions |
+| [36-Incident-Management.md](36-Incident-Management.md) | Incident report intake and case creation |
+| [37-Appeals-Workflow.md](37-Appeals-Workflow.md) | Appeal case creation, review, and preservation of original decisions |
+| [38-Evidence-Management.md](38-Evidence-Management.md) | Evidence metadata, file/link handling, visibility, and non-destructive history |
+| [39-Member-Profile-Workflow.md](39-Member-Profile-Workflow.md) | Service-record profile, Discord display name, optional rank, and restricted sections |
+| [40-Assignment-and-Transfer-Workflow.md](40-Assignment-and-Transfer-Workflow.md) | Assignment history preservation and case-backed transfer review |
+| [41-Qualification-Requirements.md](41-Qualification-Requirements.md) | Unit- and position-scoped qualification requirements |
+| [42-Unit-Attendance-Workflow.md](42-Unit-Attendance-Workflow.md) | Unit-scoped attendance policy and LOA-aware reporting |
+| [43-Leave-of-Absence-Workflow.md](43-Leave-of-Absence-Workflow.md) | LOA request, approval, return, and readiness handling |
+| [44-Discord-Member-Event-Workflow.md](44-Discord-Member-Event-Workflow.md) | Gateway member join/update/leave identity workflow |
 
 ## Authoritative Rule
 

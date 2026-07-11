@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "2d1629bb19e2190b",
+    "type": "split",
+    "children": [
+      {
+        "id": "b7ce929bd1949807",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3350dcd0dd48e057",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "README.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "d62ecdfcef39cfb8",
+    "type": "split",
+    "children": [
+      {
+        "id": "dd49d9c59b58b7a0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4674fd58d0fb3f85",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "f9fd136f4a214b69",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "08cd49bf46a91700",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "7e83b030517adff4",
+    "type": "split",
+    "children": [
+      {
+        "id": "1be3c8b051e7eb9a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "50c39eaff52fd7e6",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "README.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for README"
+            }
+          },
+          {
+            "id": "bb09665baff3b7fd",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "README.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from README"
+            }
+          },
+          {
+            "id": "7d04bbd806786c68",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "588e8526468b0bec",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "1a2518fe08237511",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "README.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of README"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "3350dcd0dd48e057",
+  "lastOpenFiles": [
+    "docs/09-workflows/44-Discord-Member-Event-Workflow.md",
+    "docs/08-specifications/DISCORD_REALTIME_EVENT_BRIDGE.md",
+    "docs/06-integrations/discord/DISCORD_ROLE_AND_NICKNAME_SYNC.md",
+    "docs/06-integrations/discord/DISCORD_VOICE_AWARENESS.md",
+    "docs/06-integrations/discord/DISCORD_MEMBER_EVENT_WORKFLOW.md",
+    "docs/04-development/DISCORD_GATEWAY_RUNBOOK.md",
+    "docs/04-development/DISCORD_GATEWAY_DEPLOYMENT.md",
+    "docs/04-development/DISCORD_GATEWAY_LOCAL_TESTING.md",
+    "docs/06-integrations/discord/DISCORD_INTENTS_AND_SECURITY.md",
+    "docs/06-integrations/discord/DISCORD_GATEWAY_EVENT_CATALOG.md",
+    "docs/01-architecture/DISCORD_GATEWAY_ARCHITECTURE.md",
+    "src/server/discord/gateway/recommendations.ts",
+    "src/server/discord/gateway/registry.ts",
+    "AGENTS.md",
+    "src/server/discord/gateway/health.ts",
+    "src/server/discord/gateway/rules.ts",
+    "scripts/discord-gateway.ts",
+    "src/server/discord/gateway/service.ts",
+    "src/server/discord/gateway/client.ts",
+    "src/server/discord/gateway/attachment-continuation.ts",
+    "src/server/discord/gateway/voice-state.ts",
+    "src/server/discord/gateway/types.ts",
+    "docs/06-community/PERSONNEL_READINESS_CENTER.md",
+    "docs/09-workflows/43-Leave-of-Absence-Workflow.md",
+    "docs/09-workflows/42-Unit-Attendance-Workflow.md",
+    "docs/09-workflows/41-Qualification-Requirements.md",
+    "docs/09-workflows/40-Assignment-and-Transfer-Workflow.md",
+    "docs/09-workflows/39-Member-Profile-Workflow.md",
+    "docs/08-specifications/UNIT_READINESS_RULES.md",
+    "docs/08-specifications/MEMBER_READINESS_RULES.md",
+    "docs/03-modules/UNIT_QUALIFICATION_READINESS.md",
+    "docs/03-modules/PERSONNEL_ACTIONS.md",
+    "docs/03-modules/UNIT_MANAGEMENT.md",
+    "docs/03-modules/PERSONNEL_READINESS_CENTER.md",
+    "docs/06-integrations/discord/DISCORD_MODERATION.md",
+    "docs/09-workflows/38-Evidence-Management.md"
+  ]
+}

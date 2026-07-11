@@ -4,6 +4,8 @@
 
 The notification system ensures the right people are alerted at the right time without creating Discord spam or portal clutter.
 
+The unified communication pipeline is the preferred service boundary for new notification and announcement workflows. See [UNIFIED_COMMUNICATION_PIPELINE.md](UNIFIED_COMMUNICATION_PIPELINE.md) and [DELIVERY_PROVIDER_ARCHITECTURE.md](DELIVERY_PROVIDER_ARCHITECTURE.md).
+
 Notifications should support:
 
 - portal alerts
@@ -55,6 +57,8 @@ Not required for MVP.
 Can be added later for important administrative or account-related messages.
 
 ## 4. Notification Lifecycle
+
+New domain workflows should request communication through the pipeline instead of creating Discord messages or delivery records directly.
 
 ```text
 Trigger Event

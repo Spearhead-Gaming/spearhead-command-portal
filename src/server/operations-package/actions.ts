@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { operationsPackageService } from "@/server/operations-package/service";
+import { dismissRecommendation, resolveRecommendation } from "@/server/recommendations/service";
 
 function getRequiredString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -75,7 +76,10 @@ export async function updateOperationsPackagePlanningAction(formData: FormData) 
     async () => {
       await operationsPackageService.updatePlanning({
         campaignId: getRequiredString(formData, "campaignId"),
+        commanderEndState: getOptionalString(formData, "commanderEndState"),
+        commandersIntent: getOptionalString(formData, "commandersIntent"),
         enemySituation: getOptionalString(formData, "enemySituation"),
+        failureConditions: getOptionalString(formData, "failureConditions"),
         friendlySituation: getOptionalString(formData, "friendlySituation"),
         intelligenceSummary: getOptionalString(formData, "intelligenceSummary"),
         logistics: getOptionalString(formData, "logistics"),
@@ -87,6 +91,7 @@ export async function updateOperationsPackagePlanningAction(formData: FormData) 
         planningStatus: getOptionalString(formData, "planningStatus"),
         reason: getOptionalString(formData, "reason"),
         specialInstructions: getOptionalString(formData, "specialInstructions"),
+        successCriteria: getOptionalString(formData, "successCriteria"),
         weather: getOptionalString(formData, "weather"),
         weekNumber: getRequiredNumber(formData, "weekNumber"),
       });
@@ -152,5 +157,49 @@ export async function publishOperationsPackageAction(formData: FormData) {
       });
     },
     "Operations Release publication started.",
+  );
+}
+
+export async function updateIntentAssessmentAction(formData: FormData) {
+  await runAction(
+    formData,
+    async () => {
+      await operationsPackageService.updateIntentAssessment({
+        assessmentSummary: getOptionalString(formData, "assessmentSummary"),
+        campaignId: getRequiredString(formData, "campaignId"),
+        lessonsLearned: getOptionalString(formData, "lessonsLearned"),
+        nextWeekRecommendations: getOptionalString(formData, "nextWeekRecommendations"),
+        status: getRequiredString(formData, "status") || "deferred",
+        supportingEvidence: getOptionalString(formData, "supportingEvidence"),
+        weekNumber: getRequiredNumber(formData, "weekNumber"),
+      });
+    },
+    "Commander intent assessment updated.",
+  );
+}
+
+export async function dismissRecommendationAction(formData: FormData) {
+  await runAction(
+    formData,
+    async () => {
+      await dismissRecommendation({
+        reason: getOptionalString(formData, "reason"),
+        recommendationId: getRequiredString(formData, "recommendationId"),
+      });
+    },
+    "Recommendation dismissed.",
+  );
+}
+
+export async function resolveRecommendationAction(formData: FormData) {
+  await runAction(
+    formData,
+    async () => {
+      await resolveRecommendation({
+        reason: getOptionalString(formData, "reason"),
+        recommendationId: getRequiredString(formData, "recommendationId"),
+      });
+    },
+    "Recommendation marked resolved.",
   );
 }

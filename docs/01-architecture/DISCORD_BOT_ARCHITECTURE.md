@@ -60,17 +60,34 @@ Manages:
 
 ### Discord Bot Worker
 
-The current implementation is interaction-webhook first. Slash commands, buttons, and modals are handled by `POST /api/discord/interactions`, and command registration is performed through REST scripts. A long-running gateway worker is still future work, so the bot may appear offline during local webhook testing.
+The current implementation is interaction-webhook first. Slash commands, buttons,
+and modals are handled by `POST /api/discord/interactions`, and command
+registration is performed through REST scripts.
 
-Handles:
+An optional long-running Gateway worker is available through `npm run
+dev:gateway`. It is disabled by default with `DISCORD_GATEWAY_ENABLED=false` and
+is used only for real-time events such as guild member joins/leaves, member
+updates, voice-state awareness, role diagnostics, and approved attachment
+continuation sessions. The Gateway worker must not replace webhook signature
+validation or portal permission checks.
 
-- guild member join/update/leave events
+Webhook layer handles:
+
 - slash commands
 - button interactions
 - select menus
 - modals
 - message posting
 - delivery retries
+
+Gateway layer handles:
+
+- guild member join/update/leave events
+- guild availability events
+- voice state awareness
+- role create/update diagnostics
+- approved message attachment continuation sessions
+- Gateway connection health and reconnect tracking
 
 ### Portal API / Services
 
@@ -106,10 +123,15 @@ Each Discord server may map to:
 Recommended minimum:
 
 - Guilds
-- Guild Members, only if role sync/nickname sync is implemented
+- Guild Members, when Gateway member sync or role/nickname sync is enabled
+- Guild Voice States, when voice awareness is enabled
 - Direct Messages, if DM reminders are implemented
 
 Avoid unnecessary privileged intents unless required.
+
+Message Content is not required for slash commands, buttons, modals, RSVP, or
+attachment slash-command options. It should remain disabled unless a future
+documented workflow explicitly needs ordinary message text.
 
 ## 8. MVP Discord Features
 
@@ -145,6 +167,11 @@ position, qualifications, attendance, notes, or portal permissions.
 
 Manual sync is available as a drift-correction safety net. Scheduled sync may be
 added by a worker later, but it must use the same service layer and audit rules.
+
+Gateway member events use the same identity services as manual sync. Discord ID
+is the canonical external identity. Primary guilds may create placeholder
+profiles for human members, while secondary guilds should usually run link-only
+so the portal does not create duplicate member records.
 
 ## 10. Moderation
 

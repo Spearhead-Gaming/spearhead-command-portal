@@ -9,6 +9,7 @@ import {
   clearReadNotificationsAction,
   markAllNotificationsAsReadAction,
   markNotificationAsReadAction,
+  toggleNotificationPinnedAction,
 } from "@/server/notifications/actions";
 import type { NotificationCenterData } from "@/server/notifications/types";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -174,6 +175,7 @@ export function NotificationCenterDrawer({
                             label={item.isRead ? "Read" : "Unread"}
                             tone={item.isRead ? "muted" : "warning"}
                           />
+                          {item.isPinned ? <StatusBadge label="Pinned" tone="info" /> : null}
                         </div>
                         <div>
                           <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
@@ -214,6 +216,12 @@ export function NotificationCenterDrawer({
                         <input name="deliveryId" type="hidden" value={item.deliveryId} />
                         <Button size="sm" type="submit" variant="outline">
                           Clear
+                        </Button>
+                      </form>
+                      <form action={toggleNotificationPinnedAction}>
+                        <input name="deliveryId" type="hidden" value={item.deliveryId} />
+                        <Button size="sm" type="submit" variant="outline">
+                          {item.isPinned ? "Unpin" : "Pin"}
                         </Button>
                       </form>
                       {item.actionUrl ? (

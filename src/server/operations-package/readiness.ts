@@ -7,8 +7,10 @@ import type {
   ReadinessRuleSeverity,
   ReadinessRuleStatus,
 } from "@/server/operations-package/types";
+import { RuleEngineService } from "@/server/rules/service";
+import type { RuleEvaluationContext, RuleEvaluationResult, RuleProvider, RuleSeverity } from "@/server/rules/types";
 
-type RuleInput = {
+type RuleInput = RuleEvaluationContext & {
   canPublish: boolean;
   discordEventChannelMapped: boolean;
   packageData: OperationsPackageData;
@@ -22,6 +24,8 @@ type RuleDefinition = {
   relatedEntityType?: string;
   evaluate: (input: RuleInput) => Omit<ReadinessRuleResult, "category" | "description" | "id" | "label">;
 };
+
+const readinessRuleEngine = new RuleEngineService();
 
 function ruleResult(input: {
   message: string;
@@ -53,6 +57,29 @@ function getDefaultSeverity(status: ReadinessRuleStatus): ReadinessRuleSeverity 
   return "info";
 }
 
+function toRuleSeverity(severity: ReadinessRuleSeverity): RuleSeverity {
+  switch (severity) {
+    case "blocking":
+      return "CRITICAL";
+    case "warning":
+      return "MEDIUM";
+    default:
+      return "LOW";
+  }
+}
+
+function fromRuleSeverity(severity: RuleSeverity): ReadinessRuleSeverity {
+  switch (severity) {
+    case "CRITICAL":
+    case "HIGH":
+      return "blocking";
+    case "MEDIUM":
+      return "warning";
+    default:
+      return "info";
+  }
+}
+
 function resourceExists(packageData: OperationsPackageData, resourceType: string) {
   return packageData.resources.some((resource) => resource.resourceType === resourceType && resource.currentVersion);
 }
@@ -78,6 +105,38 @@ function evaluateRule(definition: RuleDefinition, input: RuleInput): ReadinessRu
     label: definition.label,
     relatedEntityType: relatedEntityType ?? definition.relatedEntityType ?? null,
     ...rest,
+  };
+}
+
+function toEngineResult(rule: ReadinessRuleResult, providerId: string, timestamp: Date): RuleEvaluationResult {
+  return {
+    category: rule.category,
+    description: rule.description,
+    id: rule.id,
+    message: rule.message,
+    providerId,
+    recommendedAction: rule.recommendedAction,
+    relatedEntityId: rule.relatedEntityId,
+    relatedEntityType: rule.relatedEntityType,
+    severity: toRuleSeverity(rule.severity),
+    status: rule.status,
+    timestamp,
+    title: rule.label,
+  };
+}
+
+function toReadinessRule(result: RuleEvaluationResult): ReadinessRuleResult {
+  return {
+    category: result.category as ReadinessRuleCategory,
+    description: result.description,
+    id: result.id,
+    label: result.title,
+    message: result.message,
+    recommendedAction: result.recommendedAction,
+    relatedEntityId: result.relatedEntityId,
+    relatedEntityType: result.relatedEntityType,
+    severity: fromRuleSeverity(result.severity),
+    status: result.status,
   };
 }
 
@@ -569,16 +628,83 @@ const publicationRules: RuleDefinition[] = [
   },
 ];
 
-export function evaluateOperationalReadiness(input: RuleInput): ReadinessEvaluation {
+function createReadinessProvider(input: {
+  category: ReadinessRuleCategory;
+  id: string;
+  name: string;
+  priority: number;
+  rules: RuleDefinition[];
+}): RuleProvider<RuleInput> {
+  return {
+    category: input.category,
+    domain: "operations",
+    id: input.id,
+    name: input.name,
+    priority: input.priority,
+    evaluate: (context) => {
+      const timestamp = context.now ?? new Date();
+
+      return input.rules.map((rule) => toEngineResult(evaluateRule(rule, context), input.id, timestamp));
+    },
+  };
+}
+
+readinessRuleEngine.registerProvider(
+  createReadinessProvider({
+    category: "operational",
+    id: "operations-package.operational-readiness",
+    name: "Operational Readiness Provider",
+    priority: 10,
+    rules: operationalRules,
+  }),
+);
+readinessRuleEngine.registerProvider(
+  createReadinessProvider({
+    category: "publication",
+    id: "operations-package.publication-readiness",
+    name: "Publication Readiness Provider",
+    priority: 20,
+    rules: publicationRules,
+  }),
+);
+
+export async function evaluateOperationalReadiness(input: RuleInput): Promise<ReadinessEvaluation> {
+  const output = await readinessRuleEngine.evaluate(
+    {
+      ...input,
+      domain: "operations",
+      now: input.now ?? new Date(),
+      subject: {
+        id: input.packageData.week.id,
+        type: "DeploymentWeek",
+      },
+    },
+    {
+      providerIds: ["operations-package.operational-readiness"],
+    },
+  );
+
   return scoreRules(
     "operational",
-    operationalRules.map((rule) => evaluateRule(rule, input)),
+    output.results.map(toReadinessRule),
   );
 }
 
-export function evaluatePublicationReadiness(input: RuleInput): ReadinessEvaluation {
-  const operationalEvaluation = evaluateOperationalReadiness(input);
-  const publicationRuleResults = publicationRules.map((rule) => evaluateRule(rule, input));
+export async function evaluatePublicationReadiness(input: RuleInput): Promise<ReadinessEvaluation> {
+  const evaluationContext = {
+    ...input,
+    domain: "operations",
+    now: input.now ?? new Date(),
+    subject: {
+      id: input.packageData.week.id,
+      type: "DeploymentWeek",
+    },
+  };
+  const operationalEvaluation = await evaluateOperationalReadiness(evaluationContext);
+  const publicationOutput = await readinessRuleEngine.evaluate(evaluationContext, {
+    providerIds: ["operations-package.publication-readiness"],
+  });
+  const publicationRuleResults = publicationOutput.results.map(toReadinessRule);
   const criticalOperationalFailures = operationalEvaluation.rules.filter((rule) => rule.status === "FAIL");
   const noCriticalOperationalFailuresRule: ReadinessRuleResult = {
     category: "publication",
@@ -602,9 +728,18 @@ export function evaluatePublicationReadiness(input: RuleInput): ReadinessEvaluat
   return scoreRules("publication", [...publicationRuleResults, noCriticalOperationalFailuresRule]);
 }
 
-export function getGoNoGoStatus(input: RuleInput): GoNoGoStatus {
-  const operational = evaluateOperationalReadiness(input);
-  const publication = evaluatePublicationReadiness(input);
+export async function getGoNoGoStatus(input: RuleInput): Promise<GoNoGoStatus> {
+  const evaluationContext = {
+    ...input,
+    domain: "operations",
+    now: input.now ?? new Date(),
+    subject: {
+      id: input.packageData.week.id,
+      type: "DeploymentWeek",
+    },
+  };
+  const operational = await evaluateOperationalReadiness(evaluationContext);
+  const publication = await evaluatePublicationReadiness(evaluationContext);
   const allRules = [...operational.rules, ...publication.rules];
   const blockingIssues = allRules.filter((rule) => rule.status === "FAIL");
   const warnings = allRules.filter((rule) => rule.status === "WARNING");

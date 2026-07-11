@@ -9,9 +9,12 @@ import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { UnitBadge } from "@/components/status/unit-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RecommendationQueue } from "@/features/operations/components/command-decision-support";
+import { HealthSummaryPanel } from "@/features/operations/components/health";
 import { GoNoGoBoard } from "@/features/operations/components/readiness";
 import { formatDateTime } from "@/lib/formatters";
 import { getCurrentUser } from "@/server/auth/current-user";
+import { getOperationsCenterDashboardData } from "@/server/dashboard";
 import { can } from "@/server/permissions/access";
 import { MissionBoard, type MissionBoardColumn } from "@/features/s3/components/mission-board";
 import { MissionInspectorDrawer } from "@/features/s3/components/mission-inspector-drawer";
@@ -41,7 +44,6 @@ import type {
   MissionFilters,
   S3ReferenceData,
 } from "@/server/s3";
-import { operationsPackageService } from "@/server/operations-package/service";
 import { isAarStatus, isConopStatus } from "@/server/s3";
 import { isEventType } from "@/server/events/utils";
 
@@ -332,21 +334,10 @@ function OperationsCenterList({
 }
 
 export async function OperationsCenterPage() {
-  const [dashboardData, user] = await Promise.all([
-    getS3DashboardData(),
-    getCurrentUser(),
-  ]);
-  const canCreateDeployment = user
-    ? can(user, "deployments.create") || can(user, "campaigns.create")
-    : false;
+  const commandCenter = await getOperationsCenterDashboardData();
+  const dashboardData = commandCenter.s3Dashboard;
   const currentDeployment = dashboardData.activeCampaigns[0] ?? null;
-  const currentGoNoGoStatus =
-    currentDeployment?.currentWeekNumber && currentDeployment.packageHref
-      ? await operationsPackageService.getGoNoGoStatus({
-          campaignId: currentDeployment.id,
-          weekNumber: currentDeployment.currentWeekNumber,
-        })
-      : null;
+  const currentPackage = commandCenter.currentPackage;
   const nextOperation = dashboardData.upcomingMissions[0] ?? null;
   const pendingActionCount =
     dashboardData.awaitingReviewMissions.length +
@@ -367,9 +358,9 @@ export async function OperationsCenterPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={["Operations", "Operations Center"]}
-        description="Operational awareness for the current deployment, weekly planning package, upcoming operations, Zeus ownership, and AAR follow-up."
-        title="Operations Center"
+        breadcrumbs={["Operations", "Commander Dashboard"]}
+        description="Command decision support for the current deployment, health, readiness, critical issues, and recommended actions."
+        title="Commander Dashboard"
       />
       <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/12 via-card/88 to-background">
         <CardContent className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -419,41 +410,89 @@ export async function OperationsCenterPage() {
           </div>
           <div className="rounded-2xl border border-border/70 bg-background/50 p-4">
             <p className="text-sm font-semibold text-foreground">Quick actions</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Refreshed {formatDateTime(commandCenter.lastRefreshedAt)}
+            </p>
             <div className="mt-4 grid gap-3">
-              {canCreateDeployment ? (
-                <Button asChild>
-                  <Link href="/operations/campaigns?panel=create">Create Deployment</Link>
+              {commandCenter.quickActions.slice(0, 7).map((action) => (
+                <Button asChild key={action.id} variant={action.primary ? "default" : "outline"}>
+                  <Link href={action.href}>{action.label}</Link>
                 </Button>
-              ) : null}
-              <Button asChild variant="outline">
-                <Link href="/operations/s3?panel=create&eventType=operation">Create Weekend Operation</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/operations/patrols?panel=start">Start Patrol</Link>
-              </Button>
-              {currentDeployment?.packageHref ? (
-                <Button asChild variant="outline">
-                  <Link href={currentDeployment.packageHref}>Open Planning Package</Link>
-                </Button>
-              ) : (
-                <Button asChild variant="outline">
-                  <Link href="/operations/campaigns">Open Deployments</Link>
-                </Button>
-              )}
-              <Button asChild variant="outline">
-                <Link href="/operations/aar-queue">Review Patrol AARs</Link>
-              </Button>
+              ))}
             </div>
           </div>
         </CardContent>
       </Card>
-      {currentGoNoGoStatus && currentDeployment?.packageHref ? (
+      {currentPackage && currentDeployment?.packageHref ? (
+        <RecommendationQueue
+          fallbackHref={currentDeployment.packageHref}
+          recommendations={currentPackage.recommendations.active}
+          returnTo="/operations"
+        />
+      ) : null}
+      {currentPackage?.recommendations.active.some((recommendation) => recommendation.priority === "critical") ? (
+        <Card className="border-danger/35 bg-danger/10">
+          <CardHeader>
+            <CardTitle>Critical Issues</CardTitle>
+            <CardDescription>Critical CDSS recommendations that need command attention.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {currentPackage.recommendations.active
+              .filter((recommendation) => recommendation.priority === "critical")
+              .slice(0, 4)
+              .map((recommendation) => (
+                <div key={recommendation.id} className="rounded-xl border border-danger/25 bg-background/45 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">{recommendation.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{recommendation.reason}</p>
+                    </div>
+                    <StatusBadge label={recommendation.category} tone="danger" />
+                  </div>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      ) : null}
+      {currentPackage?.health && currentDeployment?.packageHref ? (
+        <HealthSummaryPanel
+          health={currentPackage.health}
+          packageHref={currentDeployment.packageHref}
+          showInspector={false}
+        />
+      ) : null}
+      {currentPackage?.readiness && currentDeployment?.packageHref ? (
         <GoNoGoBoard
           packageHref={currentDeployment.packageHref}
-          readiness={currentGoNoGoStatus}
+          readiness={currentPackage.readiness}
           showChecklist={false}
         />
       ) : null}
+      <Card className="border-border/80 bg-card/82">
+        <CardHeader>
+          <CardTitle>Dashboard modules</CardTitle>
+          <CardDescription>
+            Registered command widgets with permission-aware visibility, refresh hints, size, and collapse defaults.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {commandCenter.widgets.slice(0, 8).map((widget) => (
+            <div key={widget.id} className="rounded-xl border border-border/70 bg-background/45 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{widget.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{widget.dataProvider}</p>
+                </div>
+                <StatusBadge label={widget.size.toUpperCase()} tone="muted" />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {widget.refreshIntervalSeconds ? `${widget.refreshIntervalSeconds}s refresh` : "Manual refresh"} /{" "}
+                {widget.collapsedByDefault ? "Collapsed" : "Expanded"}
+              </p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
         <div className="space-y-6">
           <Card className="border-border/80 bg-card/88">
@@ -538,6 +577,45 @@ export async function OperationsCenterPage() {
           </Card>
           <Card className="border-border/80 bg-card/88">
             <CardHeader>
+              <CardTitle>Personnel readiness</CardTitle>
+              <CardDescription>
+                Personnel, attendance, qualification, and leadership signals pulled from existing dashboard services.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <DashboardWidget
+                description="Community-level active member count in the current visibility scope"
+                title="Active Members"
+                tone="success"
+                value={String(commandCenter.dashboard.community.activeMembers)}
+              />
+              <DashboardWidget
+                description="Members or events needing attendance attention"
+                title="Attendance Issues"
+                tone={commandCenter.dashboard.attendance.missingRsvps > 0 ? "warning" : "success"}
+                value={String(commandCenter.dashboard.attendance.missingRsvps)}
+              />
+              <DashboardWidget
+                description="Required qualification gaps and expiring qualification signals"
+                title="Qualification Gaps"
+                tone={commandCenter.dashboard.training.missingRequired > 0 ? "warning" : "success"}
+                value={String(commandCenter.dashboard.training.missingRequired)}
+              />
+              <DashboardWidget
+                description="Leadership and unit readiness items visible to this user"
+                title="Unit Readiness"
+                tone={commandCenter.dashboard.unitLeadership.unitReadiness.length > 0 ? "info" : "muted"}
+                value={String(commandCenter.dashboard.unitLeadership.unitReadiness.length)}
+              />
+              <div className="md:col-span-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/personnel/members">Open Personnel Dashboard</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/80 bg-card/88">
+            <CardHeader>
               <CardTitle>Upcoming</CardTitle>
               <CardDescription>
                 Published operations and patrols coming up next, with the assigned Zeus or planner visible at a glance.
@@ -603,24 +681,52 @@ export async function OperationsCenterPage() {
           </Card>
           <Card className="border-border/80 bg-card/82">
             <CardHeader>
-              <CardTitle>Recent activity</CardTitle>
+              <CardTitle>Notifications</CardTitle>
               <CardDescription>
-                Snapshot of publication and document readiness queues.
+                Portal notifications, failed deliveries, and Discord-facing delivery health.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">Approved but unpublished</p>
-                <StatusBadge label={String(dashboardData.approvedUnpublishedMissions.length)} tone="warning" />
+                <p className="text-sm text-muted-foreground">Unread notifications</p>
+                <StatusBadge label={String(commandCenter.notificationCenter.unreadCount)} tone={commandCenter.notificationCenter.unreadCount > 0 ? "warning" : "success"} />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">CONOPs needing review</p>
-                <StatusBadge label={String(dashboardData.conopsNeedingReview.length)} tone="warning" />
+                <p className="text-sm text-muted-foreground">Failed deliveries</p>
+                <StatusBadge label={String(commandCenter.notificationDeliveryOverview.summary.failed)} tone={commandCenter.notificationDeliveryOverview.summary.failed > 0 ? "danger" : "success"} />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">Missing RSVPs</p>
-                <StatusBadge label={String(dashboardData.attendanceReadiness.missingRsvpCount)} tone="danger" />
+                <p className="text-sm text-muted-foreground">Recent Discord activity</p>
+                <StatusBadge label={commandCenter.dashboard.admin.discordStatusLabel} tone={commandCenter.dashboard.admin.discordConnectedServers > 0 ? "success" : "warning"} />
               </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard">Open Notification Center</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/administration/notifications">Open Deliveries</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/80 bg-card/82">
+            <CardHeader>
+              <CardTitle>Recent activity</CardTitle>
+              <CardDescription>Chronological operational activity from packages, audit logs, roster changes, and system events.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OperationsCenterList
+                emptyDescription="Operational activity will appear after package, roster, or system changes."
+                emptyTitle="No recent activity"
+                items={commandCenter.activityFeed.map((entry) => ({
+                  id: entry.id,
+                  href: entry.href,
+                  meta: `${entry.entityType} / ${formatDateTime(entry.createdAt)}`,
+                  statusLabel: entry.action,
+                  title: entry.summary,
+                }))}
+                tone="info"
+              />
             </CardContent>
           </Card>
           <Card className="border-border/80 bg-card/82">
@@ -647,6 +753,28 @@ export async function OperationsCenterPage() {
               ) : (
                 <EmptyState description="Reviewed Patrol AAR progression notes will appear here." title="No progression recommendations" />
               )}
+            </CardContent>
+          </Card>
+          <Card className="border-border/80 bg-card/82">
+            <CardHeader>
+              <CardTitle>Deployment timeline</CardTitle>
+              <CardDescription>
+                Planning, publishing, Weekend Operations, Patrol AARs, intent assessments, and progression signals.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OperationsCenterList
+                emptyDescription="Timeline items appear once deployments, operations, releases, AARs, or assessments exist."
+                emptyTitle="No timeline yet"
+                items={commandCenter.timeline.map((item) => ({
+                  id: item.id,
+                  href: item.href,
+                  meta: `${item.type} / ${item.timestamp ? formatDateTime(item.timestamp) : item.meta}`,
+                  statusLabel: item.timestamp ? item.meta : undefined,
+                  title: item.label,
+                }))}
+                tone="info"
+              />
             </CardContent>
           </Card>
         </div>

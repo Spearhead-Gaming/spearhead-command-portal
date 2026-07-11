@@ -8,8 +8,10 @@ import {
 } from "../src/server/discord/commands/register";
 import {
   getDiscordIntegrationConfig,
+  getDiscordGatewaySafeDiagnostics,
   getDiscordSafeConfigDiagnostics,
 } from "../src/server/discord/config";
+import { getDiscordGatewayHealthSummary } from "../src/server/discord/gateway/health";
 
 function printHeading(title: string) {
   console.log(`\n${title}`);
@@ -48,6 +50,23 @@ function printSafeConfigDiagnostics() {
   printBoolean("Interaction URL configured", diagnostics.interactionsUrlConfigured);
   printBoolean("Interaction URL is localhost", diagnostics.interactionsUrlIsLocalhost);
   console.log(`Interaction endpoint: ${config.interactionsUrl || "(not configured)"}`);
+  console.log("Secrets are intentionally not printed.");
+}
+
+function printSafeGatewayDiagnostics() {
+  const diagnostics = getDiscordGatewaySafeDiagnostics();
+
+  printHeading("Safe Discord Gateway Config");
+  printBoolean("DISCORD_GATEWAY_ENABLED", diagnostics.enabled);
+  printBoolean("DISCORD_BOT_TOKEN present", diagnostics.botTokenPresent);
+  printBoolean("DISCORD_APPLICATION_ID present", diagnostics.applicationIdPresent);
+  printBoolean("Primary guild configured", diagnostics.primaryGuildConfigured);
+  printBoolean("Primary guild looks valid", diagnostics.primaryGuildLooksValid);
+  console.log(`Intents: ${diagnostics.intents.join(", ") || "(none)"}`);
+  console.log(`Shard count: ${diagnostics.shardCount}`);
+  console.log(`Heartbeat timeout: ${diagnostics.heartbeatTimeoutMs}ms`);
+  console.log(`Reconnect max delay: ${diagnostics.reconnectMaxDelayMs}ms`);
+  console.log(`Event log level: ${diagnostics.eventLogLevel}`);
   console.log("Secrets are intentionally not printed.");
 }
 
@@ -97,9 +116,26 @@ async function run() {
       );
       return;
     }
+    case "gateway:health": {
+      printSafeGatewayDiagnostics();
+      const health = await getDiscordGatewayHealthSummary();
+
+      printHeading("Discord Gateway Health");
+      console.log(`Status: ${health.status}`);
+      console.log(`Enabled: ${health.enabled ? "yes" : "no"}`);
+      console.log(`Bot user: ${health.botUsername ?? "unavailable"}`);
+      console.log(`Guild count: ${health.guildCount}`);
+      console.log(`Latency: ${health.latencyMs === null ? "unavailable" : `${health.latencyMs}ms`}`);
+      console.log(`Reconnect count: ${health.reconnectCount}`);
+      console.log(`Last connected: ${health.lastConnectedAtLabel ?? "not recorded"}`);
+      console.log(`Last event: ${health.lastEventAtLabel ?? "not recorded"}`);
+      console.log(`Registered handlers: ${health.eventHandlers.length}`);
+      console.log(`Recent Gateway events: ${health.recentEvents.length}`);
+      return;
+    }
     default:
       throw new Error(
-        `Unknown Discord script command "${command}". Use health, commands:register, commands:list, or commands:clear:guild.`,
+        `Unknown Discord script command "${command}". Use health, gateway:health, commands:register, commands:list, or commands:clear:guild.`,
       );
   }
 }

@@ -4,6 +4,8 @@
 
 Operations Readiness evaluates whether an Operations Package is complete enough to proceed toward review and later publication.
 
+Readiness rules are evaluated through the Universal Rule Engine. Operational Readiness and Publication Readiness are domain consumers of generic rule providers, not standalone rule frameworks.
+
 This workflow is Phase 2 Epic 5B only. It does not implement Discord publishing, scheduled publishing, operational health, commander's intent assessment, or decision support.
 
 ## Readiness Categories
@@ -121,7 +123,7 @@ Actions:
 
 ## Service Boundary
 
-Readiness logic belongs in `OperationsPackageService` and the reusable readiness rule engine.
+Readiness logic belongs in `OperationsPackageService` and provider implementations registered with the Universal Rule Engine.
 
 UI components should consume service results and must not duplicate rule logic.
 

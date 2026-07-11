@@ -77,7 +77,20 @@ Never post these publicly:
 - hidden audit details
 - permission management details
 
-## 6. Bot Permission Requirements
+## 6. Outbound Delivery Rule
+
+Domain modules should not send directly to Discord. Outbound portal-to-Discord
+communication should flow through:
+
+```text
+Domain Service -> Communication Service -> Delivery Provider -> Delivery Record
+```
+
+The Discord channel provider must resolve destinations through configured
+channel mappings. It must never guess a channel, and missing mappings should
+produce a failed delivery record visible in the Communications Center.
+
+## 7. Bot Permission Requirements
 
 Bot may need:
 
@@ -89,11 +102,13 @@ Bot may need:
 - Manage Nicknames, only for nickname sync
 - Send Messages in Threads, if thread workflows are added
 
-## 7. Signature and Verification
+For moderation-specific provider behavior, see [DISCORD_MODERATION.md](DISCORD_MODERATION.md).
+
+## 8. Signature and Verification
 
 Discord interactions must be verified according to Discord's interaction security requirements.
 
-## 8. Audit Requirements
+## 9. Audit Requirements
 
 Audit:
 
@@ -108,7 +123,7 @@ Audit:
 
 Duplicate cleanup must merge only exact Discord ID matches automatically. Display-name matches are informational warnings for staff review.
 
-## 9. Duplicate Merge Safety
+## 10. Duplicate Merge Safety
 
 Exact Discord ID merge must preserve operational history. The merge preview and
 action should keep roster assignments, qualifications, attendance, applications,

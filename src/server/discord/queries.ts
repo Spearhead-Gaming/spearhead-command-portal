@@ -14,6 +14,7 @@ import {
   shouldSyncDiscordBotAccounts,
 } from "@/server/discord/config";
 import { getInteractionSessionDiagnostics } from "@/server/discord/interactions/sessions/service";
+import { getDiscordGatewayHealthSummary } from "@/server/discord/gateway/health";
 import {
   listDiscordChannelMappings,
   listDiscordRoleMappings,
@@ -71,6 +72,9 @@ export async function getDiscordAdministrationOverview(
   const canModerateKick = can(user, "discord.moderation.kick");
   const canViewModerationHistory = can(user, "discord.moderation.history.view");
   const canManageDiscordAdmin = can(user, "admin.discord.manage");
+  const canViewGateway =
+    can(user, "discord.gateway.view") || can(user, "discord.gateway.health.view");
+  const canManageGateway = can(user, "discord.gateway.manage");
   const [
     units,
     servers,
@@ -86,6 +90,7 @@ export async function getDiscordAdministrationOverview(
     moderationActions,
     identityDiagnostics,
     interactionSessionDiagnostics,
+    gatewayHealth,
   ] = await Promise.all([
     prisma.unit.findMany({
       where: {
@@ -218,6 +223,7 @@ export async function getDiscordAdministrationOverview(
           failedCount: 0,
           recentFailed: [],
         }),
+    canViewGateway || canManageGateway ? getDiscordGatewayHealthSummary() : Promise.resolve(null),
   ]);
   const previewServerId =
     options?.previewServerId ??
@@ -316,6 +322,8 @@ export async function getDiscordAdministrationOverview(
     canViewSync,
     canViewBotHealth,
     canViewDeliveries,
+    canViewGateway,
+    canManageGateway,
     channelMappings: mappings.map((mapping) => ({
       channelId: mapping.channelId,
       description: mapping.description,
@@ -428,6 +436,7 @@ export async function getDiscordAdministrationOverview(
       username: member.username,
       userId: member.userId,
     })),
+    gatewayHealth,
     moderationActions: moderationActions.map((action) => ({
       action: action.action,
       createdAtLabel: formatTimestamp(action.createdAt),
@@ -472,14 +481,19 @@ export async function getDiscordAdministrationOverview(
     sentDeliveryCount,
     servers: servers.map((server) => ({
       channelMappingCount: server._count.channelMappings,
+      gatewayEnabled: server.gatewayEnabled,
       guildId: server.guildId,
       id: server.id,
       isActive: server.isActive,
       isPrimary: server.isPrimary,
+      memberSyncPolicy: server.memberSyncPolicy,
       name: server.name,
+      nicknameSyncPolicy: server.nicknameSyncPolicy,
+      roleSyncPolicy: server.roleSyncPolicy,
       unitId: server.unit?.id ?? null,
       unitName: server.unit?.name ?? null,
       updatedAtLabel: formatTimestamp(server.updatedAt),
+      voiceAwarenessEnabled: server.voiceAwarenessEnabled,
     })),
     syncLogs: syncLogs.map((entry) => ({
       actorLabel: getUserLabel(entry.actor),

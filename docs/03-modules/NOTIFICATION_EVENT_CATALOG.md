@@ -619,6 +619,238 @@ Audit:
 
 - required
 
+---
+
+### planning.health.changed
+
+Trigger:
+
+- Planning Health meaningfully changes state
+
+Recipients:
+
+- S3 staff
+- deployment creator
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- warning only when state worsens
+
+Audit:
+
+- only when caused by an explicit staff action or critical state transition
+
+---
+
+### execution.health.changed
+
+Trigger:
+
+- Execution Health meaningfully changes state
+
+Recipients:
+
+- S3 staff
+- deployment creator
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- warning only when state worsens
+
+Audit:
+
+- only when caused by an explicit staff action or critical state transition
+
+---
+
+### community.health.changed
+
+Trigger:
+
+- Community Health meaningfully changes state
+
+Recipients:
+
+- S3 staff
+- unit leadership where scoped
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- warning only when state worsens
+
+Audit:
+
+- only when caused by an explicit staff action or critical state transition
+
+---
+
+### operational.health.critical
+
+Trigger:
+
+- Overall Operational Health enters Critical state
+
+Recipients:
+
+- S3 staff
+- deployment creator
+- command staff
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- action required
+
+Audit:
+
+- required for critical-state entry and resolution
+
+---
+
+### go_no_go.changed
+
+Trigger:
+
+- Go / No-Go state meaningfully changes
+
+Recipients:
+
+- S3 staff
+- deployment publisher
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- warning or action required
+
+Audit:
+
+- only when caused by explicit staff action or publication state transition
+
+---
+
+### recommendation.generated
+
+Trigger:
+
+- CDSS generates a meaningful recommendation
+
+Recipients:
+
+- S3 staff
+- deployment creator
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- warning for high/critical recommendations
+
+Audit:
+
+- required for critical recommendation generation
+
+---
+
+### recommendation.critical
+
+Trigger:
+
+- CDSS generates or reopens a critical recommendation
+
+Recipients:
+
+- S3 staff
+- command staff
+
+Channels:
+
+- portal notification placeholder
+- Discord staff-alerts placeholder when mapped
+
+Priority:
+
+- action required
+
+Audit:
+
+- required
+
+---
+
+### recommendation.resolved
+
+Trigger:
+
+- staff marks a recommendation resolved
+
+Recipients:
+
+- S3 staff
+- deployment creator
+
+Channels:
+
+- portal notification placeholder
+
+Priority:
+
+- info
+
+Audit:
+
+- required
+
+---
+
+### recommendation.dismissed
+
+Trigger:
+
+- staff dismisses a recommendation
+
+Recipients:
+
+- S3 staff
+
+Channels:
+
+- portal notification placeholder only if configured
+
+Priority:
+
+- info
+
+Audit:
+
+- required
+
 ## 6. Discord/System Events
 
 ### discord.delivery_failed

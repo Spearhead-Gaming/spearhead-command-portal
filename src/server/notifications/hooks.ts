@@ -333,6 +333,73 @@ export async function queueDiscordModerationFailedNotificationPlaceholder(input:
   }));
 }
 
+export async function queueRecommendationGeneratedNotificationPlaceholder(input: {
+  actionUrl?: string | null;
+  actorUserId?: string | null;
+  recommendationTitle: string;
+  recommendationSummary: string;
+  recipientUserIds?: string[];
+}) {
+  return runNotificationHookSafely("recommendation.generated", async () => ({
+    actionUrl: input.actionUrl ?? null,
+    createdByUserId: input.actorUserId ?? null,
+    deliveries: (input.recipientUserIds ?? []).map(buildPortalNotificationDelivery),
+    message: input.recommendationSummary,
+    title: `Recommendation generated: ${input.recommendationTitle}`,
+    type: "recommendation.generated",
+  }));
+}
+
+export async function queueCriticalRecommendationNotificationPlaceholder(input: {
+  actionUrl?: string | null;
+  actorUserId?: string | null;
+  recommendationTitle: string;
+  recommendationSummary: string;
+  recipientUserIds?: string[];
+}) {
+  return runNotificationHookSafely("recommendation.critical", async () => ({
+    actionUrl: input.actionUrl ?? null,
+    createdByUserId: input.actorUserId ?? null,
+    deliveries: (input.recipientUserIds ?? []).map(buildPortalNotificationDelivery),
+    message: input.recommendationSummary,
+    title: `Critical recommendation: ${input.recommendationTitle}`,
+    type: "recommendation.critical",
+    urgency: "action_required",
+  }));
+}
+
+export async function queueRecommendationResolvedNotificationPlaceholder(input: {
+  actionUrl?: string | null;
+  actorUserId?: string | null;
+  recommendationTitle: string;
+  recipientUserIds?: string[];
+}) {
+  return runNotificationHookSafely("recommendation.resolved", async () => ({
+    actionUrl: input.actionUrl ?? null,
+    createdByUserId: input.actorUserId ?? null,
+    deliveries: (input.recipientUserIds ?? []).map(buildPortalNotificationDelivery),
+    message: `${input.recommendationTitle} was marked resolved. Recommendation history remains available for command review.`,
+    title: `Recommendation resolved: ${input.recommendationTitle}`,
+    type: "recommendation.resolved",
+  }));
+}
+
+export async function queueRecommendationDismissedNotificationPlaceholder(input: {
+  actionUrl?: string | null;
+  actorUserId?: string | null;
+  recommendationTitle: string;
+  recipientUserIds?: string[];
+}) {
+  return runNotificationHookSafely("recommendation.dismissed", async () => ({
+    actionUrl: input.actionUrl ?? null,
+    createdByUserId: input.actorUserId ?? null,
+    deliveries: (input.recipientUserIds ?? []).map(buildPortalNotificationDelivery),
+    message: `${input.recommendationTitle} was dismissed by command staff. Recommendation history remains available for review.`,
+    title: `Recommendation dismissed: ${input.recommendationTitle}`,
+    type: "recommendation.dismissed",
+  }));
+}
+
 export async function queueFormSubmittedNotificationPlaceholder(input: {
   actorUserId?: string | null;
   formTitle: string;

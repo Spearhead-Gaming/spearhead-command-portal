@@ -10,10 +10,16 @@ import { UnitBadge } from "@/components/status/unit-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  IntentAssessmentPanel,
+  RecommendationInspector,
+  RecommendationQueue,
+} from "@/features/operations/components/command-decision-support";
+import {
   OperationsReleaseHistoryList,
   OperationsReleasePreviewCard,
   OperationsReleasePublishCard,
 } from "@/features/operations/components/release";
+import { HealthSummaryPanel } from "@/features/operations/components/health";
 import { GoNoGoBoard } from "@/features/operations/components/readiness";
 import { formatDateTime } from "@/lib/formatters";
 import {
@@ -136,6 +142,26 @@ function PlanningForm({
           <span className={labelClassName}>Planning Notes</span>
           <textarea className={textareaClassName} defaultValue={data.week.planningNotes ?? ""} name="planningNotes" />
         </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className={labelClassName}>Commander&apos;s Intent</span>
+            <textarea className={textareaClassName} defaultValue={data.week.commandersIntent ?? data.weeklyTasking?.commandersIntent ?? ""} name="commandersIntent" />
+          </label>
+          <label className="space-y-2">
+            <span className={labelClassName}>Commander End State</span>
+            <textarea className={textareaClassName} defaultValue={data.week.commanderEndState ?? ""} name="commanderEndState" />
+          </label>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className={labelClassName}>Success Criteria</span>
+            <textarea className={textareaClassName} defaultValue={data.week.successCriteria ?? ""} name="successCriteria" />
+          </label>
+          <label className="space-y-2">
+            <span className={labelClassName}>Failure Conditions</span>
+            <textarea className={textareaClassName} defaultValue={data.week.failureConditions ?? ""} name="failureConditions" />
+          </label>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2">
             <span className={labelClassName}>Operational Objectives</span>
@@ -461,8 +487,14 @@ export async function OperationsPackagePage({
         <KpiCard hint="Planning field completion" label="Planning" tone="info" value={`${data.completion.planningFieldsComplete}/${data.completion.planningFieldsTotal}`} />
         <DashboardWidget description="Active units with primary objectives" title="Unit Taskings" tone="warning" value={`${data.completion.unitTaskingsComplete}/${data.completion.unitTaskingsTotal}`} />
         <KpiCard hint="Weekend operation linked to this week" label="Operation" tone={data.completion.hasWeekendOperation ? "success" : "warning"} value={data.completion.hasWeekendOperation ? "Linked" : "Missing"} />
-        <DashboardWidget description="CONOP and deployment resources are planning inputs only in 5A" title="Resources" tone={data.completion.hasResources ? "success" : "warning"} value={data.completion.hasConop ? "CONOP Ready" : "Pending"} />
+        <DashboardWidget description="CONOP and deployment resources feeding readiness and recommendations" title="Resources" tone={data.completion.hasResources ? "success" : "warning"} value={data.completion.hasConop ? "CONOP Ready" : "Pending"} />
       </section>
+      <RecommendationQueue
+        fallbackHref={returnTo}
+        recommendations={data.recommendations.active}
+        returnTo={returnTo}
+      />
+      {data.health ? <HealthSummaryPanel health={data.health} packageHref={returnTo} /> : null}
       {data.readiness ? <GoNoGoBoard packageHref={returnTo} readiness={data.readiness} /> : null}
       <section id="release" className="scroll-mt-6 space-y-4">
         <OperationsReleasePreviewCard data={data} />
@@ -522,9 +554,20 @@ export async function OperationsPackagePage({
                   <p className="mt-2 text-sm leading-6 text-foreground">{data.week.planningAssumptions ?? "Assumptions pending."}</p>
                 </div>
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Commander&apos;s Intent</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{data.week.commandersIntent ?? data.weeklyTasking?.commandersIntent ?? "Intent pending."}</p>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">End State</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{data.week.commanderEndState ?? "End state pending."}</p>
+                </div>
+              </div>
               {data.permissions.canEditPlanning ? <PlanningForm data={data} returnTo={returnTo} /> : null}
             </CardContent>
           </Card>
+          <IntentAssessmentPanel assessment={data.intentAssessment} data={data} returnTo={returnTo} />
           <Card id="tasking" className="scroll-mt-6 border-border/80 bg-card/88">
             <CardHeader>
               <CardTitle>Tasking</CardTitle>
@@ -607,13 +650,14 @@ export async function OperationsPackagePage({
               )}
             </CardContent>
           </Card>
+          <RecommendationInspector history={data.recommendations.history} recommendations={data.recommendations.active} />
           <Card className="border-border/80 bg-card/82">
             <CardHeader>
-              <CardTitle>Phase 5A Boundary</CardTitle>
+              <CardTitle>Command Decision Support Boundary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Publishing, Discord announcements, readiness scoring, and decision support are intentionally deferred.</p>
-              <p>This workspace prepares the package so later Epic 5 phases can validate, preview, approve, and publish it.</p>
+              <p>CDSS recommends actions from rule evidence, health, readiness, release state, and operational context.</p>
+              <p>It never approves, publishes, assigns, or changes operational records automatically. Command staff remain the decision makers.</p>
             </CardContent>
           </Card>
         </div>

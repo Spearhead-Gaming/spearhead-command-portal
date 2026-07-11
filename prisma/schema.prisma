@@ -62,6 +62,36 @@ model User {
   discordInteractionSessions         DiscordInteractionSession[]   @relation("DiscordInteractionSessionUser")
   publishedOperationsReleases        OperationsRelease[]           @relation("OperationsReleasePublishedBy")
   approvedOperationsReleases         OperationsRelease[]           @relation("OperationsReleaseApprovedBy")
+  dismissedRecommendations           CommandRecommendation[]       @relation("CommandRecommendationDismissedBy")
+  resolvedRecommendations            CommandRecommendation[]       @relation("CommandRecommendationResolvedBy")
+  intentAssessments                  CommanderIntentAssessment[]   @relation("CommanderIntentAssessmentAssessedBy")
+  requestedCommunications            Communication[]               @relation("CommunicationRequestedBy")
+  createdAnnouncements               Announcement[]                @relation("AnnouncementCreatedBy")
+  sentAnnouncements                  Announcement[]                @relation("AnnouncementSentBy")
+  communicationPreferences           CommunicationPreference[]
+  communicationTemplatesCreated      CommunicationTemplate[]       @relation("CommunicationTemplateCreatedBy")
+  communicationTemplatesUpdated      CommunicationTemplate[]       @relation("CommunicationTemplateUpdatedBy")
+  createdCommunityCases              CommunityCase[]               @relation("CommunityCaseCreatedBy")
+  assignedCommunityCases             CommunityCase[]               @relation("CommunityCaseAssignedTo")
+  caseAssignmentsAssignedTo          CaseAssignment[]              @relation("CaseAssignmentAssignedTo")
+  caseAssignmentsAssignedBy          CaseAssignment[]              @relation("CaseAssignmentAssignedBy")
+  caseParticipants                   CaseParticipant[]             @relation("CaseParticipantUser")
+  caseNotes                          CaseNote[]                    @relation("CaseNoteAuthor")
+  caseEvidenceUploads                CaseEvidence[]                @relation("CaseEvidenceUploadedBy")
+  caseDecisions                      CaseDecision[]                @relation("CaseDecisionDecidedBy")
+  caseTimelineEntries                CaseTimelineEntry[]           @relation("CaseTimelineActor")
+  incidentReports                    IncidentReport[]              @relation("IncidentReportReporter")
+  caseAppeals                        CaseAppeal[]                  @relation("CaseAppealAppellant")
+  memberAdministrativeNotesAuthored  MemberAdministrativeNote[]    @relation("MemberAdministrativeNoteAuthor")
+  discordModerationApprovals         DiscordModerationAction[]     @relation("DiscordModerationApprovedBy")
+  requestedPersonnelActions          PersonnelAction[]             @relation("PersonnelActionRequestedBy")
+  assignedPersonnelActions           PersonnelAction[]             @relation("PersonnelActionAssignedTo")
+  resolvedPersonnelActions           PersonnelAction[]             @relation("PersonnelActionResolvedBy")
+  submittedTransferRequests          TransferRequest[]             @relation("TransferRequestRequestedBy")
+  reviewedTransferRequests           TransferRequest[]             @relation("TransferRequestReviewedBy")
+  submittedLeaveRequests             LeaveOfAbsence[]              @relation("LeaveOfAbsenceRequestedBy")
+  reviewedLeaveRequests              LeaveOfAbsence[]              @relation("LeaveOfAbsenceReviewedBy")
+  discordVoiceSessions               DiscordVoiceSession[]         @relation("DiscordVoiceSessionUser")
 }
 
 model Account {
@@ -131,6 +161,13 @@ model MemberProfile {
   discordGuildStates         DiscordGuildMemberState[]   @relation("DiscordGuildMemberStateProfile")
   discordModerationActions   DiscordModerationAction[]   @relation("DiscordModerationTargetProfile")
   discordInteractionSessions DiscordInteractionSession[] @relation("DiscordInteractionSessionProfile")
+  relatedCommunityCases      CommunityCase[]             @relation("CommunityCaseRelatedMember")
+  caseParticipants           CaseParticipant[]           @relation("CaseParticipantMember")
+  memberAdministrativeNotes  MemberAdministrativeNote[]  @relation("MemberAdministrativeNoteProfile")
+  personnelActions           PersonnelAction[]
+  transferRequests           TransferRequest[]
+  leaveOfAbsences            LeaveOfAbsence[]
+  discordVoiceSessions       DiscordVoiceSession[]       @relation("DiscordVoiceSessionProfile")
 
   @@index([statusId])
   @@index([rankId])
@@ -171,6 +208,7 @@ model Unit {
   key                       String                     @unique @db.VarChar(100)
   name                      String                     @db.VarChar(120)
   shortName                 String                     @unique @db.VarChar(80)
+  description               String?                    @db.VarChar(255)
   parentUnitId              String?                    @db.VarChar(36)
   sortOrder                 Int                        @default(0)
   isActive                  Boolean                    @default(true)
@@ -193,6 +231,10 @@ model Unit {
   formTemplates             FormTemplate[]             @relation("FormTemplateTargetUnit")
   formSubmissions           FormSubmission[]           @relation("FormSubmissionTargetUnit")
   unitTaskings              UnitTasking[]              @relation("UnitTaskingUnit")
+  communityCases            CommunityCase[]            @relation("CommunityCaseOwningUnit")
+  attendancePolicy          AttendancePolicy?
+  outgoingTransferRequests  TransferRequest[]          @relation("TransferCurrentUnit")
+  incomingTransferRequests  TransferRequest[]          @relation("TransferRequestedUnit")
 
   @@index([parentUnitId])
 }
@@ -373,18 +415,125 @@ model Position {
   title                     String                     @db.VarChar(120)
   unitId                    String                     @db.VarChar(36)
   description               String?                    @db.VarChar(255)
+  maxOccupants              Int?
+  reportsToPositionId       String?                    @db.VarChar(36)
+  readinessExpectations     String?                    @db.Text
+  permissionPackageKey      String?                    @db.VarChar(150)
   sortOrder                 Int                        @default(0)
   isLeadership              Boolean                    @default(false)
   isActive                  Boolean                    @default(true)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   unit                      Unit                       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  reportsToPosition         Position?                  @relation("PositionReportsTo", fields: [reportsToPositionId], references: [id], onDelete: SetNull)
+  directReports             Position[]                 @relation("PositionReportsTo")
   currentMembers            MemberProfile[]            @relation("CurrentPosition")
   rosterAssignments         RosterAssignment[]
   qualificationRequirements QualificationRequirement[] @relation("PositionQualificationRequirements")
 
   @@unique([unitId, title])
   @@index([unitId, sortOrder])
+  @@index([reportsToPositionId])
+}
+
+model AttendancePolicy {
+  id                          String   @id @default(uuid()) @db.VarChar(36)
+  unitId                      String   @unique @db.VarChar(36)
+  minimumAttendancePercent    Int      @default(70)
+  lookbackDays                Int      @default(60)
+  loaExcused                  Boolean  @default(true)
+  excusedAbsenceCountsAgainst Boolean  @default(false)
+  notes                       String?  @db.VarChar(255)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  unit                        Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([minimumAttendancePercent])
+}
+
+model PersonnelAction {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  actionType      String         @db.VarChar(80)
+  status          String         @default("open") @db.VarChar(60)
+  priority        String         @default("medium") @db.VarChar(40)
+  memberProfileId String?        @db.VarChar(36)
+  relatedCaseId   String?        @db.VarChar(36)
+  requestedById   String?        @db.VarChar(36)
+  assignedToId    String?        @db.VarChar(36)
+  resolvedById    String?        @db.VarChar(36)
+  title           String         @db.VarChar(180)
+  summary         String         @db.VarChar(255)
+  dueAt           DateTime?
+  resolvedAt      DateTime?
+  resolution      String?        @db.Text
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  memberProfile   MemberProfile? @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  requestedBy     User?          @relation("PersonnelActionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  assignedTo      User?          @relation("PersonnelActionAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedBy      User?          @relation("PersonnelActionResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([actionType, status])
+  @@index([priority, status])
+  @@index([memberProfileId])
+  @@index([relatedCaseId])
+  @@index([assignedToId, status])
+  @@index([dueAt])
+}
+
+model TransferRequest {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  memberProfileId String        @db.VarChar(36)
+  currentUnitId   String?       @db.VarChar(36)
+  requestedUnitId String        @db.VarChar(36)
+  relatedCaseId   String?       @db.VarChar(36)
+  requestedById   String?       @db.VarChar(36)
+  reviewedById    String?       @db.VarChar(36)
+  status          String        @default("submitted") @db.VarChar(60)
+  reason          String        @db.Text
+  reviewNotes     String?       @db.Text
+  effectiveDate   DateTime?
+  decidedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  currentUnit     Unit?         @relation("TransferCurrentUnit", fields: [currentUnitId], references: [id], onDelete: SetNull)
+  requestedUnit   Unit          @relation("TransferRequestedUnit", fields: [requestedUnitId], references: [id], onDelete: Restrict)
+  requestedBy     User?         @relation("TransferRequestRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy      User?         @relation("TransferRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([memberProfileId])
+  @@index([currentUnitId])
+  @@index([requestedUnitId])
+  @@index([relatedCaseId])
+  @@index([status])
+}
+
+model LeaveOfAbsence {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  memberProfileId  String        @db.VarChar(36)
+  relatedCaseId    String?       @db.VarChar(36)
+  requestedById    String?       @db.VarChar(36)
+  reviewedById     String?       @db.VarChar(36)
+  status           String        @default("requested") @db.VarChar(60)
+  startsAt         DateTime
+  expectedReturnAt DateTime?
+  returnedAt       DateTime?
+  reason           String?       @db.Text
+  reasonVisibility String        @default("restricted") @db.VarChar(50)
+  reviewNotes      String?       @db.Text
+  decidedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  memberProfile    MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  requestedBy      User?         @relation("LeaveOfAbsenceRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy       User?         @relation("LeaveOfAbsenceReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([memberProfileId])
+  @@index([relatedCaseId])
+  @@index([status])
+  @@index([startsAt, expectedReturnAt])
 }
 
 model RosterAssignment {
@@ -594,25 +743,25 @@ model AttendanceRecord {
 }
 
 model Campaign {
-  id                      String                     @id @default(uuid()) @db.VarChar(36)
-  key                     String                     @unique @db.VarChar(100)
-  title                   String                     @db.VarChar(160)
-  summary                 String?                    @db.Text
-  status                  String                     @db.VarChar(50)
-  phase                   String?                    @db.VarChar(120)
+  id                      String                      @id @default(uuid()) @db.VarChar(36)
+  key                     String                      @unique @db.VarChar(100)
+  title                   String                      @db.VarChar(160)
+  summary                 String?                     @db.Text
+  status                  String                      @db.VarChar(50)
+  phase                   String?                     @db.VarChar(120)
   deploymentDurationWeeks Int?
-  createdByUserId         String?                    @db.VarChar(36)
-  zeusUserId              String?                    @db.VarChar(36)
-  zeusAssignmentType      String                     @default("unassigned") @db.VarChar(50)
+  createdByUserId         String?                     @db.VarChar(36)
+  zeusUserId              String?                     @db.VarChar(36)
+  zeusAssignmentType      String                      @default("unassigned") @db.VarChar(50)
   publishedAt             DateTime?
   startsAt                DateTime?
   endsAt                  DateTime?
   archivedAt              DateTime?
   deletedAt               DateTime?
-  createdAt               DateTime                   @default(now())
-  updatedAt               DateTime                   @updatedAt
-  createdBy               User?                      @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  zeus                    User?                      @relation("CampaignZeus", fields: [zeusUserId], references: [id], onDelete: SetNull)
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  createdBy               User?                       @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  zeus                    User?                       @relation("CampaignZeus", fields: [zeusUserId], references: [id], onDelete: SetNull)
   events                  Event[]
   conops                  Conop[]
   aars                    Aar[]
@@ -622,6 +771,8 @@ model Campaign {
   zeusAssignmentHistory   DeploymentZeusAssignment[]
   weeklyTaskings          WeeklyTasking[]
   resources               DeploymentResource[]
+  commandRecommendations  CommandRecommendation[]
+  intentAssessments       CommanderIntentAssessment[]
 
   @@index([status])
   @@index([createdByUserId])
@@ -629,32 +780,99 @@ model Campaign {
 }
 
 model DeploymentWeek {
-  id                    String              @id @default(uuid()) @db.VarChar(36)
-  campaignId            String              @db.VarChar(36)
-  weekNumber            Int
-  label                 String?             @db.VarChar(120)
-  startsAt              DateTime?
-  endsAt                DateTime?
-  planningStatus        String              @default("planning") @db.VarChar(50)
-  notes                 String?             @db.Text
-  planningNotes         String?             @db.Text
-  operationalObjectives String?             @db.Text
-  planningAssumptions   String?             @db.Text
-  friendlySituation     String?             @db.Text
-  enemySituation        String?             @db.Text
-  intelligenceSummary   String?             @db.Text
-  logistics             String?             @db.Text
-  weather               String?             @db.VarChar(255)
-  specialInstructions   String?             @db.Text
-  operationalNotes      String?             @db.Text
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  campaign              Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  operationsReleases    OperationsRelease[]
+  id                     String                      @id @default(uuid()) @db.VarChar(36)
+  campaignId             String                      @db.VarChar(36)
+  weekNumber             Int
+  label                  String?                     @db.VarChar(120)
+  startsAt               DateTime?
+  endsAt                 DateTime?
+  planningStatus         String                      @default("planning") @db.VarChar(50)
+  notes                  String?                     @db.Text
+  planningNotes          String?                     @db.Text
+  operationalObjectives  String?                     @db.Text
+  planningAssumptions    String?                     @db.Text
+  friendlySituation      String?                     @db.Text
+  enemySituation         String?                     @db.Text
+  intelligenceSummary    String?                     @db.Text
+  logistics              String?                     @db.Text
+  weather                String?                     @db.VarChar(255)
+  specialInstructions    String?                     @db.Text
+  operationalNotes       String?                     @db.Text
+  commandersIntent       String?                     @db.Text
+  commanderEndState      String?                     @db.Text
+  successCriteria        String?                     @db.Text
+  failureConditions      String?                     @db.Text
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  campaign               Campaign                    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  operationsReleases     OperationsRelease[]
+  commandRecommendations CommandRecommendation[]
+  intentAssessments      CommanderIntentAssessment[]
 
   @@unique([campaignId, weekNumber])
   @@index([campaignId])
   @@index([planningStatus])
+}
+
+model CommandRecommendation {
+  id                String          @id @default(uuid()) @db.VarChar(36)
+  sourceKey         String          @unique @db.VarChar(191)
+  category          String          @db.VarChar(80)
+  priority          String          @db.VarChar(40)
+  severity          String          @db.VarChar(40)
+  title             String          @db.VarChar(160)
+  summary           String          @db.VarChar(255)
+  details           String?         @db.Text
+  recommendedAction String          @db.Text
+  reason            String          @db.Text
+  relatedEntityType String?         @db.VarChar(120)
+  relatedEntityId   String?         @db.VarChar(100)
+  supportingRules   Json
+  status            String          @default("active") @db.VarChar(40)
+  campaignId        String?         @db.VarChar(36)
+  deploymentWeekId  String?         @db.VarChar(36)
+  weekNumber        Int?
+  dismissedAt       DateTime?
+  dismissedByUserId String?         @db.VarChar(36)
+  resolvedAt        DateTime?
+  resolvedByUserId  String?         @db.VarChar(36)
+  expiresAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  campaign          Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  deploymentWeek    DeploymentWeek? @relation(fields: [deploymentWeekId], references: [id], onDelete: SetNull)
+  dismissedBy       User?           @relation("CommandRecommendationDismissedBy", fields: [dismissedByUserId], references: [id], onDelete: SetNull)
+  resolvedBy        User?           @relation("CommandRecommendationResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, weekNumber, status])
+  @@index([deploymentWeekId, status])
+  @@index([category, priority])
+  @@index([status, createdAt])
+  @@index([relatedEntityType, relatedEntityId])
+}
+
+model CommanderIntentAssessment {
+  id                      String         @id @default(uuid()) @db.VarChar(36)
+  campaignId              String         @db.VarChar(36)
+  deploymentWeekId        String         @db.VarChar(36)
+  weekNumber              Int
+  status                  String         @db.VarChar(50)
+  assessmentSummary       String?        @db.Text
+  supportingEvidence      String?        @db.Text
+  lessonsLearned          String?        @db.Text
+  nextWeekRecommendations String?        @db.Text
+  assessedByUserId        String?        @db.VarChar(36)
+  assessedAt              DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  campaign                Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  deploymentWeek          DeploymentWeek @relation(fields: [deploymentWeekId], references: [id], onDelete: Cascade)
+  assessedBy              User?          @relation("CommanderIntentAssessmentAssessedBy", fields: [assessedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, weekNumber])
+  @@index([deploymentWeekId])
+  @@index([assessedByUserId])
+  @@index([status])
 }
 
 model OperationsRelease {
@@ -1236,52 +1454,209 @@ model Notification {
 }
 
 model NotificationDelivery {
-  id                      String                 @id @default(uuid()) @db.VarChar(36)
-  notificationId          String                 @db.VarChar(36)
-  discordChannelMappingId String?                @db.VarChar(36)
-  recipientUserId         String?                @db.VarChar(36)
-  channelType             String                 @db.VarChar(50)
-  destinationKey          String                 @db.VarChar(160)
-  status                  String                 @db.VarChar(50)
-  providerMessageId       String?                @db.VarChar(191)
-  errorMessage            String?                @db.VarChar(255)
-  retryCount              Int                    @default(0)
+  id                      String                  @id @default(uuid()) @db.VarChar(36)
+  notificationId          String                  @db.VarChar(36)
+  discordChannelMappingId String?                 @db.VarChar(36)
+  recipientUserId         String?                 @db.VarChar(36)
+  channelType             String                  @db.VarChar(50)
+  destinationKey          String                  @db.VarChar(160)
+  status                  String                  @db.VarChar(50)
+  providerMessageId       String?                 @db.VarChar(191)
+  errorMessage            String?                 @db.VarChar(255)
+  retryCount              Int                     @default(0)
   readAt                  DateTime?
+  pinnedAt                DateTime?
   clearedAt               DateTime?
   lastAttemptAt           DateTime?
   deliveredAt             DateTime?
-  createdAt               DateTime               @default(now())
-  updatedAt               DateTime               @updatedAt
-  notification            Notification           @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  discordChannelMapping   DiscordChannelMapping? @relation(fields: [discordChannelMappingId], references: [id], onDelete: SetNull)
-  recipientUser           User?                  @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  notification            Notification            @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  discordChannelMapping   DiscordChannelMapping?  @relation(fields: [discordChannelMappingId], references: [id], onDelete: SetNull)
+  recipientUser           User?                   @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  communicationDeliveries CommunicationDelivery[]
+  attempts                CommunicationAttempt[]
 
   @@index([notificationId])
   @@index([discordChannelMappingId])
   @@index([recipientUserId])
   @@index([channelType, status])
   @@index([recipientUserId, channelType, readAt])
+  @@index([recipientUserId, channelType, pinnedAt])
   @@index([recipientUserId, channelType, clearedAt])
   @@index([status])
 }
 
+model Communication {
+  id                String                  @id @default(uuid()) @db.VarChar(36)
+  type              String                  @db.VarChar(100)
+  category          String                  @db.VarChar(80)
+  priority          String                  @default("normal") @db.VarChar(40)
+  sourceModule      String                  @db.VarChar(100)
+  sourceEvent       String                  @db.VarChar(120)
+  relatedEntityType String?                 @db.VarChar(120)
+  relatedEntityId   String?                 @db.VarChar(100)
+  templateKey       String?                 @db.VarChar(120)
+  templateVariables Json?
+  title             String                  @db.VarChar(180)
+  body              String                  @db.Text
+  targetAudience    Json
+  requestedChannels Json
+  status            String                  @default("requested") @db.VarChar(40)
+  idempotencyKey    String?                 @unique @db.VarChar(191)
+  scheduledFor      DateTime?
+  requestedByUserId String?                 @db.VarChar(36)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  requestedBy       User?                   @relation("CommunicationRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  deliveries        CommunicationDelivery[]
+  announcement      Announcement?
+
+  @@index([category, type])
+  @@index([sourceModule, sourceEvent])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([status, createdAt])
+  @@index([requestedByUserId])
+}
+
+model CommunicationDelivery {
+  id                      String                 @id @default(uuid()) @db.VarChar(36)
+  communicationId         String                 @db.VarChar(36)
+  notificationDeliveryId  String?                @db.VarChar(36)
+  providerId              String                 @db.VarChar(80)
+  channelType             String                 @db.VarChar(50)
+  destinationKey          String                 @db.VarChar(160)
+  recipientUserId         String?                @db.VarChar(36)
+  discordChannelMappingId String?                @db.VarChar(36)
+  status                  String                 @default("pending") @db.VarChar(50)
+  providerMessageId       String?                @db.VarChar(191)
+  errorMessage            String?                @db.VarChar(255)
+  sanitizedPayload        Json?
+  attemptCount            Int                    @default(0)
+  deliveredAt             DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  communication           Communication          @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  notificationDelivery    NotificationDelivery?  @relation(fields: [notificationDeliveryId], references: [id], onDelete: SetNull)
+  attempts                CommunicationAttempt[]
+
+  @@index([communicationId])
+  @@index([notificationDeliveryId])
+  @@index([providerId, status])
+  @@index([channelType, status])
+  @@index([recipientUserId])
+  @@index([discordChannelMappingId])
+}
+
+model CommunicationAttempt {
+  id                      String                 @id @default(uuid()) @db.VarChar(36)
+  communicationDeliveryId String?                @db.VarChar(36)
+  notificationDeliveryId  String?                @db.VarChar(36)
+  providerId              String                 @db.VarChar(80)
+  status                  String                 @db.VarChar(50)
+  errorMessage            String?                @db.VarChar(255)
+  providerMessageId       String?                @db.VarChar(191)
+  sanitizedRequest        Json?
+  sanitizedResponse       Json?
+  attemptedAt             DateTime               @default(now())
+  communicationDelivery   CommunicationDelivery? @relation(fields: [communicationDeliveryId], references: [id], onDelete: SetNull)
+  notificationDelivery    NotificationDelivery?  @relation(fields: [notificationDeliveryId], references: [id], onDelete: SetNull)
+
+  @@index([communicationDeliveryId])
+  @@index([notificationDeliveryId])
+  @@index([providerId, status])
+  @@index([attemptedAt])
+}
+
+model CommunicationTemplate {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  key               String   @unique @db.VarChar(120)
+  title             String   @db.VarChar(160)
+  category          String   @db.VarChar(80)
+  subjectTemplate   String   @db.VarChar(180)
+  bodyTemplate      String   @db.Text
+  requiredVariables Json?
+  version           Int      @default(1)
+  isActive          Boolean  @default(true)
+  createdByUserId   String?  @db.VarChar(36)
+  updatedByUserId   String?  @db.VarChar(36)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         User?    @relation("CommunicationTemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy         User?    @relation("CommunicationTemplateUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([category, isActive])
+}
+
+model CommunicationPreference {
+  id                    String   @id @default(uuid()) @db.VarChar(36)
+  userId                String   @db.VarChar(36)
+  category              String   @db.VarChar(80)
+  portalEnabled         Boolean  @default(true)
+  discordChannelEnabled Boolean  @default(true)
+  discordDmEnabled      Boolean  @default(false)
+  emailEnabled          Boolean  @default(false)
+  criticalOnly          Boolean  @default(false)
+  digestFrequency       String?  @db.VarChar(50)
+  quietHours            Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([category])
+}
+
+model Announcement {
+  id                String         @id @default(uuid()) @db.VarChar(36)
+  communicationId   String?        @unique @db.VarChar(36)
+  type              String         @db.VarChar(80)
+  status            String         @default("draft") @db.VarChar(40)
+  title             String         @db.VarChar(180)
+  body              String         @db.Text
+  audience          Json
+  requestedChannels Json
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  createdByUserId   String?        @db.VarChar(36)
+  sentByUserId      String?        @db.VarChar(36)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  communication     Communication? @relation(fields: [communicationId], references: [id], onDelete: SetNull)
+  createdBy         User?          @relation("AnnouncementCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  sentBy            User?          @relation("AnnouncementSentBy", fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  @@index([type, status])
+  @@index([createdByUserId])
+  @@index([sentAt])
+}
+
 model DiscordServer {
-  id                String                    @id @default(uuid()) @db.VarChar(36)
-  unitId            String?                   @db.VarChar(36)
-  guildId           String                    @unique @db.VarChar(32)
-  name              String                    @db.VarChar(120)
-  isPrimary         Boolean                   @default(false)
-  isActive          Boolean                   @default(true)
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  unit              Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  channelMappings   DiscordChannelMapping[]
-  roleMappings      DiscordRoleMapping[]
-  memberStates      DiscordGuildMemberState[]
-  syncLogs          DiscordSyncLog[]
-  moderationActions DiscordModerationAction[]
+  id                    String                    @id @default(uuid()) @db.VarChar(36)
+  unitId                String?                   @db.VarChar(36)
+  guildId               String                    @unique @db.VarChar(32)
+  name                  String                    @db.VarChar(120)
+  isPrimary             Boolean                   @default(false)
+  isActive              Boolean                   @default(true)
+  gatewayEnabled        Boolean                   @default(true)
+  memberSyncPolicy      String                    @default("primary_create_secondary_link") @db.VarChar(80)
+  roleSyncPolicy        String                    @default("manual") @db.VarChar(80)
+  nicknameSyncPolicy    String                    @default("disabled") @db.VarChar(80)
+  voiceAwarenessEnabled Boolean                   @default(false)
+  moderationEnabled     Boolean                   @default(false)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  unit                  Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  channelMappings       DiscordChannelMapping[]
+  roleMappings          DiscordRoleMapping[]
+  memberStates          DiscordGuildMemberState[]
+  syncLogs              DiscordSyncLog[]
+  moderationActions     DiscordModerationAction[]
+  gatewayEventLogs      DiscordGatewayEventLog[]
+  voiceSessions         DiscordVoiceSession[]
 
   @@index([unitId])
+  @@index([gatewayEnabled])
 }
 
 model DiscordChannelMapping {
@@ -1382,6 +1757,79 @@ model DiscordGuildMemberState {
   @@index([lastSyncedAt])
 }
 
+model DiscordGatewayState {
+  id                 String    @id @default("singleton") @db.VarChar(36)
+  enabled            Boolean   @default(false)
+  status             String    @default("disabled") @db.VarChar(50)
+  shardId            Int       @default(0)
+  shardCount         Int       @default(1)
+  sessionId          String?   @db.VarChar(120)
+  resumeGatewayUrl   String?   @db.VarChar(255)
+  botUserId          String?   @db.VarChar(32)
+  botUsername        String?   @db.VarChar(120)
+  guildCount         Int       @default(0)
+  latencyMs          Int?
+  reconnectCount     Int       @default(0)
+  eventCount         Int       @default(0)
+  lastSequence       Int?
+  lastConnectedAt    DateTime?
+  lastDisconnectedAt DateTime?
+  lastHeartbeatAckAt DateTime?
+  lastReadyAt        DateTime?
+  lastEventAt        DateTime?
+  lastErrorSummary   String?   @db.VarChar(255)
+  enabledIntents     Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model DiscordGatewayEventLog {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId String?        @db.VarChar(36)
+  guildId         String?        @db.VarChar(32)
+  eventName       String         @db.VarChar(80)
+  handlerId       String?        @db.VarChar(120)
+  status          String         @default("processed") @db.VarChar(50)
+  idempotencyKey  String?        @unique @db.VarChar(191)
+  summary         String         @db.VarChar(255)
+  errorMessage    String?        @db.VarChar(255)
+  metadata        Json?
+  occurredAt      DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  discordServer   DiscordServer? @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId])
+  @@index([guildId])
+  @@index([eventName, status])
+  @@index([occurredAt])
+}
+
+model DiscordVoiceSession {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId String?        @db.VarChar(36)
+  guildId         String         @db.VarChar(32)
+  channelId       String         @db.VarChar(32)
+  discordUserId   String         @db.VarChar(32)
+  userId          String?        @db.VarChar(36)
+  memberProfileId String?        @db.VarChar(36)
+  relatedPatrolId String?        @db.VarChar(36)
+  source          String         @default("gateway_voice_state") @db.VarChar(80)
+  status          String         @default("active") @db.VarChar(50)
+  joinedAt        DateTime       @default(now())
+  leftAt          DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  discordServer   DiscordServer? @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+  user            User?          @relation("DiscordVoiceSessionUser", fields: [userId], references: [id], onDelete: SetNull)
+  memberProfile   MemberProfile? @relation("DiscordVoiceSessionProfile", fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId])
+  @@index([guildId, channelId])
+  @@index([discordUserId, status])
+  @@index([memberProfileId])
+  @@index([relatedPatrolId])
+}
+
 model DiscordSyncLog {
   id              String         @id @default(uuid()) @db.VarChar(36)
   discordServerId String?        @db.VarChar(36)
@@ -1441,30 +1889,297 @@ model DiscordInteractionSession {
 model DiscordModerationAction {
   id                    String         @id @default(uuid()) @db.VarChar(36)
   discordServerId       String         @db.VarChar(36)
+  relatedCaseId         String?        @db.VarChar(36)
   moderatorUserId       String?        @db.VarChar(36)
+  approvedByUserId      String?        @db.VarChar(36)
   targetUserId          String?        @db.VarChar(36)
   targetMemberProfileId String?        @db.VarChar(36)
   targetDiscordUserId   String         @db.VarChar(32)
   action                String         @db.VarChar(50)
   reason                String         @db.VarChar(255)
+  durationSeconds       Int?
   result                String         @db.VarChar(50)
   errorMessage          String?        @db.VarChar(255)
   providerActionId      String?        @db.VarChar(191)
   metadata              Json?
+  requestedAt           DateTime       @default(now())
+  executedAt            DateTime?
+  reversedAt            DateTime?
+  reversalReason        String?        @db.VarChar(255)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   discordServer         DiscordServer  @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  relatedCase           CommunityCase? @relation(fields: [relatedCaseId], references: [id], onDelete: SetNull)
   moderator             User?          @relation("DiscordModerationModerator", fields: [moderatorUserId], references: [id], onDelete: SetNull)
+  approvedBy            User?          @relation("DiscordModerationApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
   targetUser            User?          @relation("DiscordModerationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
   targetMemberProfile   MemberProfile? @relation("DiscordModerationTargetProfile", fields: [targetMemberProfileId], references: [id], onDelete: SetNull)
 
   @@index([discordServerId])
+  @@index([relatedCaseId])
   @@index([moderatorUserId])
+  @@index([approvedByUserId])
   @@index([targetUserId])
   @@index([targetMemberProfileId])
   @@index([targetDiscordUserId])
   @@index([action, result])
   @@index([createdAt])
+}
+
+model CommunityCase {
+  id                   String                    @id @default(uuid()) @db.VarChar(36)
+  caseNumber           String                    @unique @db.VarChar(40)
+  caseType             String                    @db.VarChar(80)
+  title                String                    @db.VarChar(180)
+  summary              String                    @db.VarChar(255)
+  description          String?                   @db.Text
+  status               String                    @default("open") @db.VarChar(60)
+  priority             String                    @default("medium") @db.VarChar(40)
+  confidentiality      String                    @default("standard") @db.VarChar(50)
+  createdByUserId      String?                   @db.VarChar(36)
+  assignedToUserId     String?                   @db.VarChar(36)
+  owningUnitId         String?                   @db.VarChar(36)
+  relatedMemberId      String?                   @db.VarChar(36)
+  relatedDiscordUserId String?                   @db.VarChar(32)
+  relatedEntityType    String?                   @db.VarChar(120)
+  relatedEntityId      String?                   @db.VarChar(100)
+  openedAt             DateTime                  @default(now())
+  dueAt                DateTime?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  archivedAt           DateTime?
+  resolution           String?                   @db.Text
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  createdBy            User?                     @relation("CommunityCaseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedTo           User?                     @relation("CommunityCaseAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  owningUnit           Unit?                     @relation("CommunityCaseOwningUnit", fields: [owningUnitId], references: [id], onDelete: SetNull)
+  relatedMember        MemberProfile?            @relation("CommunityCaseRelatedMember", fields: [relatedMemberId], references: [id], onDelete: SetNull)
+  assignments          CaseAssignment[]
+  participants         CaseParticipant[]
+  notes                CaseNote[]
+  evidence             CaseEvidence[]
+  decisions            CaseDecision[]
+  timelineEntries      CaseTimelineEntry[]
+  moderationActions    DiscordModerationAction[]
+  incidentReport       IncidentReport?
+  appeals              CaseAppeal[]              @relation("AppealOriginalCase")
+  appealCase           CaseAppeal?               @relation("AppealCaseRecord")
+
+  @@index([caseType, status])
+  @@index([priority, status])
+  @@index([confidentiality])
+  @@index([assignedToUserId, status])
+  @@index([owningUnitId, status])
+  @@index([relatedMemberId])
+  @@index([relatedDiscordUserId])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([dueAt])
+}
+
+model CaseAssignment {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  caseId           String        @db.VarChar(36)
+  assignedToUserId String?       @db.VarChar(36)
+  assignedByUserId String?       @db.VarChar(36)
+  permissionKey    String?       @db.VarChar(150)
+  unitId           String?       @db.VarChar(36)
+  notes            String?       @db.VarChar(255)
+  dueAt            DateTime?
+  startedAt        DateTime      @default(now())
+  endedAt          DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  case             CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  assignedTo       User?         @relation("CaseAssignmentAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  assignedBy       User?         @relation("CaseAssignmentAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([assignedToUserId])
+  @@index([permissionKey])
+  @@index([unitId])
+  @@index([dueAt])
+}
+
+model CaseParticipant {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  caseId          String         @db.VarChar(36)
+  participantType String         @db.VarChar(80)
+  userId          String?        @db.VarChar(36)
+  memberProfileId String?        @db.VarChar(36)
+  discordUserId   String?        @db.VarChar(32)
+  displayName     String?        @db.VarChar(160)
+  visibility      String         @default("staff") @db.VarChar(50)
+  addedAt         DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  case            CommunityCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user            User?          @relation("CaseParticipantUser", fields: [userId], references: [id], onDelete: SetNull)
+  memberProfile   MemberProfile? @relation("CaseParticipantMember", fields: [memberProfileId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([participantType])
+  @@index([userId])
+  @@index([memberProfileId])
+  @@index([discordUserId])
+}
+
+model CaseNote {
+  id         String        @id @default(uuid()) @db.VarChar(36)
+  caseId     String        @db.VarChar(36)
+  authorId   String?       @db.VarChar(36)
+  noteType   String        @default("staff") @db.VarChar(60)
+  visibility String        @default("staff") @db.VarChar(50)
+  body       String        @db.Text
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  case       CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author     User?         @relation("CaseNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([authorId])
+  @@index([noteType])
+  @@index([visibility])
+}
+
+model CaseEvidence {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  caseId           String        @db.VarChar(36)
+  evidenceType     String        @db.VarChar(60)
+  label            String        @db.VarChar(160)
+  description      String?       @db.Text
+  originalFilename String?       @db.VarChar(191)
+  mimeType         String?       @db.VarChar(120)
+  fileSizeBytes    Int?
+  storageKey       String?       @db.VarChar(512)
+  externalUrl      String?       @db.VarChar(512)
+  source           String?       @db.VarChar(120)
+  visibility       String        @default("staff") @db.VarChar(50)
+  status           String        @default("active") @db.VarChar(50)
+  uploadedByUserId String?       @db.VarChar(36)
+  uploadedAt       DateTime      @default(now())
+  custodyLog       Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  case             CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploadedBy       User?         @relation("CaseEvidenceUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([evidenceType])
+  @@index([status])
+  @@index([visibility])
+  @@index([uploadedByUserId])
+}
+
+model CaseDecision {
+  id                        String        @id @default(uuid()) @db.VarChar(36)
+  caseId                    String        @db.VarChar(36)
+  decisionType              String        @db.VarChar(80)
+  summary                   String        @db.VarChar(255)
+  reasoning                 String?       @db.Text
+  decidedByUserId           String?       @db.VarChar(36)
+  decidedAt                 DateTime      @default(now())
+  effectiveDate             DateTime?
+  relatedModerationActionId String?       @db.VarChar(36)
+  conditions                String?       @db.Text
+  reviewDate                DateTime?
+  appealAllowed             Boolean       @default(false)
+  appealDeadline            DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  case                      CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  decidedBy                 User?         @relation("CaseDecisionDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([decisionType])
+  @@index([decidedByUserId])
+  @@index([appealDeadline])
+}
+
+model CaseTimelineEntry {
+  id                String        @id @default(uuid()) @db.VarChar(36)
+  caseId            String        @db.VarChar(36)
+  actorUserId       String?       @db.VarChar(36)
+  entryType         String        @db.VarChar(80)
+  title             String        @db.VarChar(160)
+  body              String?       @db.Text
+  relatedEntityType String?       @db.VarChar(120)
+  relatedEntityId   String?       @db.VarChar(100)
+  visibility        String        @default("staff") @db.VarChar(50)
+  createdAt         DateTime      @default(now())
+  case              CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actor             User?         @relation("CaseTimelineActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId, createdAt])
+  @@index([actorUserId])
+  @@index([entryType])
+  @@index([visibility])
+}
+
+model IncidentReport {
+  id                    String        @id @default(uuid()) @db.VarChar(36)
+  caseId                String        @unique @db.VarChar(36)
+  category              String        @db.VarChar(100)
+  occurredAt            DateTime?
+  locationContext       String?       @db.VarChar(191)
+  reporterUserId        String?       @db.VarChar(36)
+  involvedMembers       Json?
+  witnesses             Json?
+  immediateActionsTaken String?       @db.Text
+  requestedReview       String?       @db.Text
+  confidentiality       String        @default("restricted") @db.VarChar(50)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  case                  CommunityCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reporter              User?         @relation("IncidentReportReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([reporterUserId])
+  @@index([occurredAt])
+}
+
+model CaseAppeal {
+  id                         String        @id @default(uuid()) @db.VarChar(36)
+  originalCaseId             String        @db.VarChar(36)
+  appealCaseId               String        @unique @db.VarChar(36)
+  originalDecisionId         String?       @db.VarChar(36)
+  originalModerationActionId String?       @db.VarChar(36)
+  appellantUserId            String?       @db.VarChar(36)
+  appealReason               String        @db.Text
+  requestedRemedy            String?       @db.Text
+  status                     String        @default("submitted") @db.VarChar(60)
+  submittedAt                DateTime      @default(now())
+  resolvedAt                 DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  originalCase               CommunityCase @relation("AppealOriginalCase", fields: [originalCaseId], references: [id], onDelete: Cascade)
+  appealCase                 CommunityCase @relation("AppealCaseRecord", fields: [appealCaseId], references: [id], onDelete: Cascade)
+  appellant                  User?         @relation("CaseAppealAppellant", fields: [appellantUserId], references: [id], onDelete: SetNull)
+
+  @@index([originalCaseId])
+  @@index([appellantUserId])
+  @@index([status])
+}
+
+model MemberAdministrativeNote {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  memberProfileId String        @db.VarChar(36)
+  authorUserId    String?       @db.VarChar(36)
+  relatedCaseId   String?       @db.VarChar(36)
+  noteType        String        @default("administrative") @db.VarChar(80)
+  visibility      String        @default("restricted") @db.VarChar(50)
+  body            String        @db.Text
+  archivedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  memberProfile   MemberProfile @relation("MemberAdministrativeNoteProfile", fields: [memberProfileId], references: [id], onDelete: Cascade)
+  author          User?         @relation("MemberAdministrativeNoteAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([memberProfileId])
+  @@index([authorUserId])
+  @@index([relatedCaseId])
+  @@index([noteType])
+  @@index([visibility])
 }
 
 model Permission {

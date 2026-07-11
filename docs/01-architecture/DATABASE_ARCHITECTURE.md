@@ -30,6 +30,9 @@ Prisma is the ORM and migration tool.
 - ProfileStatus
 - ProfileNote
 - ProfileLog
+- PersonnelAction
+- TransferRequest
+- LeaveOfAbsence
 
 Member profiles should treat `displayName` as the primary visible identity in the portal. Discord-provided display names are preferred when available. `firstName` and `lastName` may exist as optional metadata, and rank remains optional rather than a required roster field.
 
@@ -38,6 +41,9 @@ Member profiles should treat `displayName` as the primary visible identity in th
 - Position
 - UnitSlot
 - RosterAssignment
+- AttendancePolicy
+
+Unit and position records may define readiness context such as max occupants, reporting relationships, qualification expectations, and attendance policy. These records must not grant permissions directly; permissions still flow through roles and scoped role assignments.
 
 ### Training
 - Qualification

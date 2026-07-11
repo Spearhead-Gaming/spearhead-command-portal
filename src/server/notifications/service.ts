@@ -212,6 +212,37 @@ export async function clearNotification(deliveryId: string, userId: string) {
   return updated;
 }
 
+export async function pinNotification(deliveryId: string, userId: string) {
+  const existing = await prisma.notificationDelivery.findFirst({
+    where: {
+      channelType: "portal",
+      id: deliveryId,
+      recipientUserId: userId,
+    },
+    select: {
+      id: true,
+      pinnedAt: true,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Notification not found.");
+  }
+
+  const updated = await prisma.notificationDelivery.update({
+    where: {
+      id: existing.id,
+    },
+    data: {
+      pinnedAt: existing.pinnedAt ? null : new Date(),
+    },
+  });
+
+  revalidateNotificationSurfaces();
+
+  return updated;
+}
+
 export async function clearReadNotifications(userId: string) {
   const updated = await prisma.notificationDelivery.updateMany({
     where: {

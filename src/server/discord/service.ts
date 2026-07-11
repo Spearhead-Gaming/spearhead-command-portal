@@ -168,11 +168,16 @@ export async function listDiscordRoleMappings() {
 
 export async function upsertDiscordServerMapping(input: UpsertDiscordServerMappingInput) {
   const payload = {
+    gatewayEnabled: input.gatewayEnabled ?? true,
     guildId: normalizeRequiredString(input.guildId, "Guild ID"),
     isActive: input.isActive,
     isPrimary: input.isPrimary,
+    memberSyncPolicy: normalizeOptionalString(input.memberSyncPolicy) ?? "primary_create_secondary_link",
     name: normalizeRequiredString(input.name, "Server name"),
+    nicknameSyncPolicy: normalizeOptionalString(input.nicknameSyncPolicy) ?? "disabled",
+    roleSyncPolicy: normalizeOptionalString(input.roleSyncPolicy) ?? "manual",
     unitId: normalizeOptionalId(input.unitId),
+    voiceAwarenessEnabled: input.voiceAwarenessEnabled ?? false,
   };
 
   try {
@@ -222,11 +227,16 @@ export async function upsertDiscordServerMapping(input: UpsertDiscordServerMappi
       newValue: payload,
       oldValue: existing
         ? {
+            gatewayEnabled: existing.gatewayEnabled,
             guildId: existing.guildId,
             isActive: existing.isActive,
             isPrimary: existing.isPrimary,
+            memberSyncPolicy: existing.memberSyncPolicy,
             name: existing.name,
+            nicknameSyncPolicy: existing.nicknameSyncPolicy,
+            roleSyncPolicy: existing.roleSyncPolicy,
             unitId: existing.unitId,
+            voiceAwarenessEnabled: existing.voiceAwarenessEnabled,
           }
         : undefined,
       summary: existing

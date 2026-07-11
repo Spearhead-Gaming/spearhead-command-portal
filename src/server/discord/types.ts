@@ -1,4 +1,5 @@
 import type { NotificationDeliveryStatus } from "@/server/notifications/constants";
+import type { DiscordGatewayHealthSummary } from "@/server/discord/gateway/types";
 
 import type {
   DiscordChannelMappingKey,
@@ -47,13 +48,18 @@ export type DiscordBotHealthSummary = {
 export type DiscordServerAdminItem = {
   channelMappingCount: number;
   guildId: string;
+  gatewayEnabled: boolean;
   id: string;
   isActive: boolean;
   isPrimary: boolean;
+  memberSyncPolicy: string;
   name: string;
+  nicknameSyncPolicy: string;
+  roleSyncPolicy: string;
   unitId: string | null;
   unitName: string | null;
   updatedAtLabel: string;
+  voiceAwarenessEnabled: boolean;
 };
 
 export type DiscordChannelMappingAdminItem = {
@@ -99,6 +105,9 @@ export type DiscordAdministrationOverview = {
   canViewSync: boolean;
   canViewBotHealth: boolean;
   canViewDeliveries: boolean;
+  canViewGateway: boolean;
+  canManageGateway: boolean;
+  gatewayHealth: DiscordGatewayHealthSummary | null;
   channelMappings: DiscordChannelMappingAdminItem[];
   deliveries: DiscordDeliveryAdminItem[];
   failedDeliveryCount: number;
@@ -209,12 +218,17 @@ export type DiscordIdentityDiagnosticsAdmin = {
 
 export type UpsertDiscordServerMappingInput = {
   actorUserId: string;
+  gatewayEnabled?: boolean;
   guildId: string;
   id?: string;
   isActive: boolean;
   isPrimary: boolean;
+  memberSyncPolicy?: string | null;
   name: string;
+  nicknameSyncPolicy?: string | null;
+  roleSyncPolicy?: string | null;
   unitId?: string | null;
+  voiceAwarenessEnabled?: boolean;
 };
 
 export type UpsertDiscordChannelMappingInput = {

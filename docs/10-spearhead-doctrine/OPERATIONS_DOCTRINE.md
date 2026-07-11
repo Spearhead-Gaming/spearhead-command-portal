@@ -1,10 +1,18 @@
 # Spearhead Operations Doctrine
 
+## Personnel Doctrine Boundary
+
+Personnel readiness is not rank-centric. Spearhead member structure should prioritize unit, position or billet, profile status, qualifications, attendance, assignment history, and readiness blockers.
+
+Discord display name is the primary visible member name in operational surfaces. Discord role state must not become the source of truth for portal permissions, unit assignment, qualification status, or readiness.
+
 ## Language
 
 - User-facing copy says Deployment, Weekend Operation, Patrol, Training, Meeting, Community Event, or Operation.
 - Generic Mission language is limited to internal compatibility fields and legacy model names.
 - The database model `Campaign` remains the compatibility model for Deployments.
+- Community Management copy should use neutral administrative language such as case, review, follow-up, evidence, decision, warning, and appeal.
+- Case creation does not imply guilt or wrongdoing; it records a staff review workflow.
 
 ## Hierarchy
 
@@ -54,6 +62,22 @@ Operations Package readiness answers whether a weekly package is complete enough
 - Amendments preserve older releases and increment the version.
 - Only one published release is active for an operational week.
 - Discord delivers the release announcement; the Portal remains the source of truth.
+
+## Operational Health
+
+- Operational Health measures how healthy the current Deployment is during execution.
+- Health is separate from Operational Readiness and Publication Readiness.
+- Initial health categories are Planning Health, Execution Health, and Community Health.
+- Health recommendations are derived from provider rule results and should remain operational, not strategic.
+- Command Decision Support turns rule evidence into explainable recommendations, but never decides automatically.
+
+## Commander's Intent
+
+- Operational Weeks may record Commander's Intent, Commander End State, Success Criteria, and Failure Conditions.
+- Staff assess intent after execution and Patrol AAR review.
+- Assessment states are achieved, partially achieved, not achieved, deferred, and cancelled.
+- Intent assessments should capture supporting evidence, lessons learned, and next-week recommendations.
+- The portal records and explains the assessment; command staff make the judgment.
 
 ## CONOP
 

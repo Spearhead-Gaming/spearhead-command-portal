@@ -8,15 +8,20 @@ The portal remains the source of truth. Discord is a client and delivery surface
 
 ## Current Architecture
 
-The application is webhook-first plus Discord REST calls.
+The application is webhook-first plus Discord REST calls, with an optional
+Gateway worker for real-time guild events.
 
 - OAuth login uses Auth.js/NextAuth with the Discord provider.
 - Interactions use `POST /api/discord/interactions`.
 - Signature validation uses `DISCORD_PUBLIC_KEY`.
 - Slash commands are registered with REST scripts.
 - Discord messages are posted through REST using `DISCORD_BOT_TOKEN`.
-- No gateway bot worker or `discord.js` client process currently exists.
-- Because there is no gateway process, the bot may appear offline even when slash commands work.
+- A dedicated Gateway worker can run with `npm run dev:gateway` when
+  `DISCORD_GATEWAY_ENABLED=true`.
+- The Gateway worker does not handle slash commands, buttons, or modals; those
+  remain on `POST /api/discord/interactions`.
+- If the Gateway worker is disabled or stopped, the bot may appear offline even
+  when slash commands work.
 
 Local testing requires a public HTTPS tunnel for live interactions because Discord cannot call localhost.
 
@@ -26,12 +31,15 @@ Primary local commands:
 
 ```powershell
 npm run dev
+npm run dev:gateway
 npm run discord:health
+npm run discord:gateway:health
 npm run discord:commands:register
 npm run discord:commands:list
 ```
 
-There is no `npm run dev:bot` script because there is no gateway worker. If a future gateway worker is added, it should be documented separately and must not bypass the existing webhook security model.
+There is no `npm run dev:bot` script. `npm run dev:gateway` starts the optional
+Gateway worker and must run as a separate process from the Next.js web app.
 
 ## Environment Variables
 
@@ -51,6 +59,11 @@ Supported Discord and URL variables:
 - `AUTH_URL`: Auth.js base URL and portal URL fallback.
 - `NEXT_PUBLIC_APP_URL`: public app URL and interaction URL fallback.
 - `SYNC_DISCORD_BOTS`: defaults to false; bot accounts are skipped by member sync unless explicitly enabled.
+- `DISCORD_GATEWAY_ENABLED`: defaults to false; enables the long-running Gateway worker.
+- `DISCORD_GATEWAY_INTENTS`: comma-separated Gateway intents. Default is `Guilds,GuildMembers,GuildVoiceStates`.
+- `DISCORD_GATEWAY_SHARD_COUNT`: local shard count. Default is `1`.
+- `DISCORD_PRIMARY_GUILD_ID`: optional production guardrail for the primary Spearhead guild.
+- `DISCORD_GATEWAY_EVENT_LOG_LEVEL`: controls event log verbosity. Default is `summary`.
 
 Safe diagnostics exist in `src/server/discord/config.ts` and `scripts/discord.ts`. These diagnostics intentionally do not print secrets.
 
@@ -69,6 +82,11 @@ Safe diagnostics exist in `src/server/discord/config.ts` and `scripts/discord.ts
 | `src/server/discord/commands/register.ts` | Register, list, clear guild commands, health | Implemented | Discord REST, env config | Guild/global registration supported. |
 | `scripts/discord.ts` | CLI diagnostics and command registration wrapper | Implemented | register module, dotenv | Provides `discord:health`, register, list, clear guild. |
 | `src/server/discord/config.ts` | Env normalization and safe diagnostics | Implemented | process env | Handles legacy env aliases and localhost detection. |
+| `src/server/discord/gateway/client.ts` | Long-running Discord Gateway client | Implemented | WebSocket, bot token, gateway config | Disabled by default; handles identify, heartbeat, reconnect, and dispatch. |
+| `src/server/discord/gateway/registry.ts` | Gateway event handler registry | Implemented | gateway services | Separates READY, guild, member, voice, role, and attachment-continuation handlers. |
+| `src/server/discord/gateway/dispatcher.ts` | Bounded retry dispatcher | Implemented | event registry, event logs | Failed handlers write `DiscordGatewayEventLog` without crashing the worker loop. |
+| `src/server/discord/gateway/health.ts` | Gateway admin health summary | Implemented | Prisma, rules, recommendations | Powers Administration -> Discord Gateway health. |
+| `src/server/discord/gateway/voice-state.ts` | Voice awareness handler | Implemented | Discord server policy, identity resolver | Tracks presence suggestions only; never marks attendance. |
 | `src/server/discord/delivery/provider.ts` | Channel mapping resolution and Discord message send | Implemented | Notification service, Discord REST | Missing mappings create failed delivery records. |
 | `src/server/discord/messages/builders.ts` | Reusable Discord embed/button payload builders | Implemented | Discord payload types | Event, RSVP, patrol, campaign, qualification, form, attendance, staff alert builders exist. |
 | `src/server/discord/events.ts` | Event announcement to Discord | Implemented | events, notifications, delivery, deployment resources | Requires published event and permissions. |
@@ -175,9 +193,9 @@ Current behavior:
   submission comments, approval decisions, notification deliveries, and AAR ownership
   to the canonical user/profile.
 
-Known gaps:
-
-- Join/update/leave functions exist, but there is no gateway worker or webhook source feeding live Discord gateway events.
+- Gateway member join/update/leave handlers now feed the same identity sync
+  services as manual guild sync. Secondary guilds can be configured as link-only
+  so they do not create duplicate portal profiles.
 - Display-name duplicate detection is informational only, as intended.
 
 ## Channel Mapping Audit
@@ -310,6 +328,27 @@ Known risks:
 - Automatic role sync is intentionally not enabled.
 - Nickname sync is configuration-only and disabled by default.
 
+## Gateway Audit
+
+Implemented:
+
+- Dedicated `npm run dev:gateway` worker.
+- Disabled-by-default configuration.
+- Minimal default intents: `Guilds`, `GuildMembers`, and `GuildVoiceStates`.
+- READY, RESUMED, guild create/delete, member add/update/remove, voice state,
+  message attachment continuation, and role create/update event handlers.
+- Gateway health state, event logs, rule provider, recommendations, and admin UI.
+- Member events use canonical Discord ID identity linking and skip bots.
+- Voice awareness records non-authoritative presence suggestions only.
+
+Deferred:
+
+- Automatic role sync from Gateway events.
+- Nickname sync execution.
+- Moderation event ingestion.
+- Message content ingestion.
+- Multi-shard orchestration beyond configured shard count foundation.
+
 ## Moderation Audit
 
 Implemented:
@@ -392,15 +431,15 @@ Risks to monitor:
 
 ## Recommended Next 5 Discord Tasks
 
-1. Add passive gateway-based attachment listening only if the community decides ordinary channel image uploads should continue pending Patrol AARs without `/patrol screenshot`.
-2. Add live command registration diagnostics to `/administration/discord` using the existing REST health helpers.
-3. Implement delivery retry from admin notification/Discord pages.
-4. Add ban and timeout moderation workflows only after policy and permissions are finalized.
-5. Add optional gateway worker only if real-time guild events, attachment listeners, or presence are required; otherwise keep webhook-first architecture.
+1. Add live command registration diagnostics to `/administration/discord` using the existing REST health helpers.
+2. Implement delivery retry from admin notification/Discord pages.
+3. Add ban and timeout moderation workflows only after policy and permissions are finalized.
+4. Add Gateway-driven role sync triggers only after manual sync behavior is trusted.
+5. Add production shard supervision if the community grows beyond one guild/worker.
 
 ## Open Issues And Gaps
 
-- No gateway worker means bot online status is not expected.
+- Gateway worker is optional; bot online status is only expected when it is enabled and running.
 - No Discord DM delivery implementation.
 - No select-menu workflows.
 - No `/ban` or `/timeout`.

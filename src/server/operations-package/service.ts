@@ -11,8 +11,18 @@ import { getPortalBaseUrl } from "@/server/discord/config";
 import { sendDiscordNotification } from "@/server/discord/delivery/provider";
 import { buildOperationsReleaseDiscordMessage } from "@/server/discord/messages/builders";
 import { createNotification } from "@/server/notifications/service";
+import { evaluateOperationalHealth } from "@/server/operations-package/health";
 import { getGoNoGoStatus as evaluateGoNoGoStatus } from "@/server/operations-package/readiness";
+import {
+  generateRecommendationsForPackage,
+  getIntentAssessment,
+  listRecommendationHistory,
+  listRecommendationsForPackage,
+  updateIntentAssessment as updateIntentAssessmentRecord,
+} from "@/server/recommendations/service";
+import type { UpdateIntentAssessmentInput } from "@/server/recommendations/service";
 import type {
+  CommanderDashboardData,
   OperationsPackageData,
   OperationsReleaseHistoryItem,
   OperationsReleasePreview,
@@ -31,6 +41,10 @@ export type UpdateOperationsPackagePlanningInput = {
   planningNotes?: string | null;
   operationalObjectives?: string | null;
   planningAssumptions?: string | null;
+  commandersIntent?: string | null;
+  commanderEndState?: string | null;
+  successCriteria?: string | null;
+  failureConditions?: string | null;
   friendlySituation?: string | null;
   enemySituation?: string | null;
   intelligenceSummary?: string | null;
@@ -558,6 +572,70 @@ async function ensureOperationsPackageImplementation(campaignId: string, weekNum
   revalidateOperationsPackageRoutes(campaignId, weekNumber);
 }
 
+async function getOperationalHealthContext(campaignId: string, weekNumber: number) {
+  const [patrols, activeMemberCount, activeUnitCount, membersWithoutUnitCount] = await Promise.all([
+    prisma.event.findMany({
+      where: {
+        campaignId,
+        deletedAt: null,
+        deploymentWeek: weekNumber,
+        eventType: "patrol",
+      },
+      include: {
+        aars: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        startsAt: "asc",
+      },
+    }),
+    prisma.memberProfile.count({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+    }),
+    prisma.unit.count({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+    }),
+    prisma.memberProfile.count({
+      where: {
+        currentUnitId: null,
+        deletedAt: null,
+        isActive: true,
+      },
+    }),
+  ]);
+
+  return {
+    activeMemberCount,
+    activeUnitCount,
+    membersWithoutUnitCount,
+    patrols: patrols.map((patrol) => ({
+      aarCount: patrol.aars.length,
+      aarRequired: patrol.aarRequired,
+      aarSubmittedAt: patrol.aarSubmittedAt,
+      endsAt: patrol.endsAt,
+      id: patrol.id,
+      patrolStatus: patrol.patrolStatus,
+      reviewedAarCount: patrol.aars.filter((aar) => aar.status === "reviewed").length,
+      startsAt: patrol.startsAt,
+      status: patrol.status,
+      title: patrol.title,
+    })),
+  };
+}
+
 async function getOperationsPackageImplementation(
   campaignId: string,
   weekNumber: number,
@@ -604,9 +682,9 @@ async function getOperationsPackageImplementation(
       data: {
         campaignId,
         label: `Week ${weekNumber}`,
-        weekNumber,
-      },
-    }));
+      weekNumber,
+    },
+  }));
   const weekendOperation = await findWeekendOperation(campaign.id, weekNumber);
 
   if (weekendOperation) {
@@ -690,6 +768,10 @@ async function getOperationsPackageImplementation(
   const loa = refreshedWeekendOperation?.attendanceRecords.filter((record) => record.finalStatus === "loa").length ?? 0;
   const planningValues = [
     week.planningNotes,
+    week.commandersIntent,
+    week.commanderEndState,
+    week.successCriteria,
+    week.failureConditions,
     week.operationalObjectives,
     week.planningAssumptions,
     week.friendlySituation,
@@ -719,6 +801,11 @@ async function getOperationsPackageImplementation(
     can(user, "operations.readiness.evaluate") || can(user, "operations.readiness.view");
   const canViewReadiness =
     canEvaluateReadiness || can(user, "operations.package.view") || can(user, "s3.dashboard.view");
+  const canViewHealth =
+    can(user, "operations.health.view") ||
+    can(user, "operations.center.view") ||
+    can(user, "operations.package.view") ||
+    can(user, "s3.dashboard.view");
   const canPublishPackage =
     can(user, "operations.package.publish") ||
     can(user, "deployments.publish") ||
@@ -767,14 +854,19 @@ async function getOperationsPackageImplementation(
         can(user, "deployments.resources.upload") ||
         can(user, "deployments.resources.edit"),
       canManageTasking: can(user, "operations.tasking.manage"),
+      canViewHealth,
       canPublishPackage,
     },
+    health: null,
     readiness: null,
     release: null,
     resources,
     week: {
+      commanderEndState: week.commanderEndState,
+      commandersIntent: week.commandersIntent,
       endsAt: week.endsAt,
       enemySituation: week.enemySituation,
+      failureConditions: week.failureConditions,
       friendlySituation: week.friendlySituation,
       id: week.id,
       intelligenceSummary: week.intelligenceSummary,
@@ -788,6 +880,7 @@ async function getOperationsPackageImplementation(
       planningStatus: week.planningStatus,
       specialInstructions: week.specialInstructions,
       startsAt: week.startsAt,
+      successCriteria: week.successCriteria,
       weather: week.weather,
       weekNumber: week.weekNumber,
     },
@@ -845,12 +938,24 @@ async function getOperationsPackageImplementation(
           weekNumber: weeklyTasking.weekNumber,
         }
       : null,
+    intentAssessment: null,
+    recommendations: {
+      active: [],
+      history: [],
+    },
   };
 
   packageData.readiness = canViewReadiness
-    ? evaluateGoNoGoStatus({
+    ? await evaluateGoNoGoStatus({
         canPublish: canPublishPackage,
         discordEventChannelMapped,
+        packageData,
+      })
+    : null;
+  packageData.health = canViewHealth
+    ? await evaluateOperationalHealth({
+        ...(await getOperationalHealthContext(campaign.id, weekNumber)),
+        now: new Date(),
         packageData,
       })
     : null;
@@ -864,6 +969,12 @@ async function getOperationsPackageImplementation(
     packageData,
     packageData.release.nextVersion,
   );
+  await generateRecommendationsForPackage(packageData);
+  packageData.recommendations = {
+    active: await listRecommendationsForPackage({ campaignId: campaign.id, weekNumber }),
+    history: await listRecommendationHistory({ campaignId: campaign.id, weekNumber }),
+  };
+  packageData.intentAssessment = await getIntentAssessment({ campaignId: campaign.id, weekNumber });
 
   return packageData;
 }
@@ -893,7 +1004,10 @@ async function updateOperationsPackagePlanningImplementation(input: UpdateOperat
       id: existing.id,
     },
     data: {
+      commanderEndState: normalizeOptionalString(input.commanderEndState),
+      commandersIntent: normalizeOptionalString(input.commandersIntent),
       enemySituation: normalizeOptionalString(input.enemySituation),
+      failureConditions: normalizeOptionalString(input.failureConditions),
       friendlySituation: normalizeOptionalString(input.friendlySituation),
       intelligenceSummary: normalizeOptionalString(input.intelligenceSummary),
       logistics: normalizeOptionalString(input.logistics),
@@ -904,6 +1018,7 @@ async function updateOperationsPackagePlanningImplementation(input: UpdateOperat
       planningNotes: normalizeOptionalString(input.planningNotes),
       planningStatus: normalizePlanningStatus(input.planningStatus),
       specialInstructions: normalizeOptionalString(input.specialInstructions),
+      successCriteria: normalizeOptionalString(input.successCriteria),
       weather: normalizeOptionalString(input.weather),
     },
   });
@@ -1516,6 +1631,105 @@ export class OperationsPackageService {
     const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
 
     return existing?.readiness?.recommendations ?? [];
+  }
+
+  async getRecommendations(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.recommendations.active ?? [];
+  }
+
+  async getCriticalIssues(input: PackageIdentityInput) {
+    const recommendations = await this.getRecommendations(input);
+
+    return recommendations.filter((recommendation) => recommendation.priority === "critical");
+  }
+
+  async getOperationalSummary(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    if (!existing) {
+      return null;
+    }
+
+    return {
+      currentDeploymentTitle: existing.campaign.title,
+      currentWeekNumber: existing.week.weekNumber,
+      healthStatus: existing.health?.overallStatus ?? null,
+      operationalReadiness: existing.readiness?.operational.score.statusLabel ?? null,
+      publicationReadiness: existing.readiness?.publication.score.statusLabel ?? null,
+      recommendationCount: existing.recommendations.active.length,
+    };
+  }
+
+  async getCommanderDashboard(input: PackageIdentityInput): Promise<CommanderDashboardData> {
+    const currentPackage = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return {
+      criticalIssues: currentPackage?.recommendations.active.filter((recommendation) => recommendation.priority === "critical") ?? [],
+      currentPackage,
+      operationalSummary: {
+        currentDeploymentTitle: currentPackage?.campaign.title ?? null,
+        currentWeekNumber: currentPackage?.week.weekNumber ?? null,
+        healthStatus: currentPackage?.health?.overallStatus ?? null,
+        operationalReadiness: currentPackage?.readiness?.operational.score.statusLabel ?? null,
+        publicationReadiness: currentPackage?.readiness?.publication.score.statusLabel ?? null,
+        recommendationCount: currentPackage?.recommendations.active.length ?? 0,
+      },
+      recommendations: currentPackage?.recommendations.active ?? [],
+    };
+  }
+
+  async updateIntentAssessment(input: UpdateIntentAssessmentInput) {
+    await updateIntentAssessmentRecord(input);
+  }
+
+  async getOperationalHealth(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.health ?? null;
+  }
+
+  async getPlanningHealth(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.health?.categories.planning ?? null;
+  }
+
+  async getExecutionHealth(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.health?.categories.execution ?? null;
+  }
+
+  async getCommunityHealth(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.health?.categories.community ?? null;
+  }
+
+  async getHealthSummary(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    if (!existing?.health) {
+      return null;
+    }
+
+    return {
+      blockingIssues: existing.health.blockingIssues.length,
+      categories: existing.health.categories,
+      lastEvaluatedAt: existing.health.lastEvaluatedAt,
+      overallScore: existing.health.overallScore,
+      overallStatus: existing.health.overallStatus,
+      trend: existing.health.trend,
+      warnings: existing.health.warnings.length,
+    };
+  }
+
+  async getHealthRecommendations(input: PackageIdentityInput) {
+    const existing = await getOperationsPackageImplementation(input.campaignId, input.weekNumber);
+
+    return existing?.health?.recommendations ?? [];
   }
 
   async getPackageActivity(input: PackageIdentityInput) {

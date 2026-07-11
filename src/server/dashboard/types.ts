@@ -35,6 +35,93 @@ export type DashboardActivityItem = {
   tone: DashboardTone;
 };
 
+export type DashboardWidgetSize = "sm" | "md" | "lg" | "xl";
+
+export type DashboardWidgetDefinition = {
+  collapsedByDefault: boolean;
+  dataProvider: string;
+  icon: string;
+  id: string;
+  permissions: string[];
+  priority: number;
+  refreshIntervalSeconds: number | null;
+  size: DashboardWidgetSize;
+  title: string;
+};
+
+export type OperationsCenterWidgetId =
+  | "command-banner"
+  | "deployment-summary"
+  | "operational-health"
+  | "operational-readiness"
+  | "command-recommendations"
+  | "patrol-operations"
+  | "pending-publications"
+  | "personnel-readiness"
+  | "personnel-unit-strength"
+  | "personnel-member-readiness"
+  | "personnel-unit-readiness"
+  | "personnel-missing-qualifications"
+  | "personnel-expiring-qualifications"
+  | "personnel-attendance-concerns"
+  | "personnel-vacant-positions"
+  | "personnel-pending-actions"
+  | "personnel-loa-returns"
+  | "personnel-recent-activity"
+  | "notification-center"
+  | "communications-unread"
+  | "communications-failed-deliveries"
+  | "communications-announcements"
+  | "communications-discord-health"
+  | "discord-gateway-health"
+  | "discord-bot-connection"
+  | "discord-guild-availability"
+  | "discord-recent-member-joins"
+  | "discord-recent-member-leaves"
+  | "discord-voice-awareness"
+  | "discord-role-sync-health"
+  | "discord-gateway-error-queue"
+  | "community-open-cases"
+  | "community-critical-cases"
+  | "community-pending-appeals"
+  | "community-overdue-cases"
+  | "community-staff-workload"
+  | "community-failed-moderation"
+  | "activity-feed"
+  | "deployment-timeline";
+
+export type OperationsCenterQuickAction = {
+  href: string;
+  id: string;
+  label: string;
+  primary?: boolean;
+  requiredPermissions?: string[];
+};
+
+export type OperationsCenterTimelineItem = {
+  href?: string;
+  id: string;
+  label: string;
+  meta: string;
+  timestamp: Date | null;
+  tone: DashboardTone;
+  type: string;
+};
+
+export type OperationsCenterDashboardData = {
+  activityFeed: DashboardActivityItem[];
+  currentPackage: import("@/server/operations-package/types").OperationsPackageData | null;
+  dashboard: CommandDashboardData;
+  lastRefreshedAt: Date;
+  notificationCenter: import("@/server/notifications/types").NotificationCenterData;
+  notificationDeliveryOverview: import("@/server/notifications/types").NotificationDeliveryOverview;
+  patrolDashboard: import("@/server/patrols/types").PatrolDashboardData | null;
+  quickActions: OperationsCenterQuickAction[];
+  s3Dashboard: import("@/server/s3/types").S3DashboardData;
+  timeline: OperationsCenterTimelineItem[];
+  widgets: DashboardWidgetDefinition[];
+};
+
 export type CommandDashboardData = {
   visibility: {
     admin: boolean;
