@@ -42,6 +42,11 @@ type DiscordOperationsCenterProps = {
   overview: DiscordAdministrationOverview;
 };
 
+type AutomationDefinitionItem = DiscordAdministrationOverview["automation"]["definitions"][number];
+type AutomationFailedActionItem = DiscordAdministrationOverview["automation"]["failedActions"][number];
+type AutomationPendingApprovalItem = DiscordAdministrationOverview["automation"]["pendingApprovals"][number];
+type AutomationRecentExecutionItem = DiscordAdministrationOverview["automation"]["recentExecutions"][number];
+
 const topLevelSections = [
   "Overview",
   "Guilds",
@@ -950,7 +955,7 @@ export function DiscordOperationsCenter({ overview }: DiscordOperationsCenterPro
                   Manual approval executions must be approved before staff can run them.
                 </p>
                 <div className="mt-4 space-y-3">
-                  {overview.automation.pendingApprovals.slice(0, 6).map((execution) => (
+                  {overview.automation.pendingApprovals.slice(0, 6).map((execution: AutomationPendingApprovalItem) => (
                     <div className="rounded-xl border border-border/70 bg-card/60 p-3" key={execution.id}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -993,7 +998,7 @@ export function DiscordOperationsCenter({ overview }: DiscordOperationsCenterPro
                   Failures remain isolated from the source portal action and can be retried after correction.
                 </p>
                 <div className="mt-4 space-y-3">
-                  {overview.automation.failedActions.slice(0, 6).map((action) => (
+                  {overview.automation.failedActions.slice(0, 6).map((action: AutomationFailedActionItem) => (
                     <div className="rounded-xl border border-border/70 bg-card/60 p-3" key={action.id}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -1028,7 +1033,7 @@ export function DiscordOperationsCenter({ overview }: DiscordOperationsCenterPro
               <InventoryTable
                 emptyDescription="Sync definitions from role mappings to populate the automation catalog."
                 emptyTitle="No automation definitions"
-                rows={overview.automation.definitions.slice(0, 20).map((definition) => ({
+                rows={overview.automation.definitions.slice(0, 20).map((definition: AutomationDefinitionItem) => ({
                   id: definition.id,
                   meta: `${definition.serverName ?? "No guild"} / ${definition.triggerType}`,
                   status: definition.enabled ? definition.executionMode : "disabled",
@@ -1046,7 +1051,7 @@ export function DiscordOperationsCenter({ overview }: DiscordOperationsCenterPro
               <InventoryTable
                 emptyDescription="Qualification awards, revocations, manual runs, and future unit/status events will appear here when they produce automation plans."
                 emptyTitle="No automation history"
-                rows={overview.automation.recentExecutions.slice(0, 20).map((execution) => ({
+                rows={overview.automation.recentExecutions.slice(0, 20).map((execution: AutomationRecentExecutionItem) => ({
                   id: execution.id,
                   meta: `${execution.memberName} / ${execution.createdAtLabel}`,
                   status: execution.status,
