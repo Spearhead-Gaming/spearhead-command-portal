@@ -59,7 +59,7 @@ export async function resolveGatewayGuildPolicy(guildId: string | null): Promise
     };
   }
 
-  const isActive = server.isActive && !server.archivedAt && server.status !== "archived";
+  const isActive = server.isActive && server.status !== "archived";
   const isPrimaryCommunity = server.isPrimary || server.guildType === "community";
 
   return {
@@ -78,4 +78,3 @@ export async function resolveGatewayGuildPolicy(guildId: string | null): Promise
     voiceAwarenessEnabled: isActive && server.voiceAwarenessEnabled,
   };
 }
-

@@ -185,6 +185,8 @@
   },
   "active": "3350dcd0dd48e057",
   "lastOpenFiles": [
+    "scripts/start-next.mjs",
+    "scripts/start-next.js",
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom.react-server.development.js",
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom.development.js",
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom.react-server.production.js",
@@ -194,8 +196,6 @@
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom-unstable_testing.production.js",
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom-server.node.production.js",
     "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom-server.node.development.js",
-    "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom-server.edge.production.js",
-    "node_modules/next/dist/compiled/react-dom-experimental/cjs/react-dom-server.bun.production.js",
     "node_modules/update-browserslist-db/README.md",
     "docs/06-integrations/discord/DISCORD_DISASTER_RECOVERY.md",
     "docs/06-integrations/discord/DISCORD_PLATFORM_ROLLOUT.md",

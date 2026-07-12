@@ -34,6 +34,8 @@ Plesk Node.js hosting can run the web process, but it does not cleanly model the
 
 Plesk should proxy HTTPS traffic to `http://127.0.0.1:3000`.
 
+If port `3000` is already used by another application on the same Plesk host, set `WEB_PORT` to an available starting port. `npm run start` will scan upward from `WEB_PORT` and start on the first available port unless `PORT_AUTO_INCREMENT=false`.
+
 ## First Deploy
 
 1. Copy `.env.staging.example` to `.env.staging` on the server.
@@ -45,6 +47,14 @@ Plesk should proxy HTTPS traffic to `http://127.0.0.1:3000`.
 ```bash
 COMPOSE_ENV_FILE=.env.staging docker compose build
 ```
+
+If using Plesk's Node.js application builder instead of Docker, set the build command to:
+
+```bash
+npm run build
+```
+
+Do not use `next build` directly in Plesk. The project build script regenerates Prisma Client before Next.js type-checks so generated Prisma types stay aligned with `prisma/schema.prisma`.
 
 6. Start MariaDB:
 
@@ -96,7 +106,11 @@ Production environment values should use:
 AUTH_URL=https://portal.shgmilsim.com
 NEXT_PUBLIC_APP_URL=https://portal.shgmilsim.com
 DISCORD_INTERACTIONS_URL=https://portal.shgmilsim.com/api/discord/interactions
+WEB_BIND=127.0.0.1
+WEB_PORT=3000
 ```
+
+If auto-increment selects a different port, update the Plesk proxy target to the port printed by `npm run start`. For long-term production, a dedicated fixed `WEB_PORT` is still preferred so the reverse proxy target remains stable.
 
 ## Health Checks
 

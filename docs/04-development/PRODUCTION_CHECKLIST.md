@@ -20,6 +20,8 @@ Use this checklist before promoting the Spearhead Command Portal to a first prod
 ## Database
 
 - Prisma schema validates with `npm run prisma:validate`.
+- Prisma Client generation succeeds with `npm run prisma:generate`.
+- Production/Plesk builds use `npm run build`, not `next build`, so Prisma Client is regenerated before Next.js type-checks.
 - Production migrations or approved schema changes have been reviewed before applying.
 - Seed data has been run or verified for permissions, starter roles, statuses, units, forms, and catalogs.
 - Database backups are configured and a restore procedure has been tested.
@@ -72,6 +74,7 @@ Use this checklist before promoting the Spearhead Command Portal to a first prod
 ## Operations
 
 - The deployment process documents how to run migrations, seed data, start the app, and roll back.
+- Plesk proxy target matches the configured `WEB_BIND` and `WEB_PORT`, or the selected auto-increment port printed at startup.
 - Logs are available for Next.js runtime, MariaDB, and reverse proxy failures.
 - Health checks or external monitoring are configured for the app route and database connectivity.
 - A maintenance plan exists for disabling dev login immediately after emergency use.

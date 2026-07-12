@@ -371,7 +371,7 @@ export async function getDiscordPlatformReadiness(): Promise<DiscordPlatformRead
       },
     }),
   ]);
-  const activeServers = servers.filter((server) => server.isActive && !server.archivedAt);
+  const activeServers = servers.filter((server) => server.isActive && server.status !== "archived");
   const primaryServers = activeServers.filter((server) => server.isPrimary);
   const staleDiscoveryCount = activeServers.filter((server) => {
     if (!server.lastDiscoveryAt) {

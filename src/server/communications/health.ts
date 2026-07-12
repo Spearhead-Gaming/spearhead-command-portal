@@ -52,8 +52,10 @@ export async function getCommunicationPlatformOverview(): Promise<CommunicationP
   const [servers, deliveries, communications] = await Promise.all([
     prisma.discordServer.findMany({
       where: {
-        archivedAt: null,
         isActive: true,
+        status: {
+          not: "archived",
+        },
       },
       include: {
         channelMappings: {
@@ -141,4 +143,3 @@ export async function getCommunicationPlatformOverview(): Promise<CommunicationP
     })),
   };
 }
-

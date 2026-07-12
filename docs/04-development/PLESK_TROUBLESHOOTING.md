@@ -8,6 +8,18 @@
 - Check `docker compose logs web --tail=100`.
 - Confirm `/api/health/live` responds from the Plesk host.
 
+## Start Fails With Port Already In Use
+
+`npm run start` scans from `PORT` or `WEB_PORT` and starts Next.js on the first available port. If the configured port is busy, the startup log prints the selected replacement port.
+
+Check:
+
+- `WEB_BIND=127.0.0.1` for Plesk reverse-proxy hosting.
+- `WEB_PORT` is set to the preferred starting port for this app.
+- `PORT_AUTO_INCREMENT=true` when sharing a host with other apps.
+- Plesk proxy target matches the final port printed by `npm run start`.
+- Use `PORT_AUTO_INCREMENT=false` when you want startup to fail instead of moving ports.
+
 ## Readiness Fails
 
 Check:
@@ -17,6 +29,18 @@ Check:
 - Prisma migrations have run.
 - `FILE_STORAGE_ROOT=/app/storage`.
 - The `uploads` volume is mounted.
+
+## Build Fails With Prisma Type Errors
+
+If Plesk reports a TypeScript error such as `Object literal may only specify known properties` for a Prisma model field, the generated Prisma Client is likely stale.
+
+Check:
+
+- Plesk build command is `npm run build`, not `next build`.
+- `npm run prisma:generate` succeeds on the server.
+- `npm run prisma:validate` succeeds on the server.
+- Dependencies were installed after pulling schema changes.
+- The deployed `prisma/schema.prisma` matches the code being built.
 
 ## Discord OAuth Fails
 

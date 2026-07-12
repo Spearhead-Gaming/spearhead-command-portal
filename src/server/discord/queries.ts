@@ -1058,7 +1058,7 @@ export async function getDiscordAdministrationOverview(
     },
     platform: platformSummary
       ? {
-          activeGuildCount: platformSummary.guilds.filter((guild) => guild.isActive && !guild.archivedAt).length,
+          activeGuildCount: platformSummary.guilds.filter((guild) => guild.isActive && guild.status !== "archived").length,
           channelInventoryCount: platformSummary.channelCount,
           healthIssueCount: platformSummary.healthFailures,
           latestDiscoveryAtLabel: platformSummary.latestSnapshot
