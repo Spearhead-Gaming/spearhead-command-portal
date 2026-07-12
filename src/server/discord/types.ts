@@ -1,5 +1,8 @@
 import type { NotificationDeliveryStatus } from "@/server/notifications/constants";
 import type { DiscordGatewayHealthSummary } from "@/server/discord/gateway/types";
+import type { DiscordAutomationOverview } from "@/server/discord/automation/queries";
+import type { CommunicationPlatformOverview } from "@/server/communications/health";
+import type { DiscordPlatformReadiness } from "@/server/discord/readiness";
 
 import type {
   DiscordChannelMappingKey,
@@ -47,15 +50,26 @@ export type DiscordBotHealthSummary = {
 
 export type DiscordServerAdminItem = {
   channelMappingCount: number;
+  discoveredChannelCount: number;
+  discoveredRoleCount: number;
+  guildType: string;
   guildId: string;
   gatewayEnabled: boolean;
+  gatewayStatus: string;
+  healthScore: number;
   id: string;
+  interactionStatus: string;
   isActive: boolean;
   isPrimary: boolean;
+  lastDiscoveryAtLabel: string | null;
+  lastSyncAtLabel: string | null;
   memberSyncPolicy: string;
   name: string;
+  restStatus: string;
+  recommendations: DiscordOperationsRecommendation[];
   nicknameSyncPolicy: string;
   roleSyncPolicy: string;
+  status: string;
   unitId: string | null;
   unitName: string | null;
   updatedAtLabel: string;
@@ -89,7 +103,12 @@ export type DiscordDeliveryAdminItem = {
 };
 
 export type DiscordAdministrationOverview = {
+  automation: DiscordAutomationOverview;
   botHealth: DiscordBotHealthSummary;
+  canApproveAutomation: boolean;
+  canExecuteAutomation: boolean;
+  canManageAutomation: boolean;
+  canManageReconciliation: boolean;
   canMergeIdentities: boolean;
   canManageChannels: boolean;
   canManageDiscordAdmin: boolean;
@@ -102,12 +121,34 @@ export type DiscordAdministrationOverview = {
   canViewIdentity: boolean;
   canViewMembers: boolean;
   canViewModerationHistory: boolean;
+  canViewModerationPlatform: boolean;
+  canManageModerationPlatform: boolean;
   canViewSync: boolean;
   canViewBotHealth: boolean;
   canViewDeliveries: boolean;
   canViewGateway: boolean;
+  canViewReconciliation: boolean;
+  canRunDiscovery: boolean;
+  canViewDiscovery: boolean;
+  canViewAutomation: boolean;
   canManageGateway: boolean;
+  canViewDiscordEvents: boolean;
+  canManageDiscordEvents: boolean;
+  canViewDiscordApplications: boolean;
+  canManageDiscordApplications: boolean;
+  communications: CommunicationPlatformOverview;
+  applicationIntegration: DiscordApplicationIntegrationAdminOverview;
+  readiness: DiscordPlatformReadiness;
+  eventManagement: DiscordEventManagementAdminOverview;
+  moderationPlatform: DiscordModerationPlatformAdminOverview;
+  discovery: DiscordDiscoveryAdminOverview;
   gatewayHealth: DiscordGatewayHealthSummary | null;
+  guildChannels: DiscordGuildChannelAdminItem[];
+  guildEmojis: DiscordGuildEmojiAdminItem[];
+  guildEvents: DiscordGuildEventAdminItem[];
+  guildRoles: DiscordGuildRoleAdminItem[];
+  guildStickers: DiscordGuildStickerAdminItem[];
+  platform: DiscordPlatformAdminSummary;
   channelMappings: DiscordChannelMappingAdminItem[];
   deliveries: DiscordDeliveryAdminItem[];
   failedDeliveryCount: number;
@@ -140,6 +181,293 @@ export type DiscordAdministrationOverview = {
     id: string;
     label: string;
   }>;
+};
+
+export type DiscordApplicationIntegrationAdminOverview = {
+  catalog: Array<{
+    applicationTypeKey: string;
+    availability: string;
+    displayName: string;
+    enabled: boolean;
+    id: string;
+    maintenanceMode: boolean;
+    reviewDestination: string | null;
+  }>;
+  policies: Array<{
+    commandAvailability: string;
+    enabled: boolean;
+    guildId: string;
+    id: string;
+    panelEnabled: boolean;
+    portalOnlyReviewMode: boolean;
+    reviewerQuickActionsEnabled: boolean;
+    testingMode: boolean;
+  }>;
+  reviewMessages: Array<{
+    applicationType: string;
+    id: string;
+    lastPublishedAtLabel: string | null;
+    status: string;
+    submissionId: string;
+  }>;
+  summary: {
+    activeCatalogEntries: number;
+    activeSessions: number;
+    expiredTokens: number;
+    pendingReviews: number;
+    policyCount: number;
+    reviewMessageCount: number;
+  };
+};
+
+export type DiscordModerationPlatformAdminOverview = {
+  actions: Array<{
+    action: string;
+    caseNumber: string | null;
+    createdAtLabel: string;
+    guildName: string;
+    id: string;
+    result: string;
+    targetLabel: string;
+  }>;
+  approvals: Array<{
+    approvalMode: string;
+    caseId: string;
+    id: string;
+    requestedAtLabel: string;
+    status: string;
+  }>;
+  observations: Array<{
+    id: string;
+    observationType: string;
+    observedAtLabel: string;
+    status: string;
+    summary: string;
+    targetDiscordUserId: string;
+  }>;
+  policies: Array<{
+    banApprovalMode: string;
+    crossGuildPolicy: string;
+    guildId: string;
+    id: string;
+    isEnabled: boolean;
+    kickApprovalMode: string;
+    timeoutApprovalMode: string;
+    timeoutMaxSeconds: number;
+  }>;
+  summary: {
+    activeBanCount: number;
+    activeTimeoutCount: number;
+    failedActionCount: number;
+    openCaseCount: number;
+    pendingAppealCount: number;
+    pendingApprovalCount: number;
+    warningCount: number;
+  };
+};
+
+export type DiscordEventManagementAdminOverview = {
+  drifts: Array<{
+    detectedAtLabel: string;
+    id: string;
+    severity: string;
+    status: string;
+    summary: string;
+  }>;
+  executions: Array<{
+    actionCount: number;
+    createdAtLabel: string;
+    executionType: string;
+    failedActionCount: number;
+    id: string;
+    status: string;
+  }>;
+  links: Array<{
+    currentDiscordStatus: string | null;
+    discordScheduledEventId: string | null;
+    driftState: string;
+    guildId: string;
+    id: string;
+    lastSynchronizedAtLabel: string | null;
+    ownershipMode: string;
+    portalEventId: string;
+    portalEventType: string;
+    synchronizationState: string;
+  }>;
+  observations: Array<{
+    discordScheduledEventId: string;
+    discordUserId: string;
+    id: string;
+    observedAtLabel: string;
+    participationStatus: string;
+    portalEventId: string | null;
+  }>;
+  plans: Array<{
+    createdAtLabel: string;
+    id: string;
+    portalEventId: string;
+    portalEventType: string;
+    status: string;
+    targetCount: number;
+  }>;
+  policies: Array<{
+    defaultEntityType: string;
+    eventType: string;
+    guildId: string;
+    id: string;
+    integrationEnabled: boolean;
+    manualApprovalRequired: boolean;
+    previewRequired: boolean;
+    testMode: boolean;
+  }>;
+  summary: {
+    activePolicyCount: number;
+    driftCount: number;
+    linkedEventCount: number;
+    partialFailureCount: number;
+    pendingApprovalCount: number;
+  };
+};
+
+export type DiscordDiscoveryAdminOverview = {
+  reconciliationItems: DiscordReconciliationAdminItem[];
+  schedules: DiscordSyncScheduleAdminItem[];
+  sessions: DiscordDiscoverySessionAdminItem[];
+};
+
+export type DiscordOperationsRecommendation = {
+  actionHref: string;
+  actionLabel: string;
+  description: string;
+  id: string;
+  severity: "info" | "warning" | "danger";
+  title: string;
+};
+
+export type DiscordGuildChannelAdminItem = {
+  channelId: string;
+  channelType: string;
+  guildId: string;
+  id: string;
+  isArchived: boolean;
+  isMissing: boolean;
+  lastSyncedAtLabel: string;
+  lastSeenAtLabel: string;
+  mappedKey: string | null;
+  name: string;
+  parentChannelId: string | null;
+  position: number | null;
+  serverId: string;
+  serverName: string;
+};
+
+export type DiscordGuildRoleAdminItem = {
+  botManageable: boolean;
+  color: number | null;
+  guildId: string;
+  hoisted: boolean;
+  id: string;
+  isArchived: boolean;
+  isMissing: boolean;
+  lastSyncedAtLabel: string;
+  lastSeenAtLabel: string;
+  managed: boolean;
+  mappedType: string | null;
+  mentionable: boolean;
+  name: string;
+  position: number | null;
+  roleId: string;
+  serverId: string;
+  serverName: string;
+};
+
+export type DiscordGuildEventAdminItem = {
+  channelId: string | null;
+  eventId: string;
+  id: string;
+  isArchived: boolean;
+  isMissing: boolean;
+  name: string;
+  scheduledStartAtLabel: string | null;
+  serverId: string;
+  serverName: string;
+  status: string;
+};
+
+export type DiscordGuildEmojiAdminItem = {
+  animated: boolean;
+  available: boolean;
+  emojiId: string;
+  id: string;
+  isArchived: boolean;
+  isMissing: boolean;
+  name: string;
+  serverId: string;
+  serverName: string;
+};
+
+export type DiscordGuildStickerAdminItem = {
+  available: boolean;
+  formatType: string;
+  id: string;
+  isArchived: boolean;
+  isMissing: boolean;
+  name: string;
+  serverId: string;
+  serverName: string;
+  stickerId: string;
+};
+
+export type DiscordDiscoverySessionAdminItem = {
+  completedAtLabel: string | null;
+  createdAtLabel: string;
+  discoveryType: string;
+  dryRun: boolean;
+  id: string;
+  resourcesFetched: number;
+  resourcesMissing: number;
+  resourcesUpdated: number;
+  serverId: string;
+  serverName: string;
+  status: string;
+  warningCount: number;
+};
+
+export type DiscordReconciliationAdminItem = {
+  changeStatus: string;
+  createdAtLabel: string;
+  id: string;
+  recommendedAction: string;
+  resourceId: string;
+  resourceType: string;
+  serverId: string;
+  serverName: string;
+  severity: string;
+  status: string;
+  summary: string;
+  title: string;
+};
+
+export type DiscordSyncScheduleAdminItem = {
+  gatewayDriven: boolean;
+  id: string;
+  isEnabled: boolean;
+  lastRunAtLabel: string | null;
+  lastStatus: string | null;
+  nextRunAtLabel: string | null;
+  policy: string;
+  serverId: string;
+  serverName: string;
+};
+
+export type DiscordPlatformAdminSummary = {
+  activeGuildCount: number;
+  channelInventoryCount: number;
+  healthIssueCount: number;
+  latestDiscoveryAtLabel: string | null;
+  primaryGuildName: string | null;
+  roleInventoryCount: number;
+  totalGuildCount: number;
 };
 
 export type DiscordInteractionSessionDiagnosticsAdmin = {
@@ -218,15 +546,22 @@ export type DiscordIdentityDiagnosticsAdmin = {
 
 export type UpsertDiscordServerMappingInput = {
   actorUserId: string;
+  description?: string | null;
   gatewayEnabled?: boolean;
+  guildType?: string | null;
   guildId: string;
+  iconUrl?: string | null;
   id?: string;
+  inviteUrl?: string | null;
   isActive: boolean;
   isPrimary: boolean;
+  locale?: string | null;
   memberSyncPolicy?: string | null;
   name: string;
   nicknameSyncPolicy?: string | null;
   roleSyncPolicy?: string | null;
+  shortName?: string | null;
+  timezone?: string | null;
   unitId?: string | null;
   voiceAwarenessEnabled?: boolean;
 };

@@ -7,15 +7,20 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import type { AuthenticatedPortalSession } from "@/features/auth/types";
 import { filterNavigationGroups, isNavigationItemActive } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import type { WorkspaceProfile } from "@/server/personas/types";
 
 type SidebarNavProps = {
   session: AuthenticatedPortalSession;
   onNavigate?: () => void;
+  workspaceProfile: WorkspaceProfile;
 };
 
-export function SidebarNav({ session, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ session, onNavigate, workspaceProfile }: SidebarNavProps) {
   const pathname = usePathname();
-  const groups = filterNavigationGroups(session.user.permissions);
+  const groups = filterNavigationGroups(
+    session.user.permissions,
+    workspaceProfile.selectedWorkspace.id,
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-border/80 bg-linear-to-b from-[#091320] to-[#07111d]">
@@ -26,12 +31,15 @@ export function SidebarNav({ session, onNavigate }: SidebarNavProps) {
           </p>
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold text-foreground">Command Portal</h2>
-            <p className="text-sm text-muted-foreground">Milestone 2 shell polish</p>
+            <p className="text-sm text-muted-foreground">{workspaceProfile.selectedWorkspace.label} workspace</p>
           </div>
           <div className="rounded-xl border border-border/70 bg-background/45 px-3 py-2">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Current Context</p>
             <p className="mt-1 truncate text-sm font-semibold text-foreground">
               {session.user.unit ?? "No unit linked yet"}
+            </p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+              {workspaceProfile.dashboardProfile.primaryActionLabel}
             </p>
           </div>
         </div>
@@ -54,6 +62,7 @@ export function SidebarNav({ session, onNavigate }: SidebarNavProps) {
 
                 return (
                   <Link
+                    aria-current={active ? "page" : undefined}
                     key={item.href}
                     className={cn(
                       "flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
@@ -63,6 +72,7 @@ export function SidebarNav({ session, onNavigate }: SidebarNavProps) {
                     )}
                     href={item.href}
                     onClick={onNavigate}
+                    title={item.title}
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <Icon className="h-4 w-4 shrink-0" />

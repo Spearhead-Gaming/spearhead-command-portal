@@ -155,6 +155,7 @@ export async function processCommunicationRequest(input: CommunicationRequestInp
             communicationId: communication.id,
             notificationId: notification.id,
             payload: {
+              ...input.providerPayload,
               body: rendered.body,
               title: rendered.title,
             },
@@ -164,16 +165,20 @@ export async function processCommunicationRequest(input: CommunicationRequestInp
         }
       } else if (channel.type === "discord_channel") {
         const mappings =
-          channel.mappingKey
-            ? [{ mappingKey: channel.mappingKey, unitIds: channel.unitIds }]
-            : audience.discordChannelMappings;
+          channel.mappingId
+            ? [{ mappingId: channel.mappingId, mappingKey: channel.mappingKey, unitIds: channel.unitIds }]
+            : channel.mappingKey
+              ? [{ mappingKey: channel.mappingKey, unitIds: channel.unitIds }]
+              : audience.discordChannelMappings;
 
         for (const mapping of mappings) {
           await provider.send({
             communicationId: communication.id,
+            mappingId: "mappingId" in mapping ? mapping.mappingId : null,
             mappingKey: mapping.mappingKey,
             notificationId: notification.id,
             payload: {
+              ...input.providerPayload,
               body: rendered.body,
               title: rendered.title,
             },

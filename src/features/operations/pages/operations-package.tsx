@@ -21,6 +21,16 @@ import {
 } from "@/features/operations/components/release";
 import { HealthSummaryPanel } from "@/features/operations/components/health";
 import { GoNoGoBoard } from "@/features/operations/components/readiness";
+import {
+  BlockingIssueSummary,
+  CompletionChecklist,
+  ContextHeader,
+  HandoffSummary,
+  NextActionCard,
+  SaveStateIndicator,
+  TransitionActions,
+  WorkflowProgress,
+} from "@/features/operations/components/workflow";
 import { formatDateTime } from "@/lib/formatters";
 import {
   ensureOperationsPackageAction,
@@ -28,6 +38,7 @@ import {
   updateUnitTaskingAction,
   updateWeeklyTaskingAction,
 } from "@/server/operations-package/actions";
+import { buildOperationsJourney } from "@/server/operations-package/journey";
 import { operationsPackageService } from "@/server/operations-package/service";
 import type { OperationsPackageData } from "@/server/operations-package/types";
 
@@ -443,17 +454,30 @@ export async function OperationsPackagePage({
   }
 
   const returnTo = `/operations/packages/${data.campaign.id}/week/${data.week.weekNumber}`;
+  const journey = buildOperationsJourney(data);
+  const publishStatus = data.release?.current
+    ? `${data.release.current.status} ${data.release.current.releaseVersion}`
+    : "No release yet";
 
   return (
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={["Operations", "Planning", `Week ${data.week.weekNumber}`]}
         contextLabel={data.campaign.key}
-        description="Planning-only Operations Package workspace for S3 and Deployment creators. Publishing and Discord delivery come later."
+        description="Guided Operations Package workspace for planning, tasking, resources, readiness, preview, publication, and progression handoff."
         title={`${data.campaign.title} / Week ${data.week.weekNumber}`}
       />
       {message ? <FlashNotice message={message} tone="success" /> : null}
       {error ? <FlashNotice message={error} tone="danger" /> : null}
+      <ContextHeader
+        deployment={data.campaign.title}
+        packageStatus={data.week.planningStatus}
+        publishStatus={publishStatus}
+        weekendOperation={data.weekendOperation?.title ?? "Not scheduled"}
+        week={`Week ${data.week.weekNumber}`}
+      />
+      <NextActionCard action={journey.nextAction} />
+      <BlockingIssueSummary steps={journey.steps} />
       <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/12 via-card/88 to-background">
         <CardContent className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-4">
@@ -483,6 +507,7 @@ export async function OperationsPackagePage({
           </form>
         </CardContent>
       </Card>
+      <WorkflowProgress journey={journey} />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard hint="Planning field completion" label="Planning" tone="info" value={`${data.completion.planningFieldsComplete}/${data.completion.planningFieldsTotal}`} />
         <DashboardWidget description="Active units with primary objectives" title="Unit Taskings" tone="warning" value={`${data.completion.unitTaskingsComplete}/${data.completion.unitTaskingsTotal}`} />
@@ -495,7 +520,11 @@ export async function OperationsPackagePage({
         returnTo={returnTo}
       />
       {data.health ? <HealthSummaryPanel health={data.health} packageHref={returnTo} /> : null}
-      {data.readiness ? <GoNoGoBoard packageHref={returnTo} readiness={data.readiness} /> : null}
+      {data.readiness ? (
+        <section id="readiness" className="scroll-mt-6">
+          <GoNoGoBoard packageHref={returnTo} readiness={data.readiness} />
+        </section>
+      ) : null}
       <section id="release" className="scroll-mt-6 space-y-4">
         <OperationsReleasePreviewCard data={data} />
         <OperationsReleasePublishCard data={data} returnTo={returnTo} />
@@ -540,8 +569,13 @@ export async function OperationsPackagePage({
           </Card>
           <Card id="planning" className="scroll-mt-6 border-border/80 bg-card/88">
             <CardHeader>
-              <CardTitle>Planning</CardTitle>
-              <CardDescription>Operational planning notes and situation context for this week.</CardDescription>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Planning</CardTitle>
+                  <CardDescription>Operational planning notes and situation context for this week.</CardDescription>
+                </div>
+                <SaveStateIndicator state="saved" />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -567,11 +601,21 @@ export async function OperationsPackagePage({
               {data.permissions.canEditPlanning ? <PlanningForm data={data} returnTo={returnTo} /> : null}
             </CardContent>
           </Card>
-          <IntentAssessmentPanel assessment={data.intentAssessment} data={data} returnTo={returnTo} />
+          <section id="intent" className="scroll-mt-6">
+            <IntentAssessmentPanel assessment={data.intentAssessment} data={data} returnTo={returnTo} />
+          </section>
           <Card id="tasking" className="scroll-mt-6 border-border/80 bg-card/88">
             <CardHeader>
-              <CardTitle>Tasking</CardTitle>
-              <CardDescription>Weekly Tasking and Unit Taskings for every active Spearhead unit.</CardDescription>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Tasking</CardTitle>
+                  <CardDescription>Weekly Tasking and Unit Taskings for every active Spearhead unit.</CardDescription>
+                </div>
+                <StatusBadge
+                  label={`${data.completion.unitTaskingsComplete}/${data.completion.unitTaskingsTotal} units`}
+                  tone={data.completion.unitTaskingsComplete >= data.completion.unitTaskingsTotal ? "success" : "warning"}
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {data.weeklyTasking ? (
@@ -605,6 +649,16 @@ export async function OperationsPackagePage({
           </Card>
         </div>
         <div className="space-y-6">
+          <CompletionChecklist steps={journey.steps.slice(0, 13)} />
+          <TransitionActions
+            actions={[
+              { href: "#planning", label: "Planning" },
+              { href: "#tasking", label: "Tasking" },
+              { href: "#resources", label: "Resources" },
+              { href: "#readiness", label: "Readiness" },
+              { href: "#release", isPrimary: true, label: "Preview / Publish" },
+            ]}
+          />
           <Card className="border-border/80 bg-card/82">
             <CardHeader>
               <CardTitle>Attendance / RSVP</CardTitle>
@@ -651,6 +705,25 @@ export async function OperationsPackagePage({
             </CardContent>
           </Card>
           <RecommendationInspector history={data.recommendations.history} recommendations={data.recommendations.active} />
+          <HandoffSummary
+            items={[
+              {
+                label: "Intent result",
+                value: data.intentAssessment?.status === "assessed" ? "Intent assessment recorded." : "Intent assessment pending after execution evidence is available.",
+              },
+              {
+                label: "Progression signal",
+                value:
+                  data.recommendations.active[0]?.recommendedAction ??
+                  data.recommendations.history[0]?.recommendedAction ??
+                  "Progression recommendations will appear after Patrol AAR review and command decision support evaluation.",
+              },
+              {
+                label: "Next planning step",
+                value: journey.nextAction?.label ?? "Package journey is complete; begin next week planning when command is ready.",
+              },
+            ]}
+          />
           <Card className="border-border/80 bg-card/82">
             <CardHeader>
               <CardTitle>Command Decision Support Boundary</CardTitle>

@@ -25,6 +25,7 @@ It replaces the idea of a simple moderation-only center.
 - submit appeals
 - record or execute supported Discord moderation actions
 - review moderation history
+- review case-backed Discord warnings, timeouts, kicks, bans, appeals, evidence, and moderator discussion
 
 ## Permissions
 
@@ -38,8 +39,15 @@ The module uses permission keys only:
 - `incidents.*`
 - `appeals.*`
 - `moderation.*`
+- `discord.moderation.*`
 
 Never authorize by role name or Discord role alone.
+
+## Discord Moderation Boundary
+
+Discord moderation actions must create or attach to a Community Case. Warnings and notes are Portal-owned records. Timeout, kick, ban, and unban execute through Discord REST after Portal permission and guild policy checks.
+
+Gateway may observe Discord-side state, but Gateway does not execute punishment.
 
 ## Language Guidance
 
@@ -52,4 +60,3 @@ The UI should use neutral administrative language:
 - "moderation action"
 
 Avoid sensational labels or automatic judgment language.
-

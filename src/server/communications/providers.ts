@@ -148,11 +148,13 @@ export const portalNotificationProvider: CommunicationDeliveryProvider = {
 
 function toDiscordPayload(input: CommunicationDeliveryRequest): DiscordMessagePayload {
   return {
+    actions: input.payload.actions,
     actionUrl: input.payload.actionUrl ?? undefined,
     body: input.payload.body,
     fields: input.payload.fields,
+    footer: input.payload.footer,
     title: input.payload.title,
-    visibility: "staff",
+    visibility: input.payload.visibility ?? "staff",
   };
 }
 
@@ -164,6 +166,7 @@ export const discordChannelProvider: CommunicationDeliveryProvider = {
   send: async (input: CommunicationDeliveryRequest) => {
     const deliveries = await sendDiscordNotificationToMappedUnits({
       actorUserId: input.requestedByUserId ?? null,
+      mappingId: input.mappingId ?? null,
       mappingKey: input.mappingKey ?? "staff-alerts",
       notificationId: input.notificationId,
       payload: toDiscordPayload(input),
@@ -179,7 +182,9 @@ export const discordChannelProvider: CommunicationDeliveryProvider = {
       providerId: discordChannelProvider.id,
       providerMessageId: firstDelivery?.providerMessageId ?? null,
       sanitizedPayload: {
+        actionCount: input.payload.actions?.length ?? 0,
         title: input.payload.title,
+        mappingId: input.mappingId,
         mappingKey: input.mappingKey,
       },
       status,
@@ -193,6 +198,7 @@ export const discordChannelProvider: CommunicationDeliveryProvider = {
       providerId: discordChannelProvider.id,
       providerMessageId: firstDelivery?.providerMessageId ?? null,
       sanitizedRequest: {
+        actionCount: input.payload.actions?.length ?? 0,
         mappingKey: input.mappingKey,
         title: input.payload.title,
       },

@@ -4,6 +4,12 @@ import { can } from "@/server/permissions/access";
 import { getMemberDisplayName } from "@/server/personnel";
 import { getPortalBaseUrl } from "@/server/discord/config";
 import { kickDiscordGuildMember } from "@/server/discord/guild-members";
+import {
+  listDiscordApplicationCatalog,
+  listDiscordApplicationStatuses,
+  startDiscordApplication,
+} from "@/server/discord/applications/service";
+import { isDiscordApplicationTypeKey } from "@/server/discord/applications/catalog";
 import { completeInteractionSession } from "@/server/discord/interactions/sessions";
 import { findActiveSessionForUser } from "@/server/discord/interactions/sessions/service";
 import { previewDiscordRoleSync } from "@/server/discord/role-sync";
@@ -31,8 +37,10 @@ type DiscordResolvedAttachment = {
 };
 
 type DiscordCommandExecutionContext = {
+  channelId?: string | null;
   commandName: string;
   discordUserId: string;
+  guildId?: string | null;
   options?: DiscordCommandOption[];
   resolvedAttachments?: Record<string, DiscordResolvedAttachment>;
 };
@@ -226,6 +234,7 @@ async function executeHelpCommand(input: {
     "/myunit - Show your current unit snapshot",
     "/patrol create/list/info/end/aar/screenshot - Manage lightweight patrols",
     "/aar - Submit a patrol AAR through a secure modal",
+    "/apply list/info/start/status - Discover and continue Portal-owned applications",
   ];
 
   if (input.actor && (hasAnyPermissionGrant(input.actor, "attendance.view") || hasAnyPermissionGrant(input.actor, "attendance.record"))) {
@@ -252,6 +261,212 @@ async function executeHelpCommand(input: {
     content: `Spearhead C2 Bot commands\n${commandLines.join("\n")}\nPortal remains the source of truth.`,
     ephemeral: true,
   };
+}
+
+function formatEligibilitySummary(status: string) {
+  switch (status) {
+    case "Eligible":
+      return "Eligible";
+    case "AlreadyApplied":
+      return "Already Applied";
+    case "NeedsReview":
+      return "Needs Staff Review";
+    case "IdentityRequired":
+      return "Identity Required";
+    case "Ineligible":
+      return "Ineligible";
+    case "NotApplicable":
+      return "Not Applicable";
+    default:
+      return "Unavailable";
+  }
+}
+
+async function executeApplyListCommand(input: {
+  actor: PortalUser | null;
+  discordUserId: string;
+  guildId?: string | null;
+}) {
+  const entries = await listDiscordApplicationCatalog({
+    discordUserId: input.discordUserId,
+    guildId: input.guildId,
+    includeUnavailable: true,
+  });
+  const visibleEntries = entries.filter((entry) => entry.enabled || entry.eligibility.status !== "ApplicationUnavailable");
+
+  if (visibleEntries.length === 0) {
+    return {
+      content: "No Discord application entry points are available for this guild yet. Portal applications may still be available directly.",
+      ephemeral: true,
+    } satisfies DiscordCommandResponse;
+  }
+
+  return {
+    content: [
+      "Portal Application Entry Points",
+      ...visibleEntries.slice(0, 8).map((entry) =>
+        [
+          `- ${entry.displayName}`,
+          formatEligibilitySummary(entry.eligibility.status),
+          entry.eligibility.explanation,
+          entry.enabled ? `Start: /apply start type:${entry.applicationTypeKey}` : "Unavailable from Discord",
+        ].join(" - "),
+      ),
+      input.actor
+        ? "Complex forms continue in the Portal; Discord only starts and tracks the workflow."
+        : "Sign in with Discord in the Portal before starting member-only applications.",
+    ].join("\n"),
+    ephemeral: true,
+  } satisfies DiscordCommandResponse;
+}
+
+async function executeApplyInfoCommand(input: {
+  discordUserId: string;
+  guildId?: string | null;
+  subcommand: DiscordCommandOption | null;
+}) {
+  const typeKey = getSubcommandOptionValue(input.subcommand, "type");
+
+  if (!isDiscordApplicationTypeKey(typeKey)) {
+    throw new Error("Select a valid application type.");
+  }
+
+  const entries = await listDiscordApplicationCatalog({
+    discordUserId: input.discordUserId,
+    guildId: input.guildId,
+    includeUnavailable: true,
+  });
+  const entry = entries.find((item) => item.applicationTypeKey === typeKey);
+
+  if (!entry) {
+    throw new Error("That application type is not configured for Discord.");
+  }
+
+  return {
+    content: [
+      `${entry.displayName}`,
+      entry.description,
+      `Availability: ${entry.availability}${entry.maintenanceMode ? " (maintenance)" : ""}`,
+      `Eligibility: ${formatEligibilitySummary(entry.eligibility.status)} - ${entry.eligibility.explanation}`,
+      `Next action: ${entry.eligibility.nextAction}`,
+      entry.applicationTypeKey === "rasp_application"
+        ? "RASP destination: 75th Ranger Regiment. Target Unit and Prior Experience are not requested."
+        : null,
+      entry.applicationTypeKey === "unit_transfer_request"
+        ? "Transfer policy: Command is excluded and Detachment-7 is invite-only."
+        : null,
+      "Privacy: sensitive answers stay in the Portal.",
+    ].filter(Boolean).join("\n"),
+    ephemeral: true,
+  } satisfies DiscordCommandResponse;
+}
+
+async function executeApplyStartCommand(input: {
+  channelId?: string | null;
+  discordUserId: string;
+  guildId?: string | null;
+  subcommand: DiscordCommandOption | null;
+}) {
+  const typeKey = getSubcommandOptionValue(input.subcommand, "type");
+
+  if (!isDiscordApplicationTypeKey(typeKey)) {
+    throw new Error("Select a valid application type.");
+  }
+
+  const result = await startDiscordApplication({
+    applicationTypeKey: typeKey,
+    channelId: input.channelId,
+    discordUserId: input.discordUserId,
+    guildId: input.guildId,
+  });
+
+  return {
+    actions: [
+      {
+        label: "Continue in Portal",
+        style: "link",
+        url: result.continuationUrl,
+      },
+    ],
+    content: [
+      `${result.entry.displayName} is ready to continue in the Portal.`,
+      `Eligibility: ${formatEligibilitySummary(result.entry.eligibility.status)} - ${result.entry.eligibility.explanation}`,
+      `Link expires: ${result.expiresAt.toLocaleString("en-US")}`,
+      "Discord is only the entry point; the Portal owns questions, answers, status, and decisions.",
+    ].join("\n"),
+    ephemeral: true,
+  } satisfies DiscordCommandResponse;
+}
+
+async function executeApplyStatusCommand(actor: PortalUser | null) {
+  if (!actor) {
+    return {
+      content: buildLinkedAccountMessage(),
+      ephemeral: true,
+    } satisfies DiscordCommandResponse;
+  }
+
+  const submissions = await listDiscordApplicationStatuses({ actor });
+
+  if (submissions.length === 0) {
+    return {
+      content: "No recent Recruit, RASP, or Unit Transfer applications were found for your linked Portal account.",
+      ephemeral: true,
+    } satisfies DiscordCommandResponse;
+  }
+
+  return {
+    actions: [
+      {
+        label: "Open Applications",
+        style: "link",
+        url: `${getPortalBaseUrl()}/applications`,
+      },
+    ],
+    content: [
+      "Your Application Status",
+      ...submissions.map((submission) =>
+        `- ${submission.template.title}: ${submission.status.label} / updated ${submission.updatedAt.toLocaleString("en-US")} / Portal: ${getPortalBaseUrl()}/applications/${submission.id}`,
+      ),
+      "Internal staff notes and restricted reviewer discussion are not shown in Discord.",
+    ].join("\n"),
+    ephemeral: true,
+  } satisfies DiscordCommandResponse;
+}
+
+async function executeApplyCommand(input: {
+  actor: PortalUser | null;
+  channelId?: string | null;
+  discordUserId: string;
+  guildId?: string | null;
+  options?: DiscordCommandOption[];
+}) {
+  const subcommand = getSubcommand(input.options);
+
+  switch (subcommand?.name) {
+    case "info":
+      return executeApplyInfoCommand({
+        discordUserId: input.discordUserId,
+        guildId: input.guildId,
+        subcommand,
+      });
+    case "start":
+      return executeApplyStartCommand({
+        channelId: input.channelId,
+        discordUserId: input.discordUserId,
+        guildId: input.guildId,
+        subcommand,
+      });
+    case "status":
+      return executeApplyStatusCommand(input.actor);
+    case "list":
+    default:
+      return executeApplyListCommand({
+        actor: input.actor,
+        discordUserId: input.discordUserId,
+        guildId: input.guildId,
+      });
+  }
 }
 
 async function executeProfileCommand(actor: PortalUser, options: DiscordCommandOption[] | undefined) {
@@ -1324,6 +1539,16 @@ export async function executeDiscordSlashCommand(
   if (input.commandName === "help") {
     return executeHelpCommand({
       actor,
+    });
+  }
+
+  if (input.commandName === "apply") {
+    return executeApplyCommand({
+      actor,
+      channelId: input.channelId,
+      discordUserId: input.discordUserId,
+      guildId: input.guildId,
+      options: input.options,
     });
   }
 

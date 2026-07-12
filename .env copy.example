@@ -1,0 +1,46 @@
+# Prisma uses the MySQL connector for MariaDB deployments.
+DATABASE_URL="mysql://root:password@localhost:3306/spearhead_command_portal"
+AUTH_SECRET="replace-with-a-32-character-random-secret"
+AUTH_URL="http://localhost:3000"
+AUTH_TRUST_HOST="false"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+DISCORD_CLIENT_ID="your-discord-oauth-client-id"
+DISCORD_CLIENT_SECRET="your-discord-oauth-client-secret"
+DISCORD_BOT_TOKEN="your-discord-bot-token"
+DISCORD_PUBLIC_KEY="your-discord-public-key"
+DISCORD_APPLICATION_ID="your-discord-application-id"
+# Use guild for fast local iteration. Use global only for production rollout.
+DISCORD_REGISTER_MODE="guild"
+# Public HTTPS Discord Interactions Endpoint. For local testing, use your tunnel URL:
+# https://your-tunnel.example.com/api/discord/interactions
+DISCORD_INTERACTIONS_URL=""
+# Multi-step Discord command/modal session timeout in minutes.
+DISCORD_INTERACTION_SESSION_TTL_MINUTES="15"
+# Development-only guild-scoped command registration target.
+DISCORD_DEV_GUILD_ID=""
+# Legacy fallback for older local env files. Prefer DISCORD_DEV_GUILD_ID.
+DISCORD_GUILD_ID=""
+# Initial profile status for Discord member auto-imports. Use "recruit" or
+# "applicant" unless community policy changes.
+DISCORD_MEMBER_SYNC_DEFAULT_STATUS_KEY="recruit"
+# Bot accounts are skipped by member sync by default and only counted in sync logs.
+SYNC_DISCORD_BOTS="false"
+# Dedicated Discord Gateway worker. Keep disabled unless real-time Discord events
+# are needed. Start locally with: npm run dev:gateway
+DISCORD_GATEWAY_ENABLED="false"
+# Minimum intents for member sync and optional voice awareness.
+# Add GuildMessages only for approved attachment-continuation workflows.
+# Do not add MessageContent unless a documented workflow explicitly requires it.
+DISCORD_GATEWAY_INTENTS="Guilds,GuildMembers,GuildVoiceStates"
+DISCORD_GATEWAY_SHARD_COUNT="1"
+DISCORD_PRIMARY_GUILD_ID=""
+DISCORD_GATEWAY_HEARTBEAT_TIMEOUT="45000"
+DISCORD_GATEWAY_RECONNECT_MAX_DELAY="30000"
+DISCORD_GATEWAY_EVENT_LOG_LEVEL="summary"
+# Bootstrap access is hidden, disabled by default, and should remain off in
+# production unless an operator is actively restoring administrator access.
+ENABLE_DEV_LOGIN="false"
+DEV_LOGIN_SECRET=""
+DEV_LOGIN_EMAIL="owner@example.com"
+
+NEXT_PUBLIC_APP_NAME="Spearhead Command Portal"

@@ -16,12 +16,20 @@ const buttonVariants = cva(
         outline:
           "border border-border bg-transparent text-foreground hover:bg-card/70",
         ghost: "text-muted-foreground hover:bg-card/70 hover:text-foreground",
+        destructive:
+          "bg-danger text-destructive-foreground hover:bg-danger/90 shadow-[0_0_0_1px_rgba(248,113,113,0.22)]",
+        warning:
+          "bg-warning text-accent-foreground hover:bg-warning/90 shadow-[0_0_0_1px_rgba(245,158,11,0.22)]",
+        success:
+          "bg-success text-background hover:bg-success/90 shadow-[0_0_0_1px_rgba(52,211,153,0.2)]",
+        link: "h-auto rounded-none px-0 py-0 text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-11 px-5 py-2.5",
         icon: "h-10 w-10",
+        link: "h-auto p-0",
       },
     },
     defaultVariants: {

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "AGENTS.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "AGENTS"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "README.md",
+                "file": "AGENTS.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for README"
+              "title": "Backlinks for AGENTS"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "README.md",
+                "file": "AGENTS.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from README"
+              "title": "Outgoing links from AGENTS"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "README.md",
+                "file": "AGENTS.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of README"
+              "title": "Outline of AGENTS"
             }
           }
         ]
@@ -185,41 +185,48 @@
   },
   "active": "3350dcd0dd48e057",
   "lastOpenFiles": [
-    "docs/09-workflows/44-Discord-Member-Event-Workflow.md",
-    "docs/08-specifications/DISCORD_REALTIME_EVENT_BRIDGE.md",
-    "docs/06-integrations/discord/DISCORD_ROLE_AND_NICKNAME_SYNC.md",
-    "docs/06-integrations/discord/DISCORD_VOICE_AWARENESS.md",
-    "docs/06-integrations/discord/DISCORD_MEMBER_EVENT_WORKFLOW.md",
-    "docs/04-development/DISCORD_GATEWAY_RUNBOOK.md",
-    "docs/04-development/DISCORD_GATEWAY_DEPLOYMENT.md",
-    "docs/04-development/DISCORD_GATEWAY_LOCAL_TESTING.md",
-    "docs/06-integrations/discord/DISCORD_INTENTS_AND_SECURITY.md",
-    "docs/06-integrations/discord/DISCORD_GATEWAY_EVENT_CATALOG.md",
-    "docs/01-architecture/DISCORD_GATEWAY_ARCHITECTURE.md",
-    "src/server/discord/gateway/recommendations.ts",
-    "src/server/discord/gateway/registry.ts",
-    "AGENTS.md",
-    "src/server/discord/gateway/health.ts",
-    "src/server/discord/gateway/rules.ts",
-    "scripts/discord-gateway.ts",
-    "src/server/discord/gateway/service.ts",
-    "src/server/discord/gateway/client.ts",
-    "src/server/discord/gateway/attachment-continuation.ts",
-    "src/server/discord/gateway/voice-state.ts",
-    "src/server/discord/gateway/types.ts",
-    "docs/06-community/PERSONNEL_READINESS_CENTER.md",
-    "docs/09-workflows/43-Leave-of-Absence-Workflow.md",
-    "docs/09-workflows/42-Unit-Attendance-Workflow.md",
-    "docs/09-workflows/41-Qualification-Requirements.md",
-    "docs/09-workflows/40-Assignment-and-Transfer-Workflow.md",
-    "docs/09-workflows/39-Member-Profile-Workflow.md",
-    "docs/08-specifications/UNIT_READINESS_RULES.md",
-    "docs/08-specifications/MEMBER_READINESS_RULES.md",
-    "docs/03-modules/UNIT_QUALIFICATION_READINESS.md",
-    "docs/03-modules/PERSONNEL_ACTIONS.md",
-    "docs/03-modules/UNIT_MANAGEMENT.md",
-    "docs/03-modules/PERSONNEL_READINESS_CENTER.md",
-    "docs/06-integrations/discord/DISCORD_MODERATION.md",
-    "docs/09-workflows/38-Evidence-Management.md"
+    "docs/06-integrations/discord/DISCORD_DISASTER_RECOVERY.md",
+    "docs/06-integrations/discord/DISCORD_PLATFORM_ROLLOUT.md",
+    "docs/06-integrations/discord/DISCORD_FEATURE_CERTIFICATION.md",
+    "docs/06-integrations/discord/DISCORD_GUILD_CERTIFICATION.md",
+    "docs/06-integrations/discord/DISCORD_CORRELATION_AND_EXECUTION_HISTORY.md",
+    "docs/06-integrations/discord/DISCORD_PLATFORM_TROUBLESHOOTING.md",
+    "docs/06-integrations/discord/DISCORD_PLATFORM_OPERATIONS_RUNBOOK.md",
+    "docs/06-integrations/discord/DISCORD_DIAGNOSTICS.md",
+    "docs/06-integrations/discord/DISCORD_PREFLIGHT.md",
+    "docs/08-specifications/PHASE_4_DISCORD_PHASE_5_HANDOFF.md",
+    "docs/08-specifications/PHASE_4_DISCORD_MAPPING_INTEGRITY_REPORT.md",
+    "docs/08-specifications/PHASE_4_DISCORD_FEATURE_CERTIFICATION.md",
+    "docs/08-specifications/PHASE_4_DISCORD_GUILD_CERTIFICATION.md",
+    "docs/08-specifications/PHASE_4_DISCORD_DEGRADED_MODE_MATRIX.md",
+    "docs/08-specifications/PHASE_4_DISCORD_PERMISSION_MATRIX.md",
+    "docs/08-specifications/PHASE_4_DISCORD_RELEASE_READINESS.md",
+    "docs/08-specifications/PHASE_4_DISCORD_UAT_PLAN.md",
+    "docs/08-specifications/PHASE_4_DISCORD_DEFECT_BACKLOG.md",
+    "docs/08-specifications/PHASE_4_DISCORD_PLATFORM_VALIDATION.md",
+    "src/server/discord/readiness.ts",
+    "tests/services/discord-application-integration.test.example.ts",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_PHASE_5_HANDOFF.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_DIAGNOSTICS.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_PRIVACY.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_SECURITY.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_REVIEW_ACTIONS.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_REVIEW_MESSAGES.md",
+    "docs/06-integrations/discord/DISCORD_APPLICATION_SESSIONS.md",
+    "src/app/api/discord/applications/continue/route.ts",
+    "src/app/api/discord/applications/continue",
+    "src/app/api/discord/applications",
+    "src/server/discord/applications/index.ts",
+    "src/server/discord/applications/types.ts",
+    "src/server/discord/applications/service.ts",
+    "src/server/discord/applications/catalog.ts",
+    "src/server/discord/applications",
+    "node_modules/prisma/build/public/assets/settings.5ad25af2.svg",
+    "node_modules/prisma/build/public/assets/search.2ed766ce.svg",
+    "node_modules/prisma/build/public/assets/refresh.d5448ccc.svg",
+    "node_modules/prisma/build/public/assets/plus.8fbf7ad3.svg",
+    "node_modules/prisma/build/public/assets/play.8811691e.svg",
+    "node_modules/prisma/build/public/assets/panel-left.a81e4b97.svg",
+    "node_modules/prisma/build/public/assets/object.0ba944a6.svg"
   ]
 }

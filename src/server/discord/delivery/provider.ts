@@ -363,11 +363,24 @@ export async function sendDiscordNotificationPlaceholder(
 
 export async function sendDiscordNotificationToMappedUnits(input: {
   actorUserId?: string | null;
+  mappingId?: string | null;
   mappingKey: string;
   notificationId: string;
   payload: DiscordMessagePayload;
   unitIds?: Array<string | null | undefined>;
 }) {
+  if (input.mappingId) {
+    return [
+      await sendDiscordNotification({
+        actorUserId: input.actorUserId ?? null,
+        mappingId: input.mappingId,
+        mappingKey: input.mappingKey,
+        notificationId: input.notificationId,
+        payload: input.payload,
+      }),
+    ];
+  }
+
   const unitIds = Array.from(
     new Set((input.unitIds ?? []).filter((unitId): unitId is string => Boolean(unitId))),
   );

@@ -4,6 +4,7 @@ import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { UnitBadge } from "@/components/status/unit-badge";
@@ -12,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RecommendationQueue } from "@/features/operations/components/command-decision-support";
 import { HealthSummaryPanel } from "@/features/operations/components/health";
 import { GoNoGoBoard } from "@/features/operations/components/readiness";
+import { OperationsHandoffRail } from "@/features/operations/components/workflow";
 import { formatDateTime } from "@/lib/formatters";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { getOperationsCenterDashboardData } from "@/server/dashboard";
@@ -358,9 +360,9 @@ export async function OperationsCenterPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={["Operations", "Commander Dashboard"]}
-        description="Command decision support for the current deployment, health, readiness, critical issues, and recommended actions."
-        title="Commander Dashboard"
+        breadcrumbs={["Operations", "Operations Center"]}
+        description="Command decision support for the current deployment, operational week, readiness, critical issues, and recommended handoffs."
+        title="Operations Center"
       />
       <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/12 via-card/88 to-background">
         <CardContent className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -468,14 +470,41 @@ export async function OperationsCenterPage() {
           showChecklist={false}
         />
       ) : null}
-      <Card className="border-border/80 bg-card/82">
-        <CardHeader>
-          <CardTitle>Dashboard modules</CardTitle>
-          <CardDescription>
-            Registered command widgets with permission-aware visibility, refresh hints, size, and collapse defaults.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <OperationsHandoffRail
+        currentStep={currentPackage ? `${currentPackage.completion.percent}% package ready` : "No active package"}
+        handoffs={[
+          {
+            description: "Members see the current operation package, RSVP, resources, and mod preset without needing staff context.",
+            from: "S3",
+            status: "info",
+            to: "Members",
+          },
+          {
+            description: "Zeus and deployment creators receive package readiness, CONOP, tasking, and progression context before publication.",
+            from: "S3",
+            status: "warning",
+            to: "Zeus",
+          },
+          {
+            description: "Patrol leaders submit AARs and screenshots so S3 can fold progression notes into the next week.",
+            from: "Patrols",
+            status: "success",
+            to: "S3",
+          },
+          {
+            description: "Command reviews health, intent alignment, and progression recommendations before the next operational decision.",
+            from: "S3",
+            status: "info",
+            to: "Command",
+          },
+        ]}
+      />
+      <CollapsibleSection
+        badgeLabel={`${commandCenter.widgets.length} modules`}
+        description="Widget registry, refresh cadence, and collapse defaults are available for staff diagnostics without competing with live operations."
+        title="Secondary diagnostics"
+      >
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {commandCenter.widgets.slice(0, 8).map((widget) => (
             <div key={widget.id} className="rounded-xl border border-border/70 bg-background/45 p-3">
               <div className="flex items-start justify-between gap-3">
@@ -491,8 +520,8 @@ export async function OperationsCenterPage() {
               </p>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
         <div className="space-y-6">
           <Card className="border-border/80 bg-card/88">
@@ -575,14 +604,17 @@ export async function OperationsCenterPage() {
               />
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/88">
-            <CardHeader>
-              <CardTitle>Personnel readiness</CardTitle>
-              <CardDescription>
-                Personnel, attendance, qualification, and leadership signals pulled from existing dashboard services.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
+          <CollapsibleSection
+            badgeLabel={`${commandCenter.dashboard.attendance.missingRsvps + commandCenter.dashboard.training.missingRequired} signals`}
+            badgeTone={
+              commandCenter.dashboard.attendance.missingRsvps + commandCenter.dashboard.training.missingRequired > 0
+                ? "warning"
+                : "success"
+            }
+            description="Personnel, attendance, qualification, and leadership signals are still available, but Operations Center keeps package execution first."
+            title="Personnel readiness signals"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
               <DashboardWidget
                 description="Community-level active member count in the current visibility scope"
                 title="Active Members"
@@ -609,11 +641,11 @@ export async function OperationsCenterPage() {
               />
               <div className="md:col-span-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/personnel/members">Open Personnel Dashboard</Link>
+                  <Link href="/personnel">Open Personnel Dashboard</Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
           <Card className="border-border/80 bg-card/88">
             <CardHeader>
               <CardTitle>Upcoming</CardTitle>
@@ -650,7 +682,7 @@ export async function OperationsCenterPage() {
                 emptyTitle="No active deployments"
                 items={dashboardData.activeCampaigns.map((campaign) => ({
                   id: campaign.id,
-                  href: campaign.packageHref ?? `/operations/campaigns/${campaign.id}`,
+                  href: campaign.packageHref ?? `/operations/deployments/${campaign.id}`,
                   meta: `${campaign.phase ?? "Phase not set"} / Week ${campaign.currentWeekNumber ?? "TBD"} / ${campaign.releaseVersion ?? "No release"} / ${campaign.nextEventTitle ?? "No next operation linked"}`,
                   statusLabel: campaign.releaseStatus ?? campaign.planningStatus,
                   title: campaign.title,
@@ -701,7 +733,7 @@ export async function OperationsCenterPage() {
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/dashboard">Open Notification Center</Link>
+                  <Link href="/dashboard">Open Dashboard</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
                   <Link href="/administration/notifications">Open Deliveries</Link>
@@ -755,14 +787,11 @@ export async function OperationsCenterPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Deployment timeline</CardTitle>
-              <CardDescription>
-                Planning, publishing, Weekend Operations, Patrol AARs, intent assessments, and progression signals.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <CollapsibleSection
+            badgeLabel={`${commandCenter.timeline.length} items`}
+            description="Planning, publishing, Weekend Operations, Patrol AARs, intent assessments, and progression signals remain available as history."
+            title="Deployment timeline"
+          >
               <OperationsCenterList
                 emptyDescription="Timeline items appear once deployments, operations, releases, AARs, or assessments exist."
                 emptyTitle="No timeline yet"
@@ -775,8 +804,7 @@ export async function OperationsCenterPage() {
                 }))}
                 tone="info"
               />
-            </CardContent>
-          </Card>
+          </CollapsibleSection>
         </div>
       </div>
     </div>
@@ -1025,7 +1053,7 @@ export async function S3DashboardPage({
           <div className="flex flex-wrap gap-3">
             {canCreateDeployment ? (
               <Button asChild>
-                <Link href="/operations/campaigns?panel=create">
+                <Link href="/operations/deployments?panel=create">
                   Create Deployment
                 </Link>
               </Button>
@@ -1039,7 +1067,7 @@ export async function S3DashboardPage({
               <Link href="/operations/patrols?panel=start">Start Patrol</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/operations/campaigns">Open Planning Packages</Link>
+              <Link href="/operations/deployments">Open Deployments</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/operations/aar-queue">Review Patrol AARs</Link>
@@ -1064,7 +1092,7 @@ export async function S3DashboardPage({
           value={String(missionData.summary.reviewMissions)}
         />
         <KpiCard
-          hint="RSVP response coverage across tracked missions"
+          hint="RSVP response coverage across tracked operations"
           label="Attendance Readiness"
           tone="success"
           trend={`${dashboardData.attendanceReadiness.missingRsvpCount} missing RSVP`}
@@ -1277,7 +1305,7 @@ export async function S3DashboardPage({
                   <div key={assignment.missionId} className="rounded-xl border border-border/70 bg-background/45 p-3">
                     <p className="font-semibold text-foreground">{assignment.title}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {assignment.missionMakerName ?? "Mission maker TBD"} / {assignment.zeusName ?? "Zeus TBD"}
+                      {assignment.missionMakerName ?? "Planner TBD"} / {assignment.zeusName ?? "Zeus TBD"}
                     </p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">
                       {formatDateTime(assignment.startsAt)} {assignment.hostUnitShortName ? ` / ${assignment.hostUnitShortName}` : ""}
@@ -1446,7 +1474,7 @@ export async function ConopsLibraryPage({
                 </div>
                 <div className="space-y-3 text-sm text-muted-foreground">
                   <p><span className="font-semibold text-foreground">Situation:</span> {selectedConop.situation ?? "Not documented yet."}</p>
-                  <p><span className="font-semibold text-foreground">Mission:</span> {selectedConop.mission ?? "Not documented yet."}</p>
+                  <p><span className="font-semibold text-foreground">Operation brief:</span> {selectedConop.mission ?? "Not documented yet."}</p>
                   <p><span className="font-semibold text-foreground">Execution:</span> {selectedConop.execution ?? "Not documented yet."}</p>
                   <p><span className="font-semibold text-foreground">Sustainment:</span> {selectedConop.sustainment ?? "Not documented yet."}</p>
                   <p><span className="font-semibold text-foreground">Command & signal:</span> {selectedConop.commandSignal ?? "Not documented yet."}</p>
@@ -1459,7 +1487,7 @@ export async function ConopsLibraryPage({
                   ) : null}
                   {selectedConop.campaign ? (
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/operations/campaigns/${selectedConop.campaign.id}`}>Open deployment</Link>
+                      <Link href={`/operations/deployments/${selectedConop.campaign.id}`}>Open deployment</Link>
                     </Button>
                   ) : null}
                 </div>
@@ -1741,7 +1769,7 @@ export async function AarsLibraryPage({
                   ) : null}
                   {selectedAar.campaign ? (
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/operations/campaigns/${selectedAar.campaign.id}`}>Open deployment</Link>
+                      <Link href={`/operations/deployments/${selectedAar.campaign.id}`}>Open deployment</Link>
                     </Button>
                   ) : null}
                 </div>

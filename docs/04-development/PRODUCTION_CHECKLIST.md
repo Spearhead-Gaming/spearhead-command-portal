@@ -6,9 +6,12 @@ Use this checklist before promoting the Spearhead Command Portal to a first prod
 
 - `DATABASE_URL` points to the production MariaDB database.
 - `AUTH_SECRET` is a strong production-only secret.
-- `AUTH_URL` matches the public HTTPS origin.
+- `AUTH_URL=https://portal.shgmilsim.com`.
+- `NEXT_PUBLIC_APP_URL=https://portal.shgmilsim.com`.
 - `AUTH_TRUST_HOST` is set intentionally for the hosting environment.
+- `DISCORD_INTERACTIONS_URL=https://portal.shgmilsim.com/api/discord/interactions`.
 - Discord OAuth values are configured for the production Discord application.
+- Discord OAuth redirect URL is `https://portal.shgmilsim.com/api/auth/callback/discord`.
 - Discord bot values are configured only after channel and permission review.
 - `ENABLE_DEV_LOGIN=false` unless an operator is actively restoring access.
 - `DEV_LOGIN_SECRET` is not reused from local development and is blank when dev login is disabled.

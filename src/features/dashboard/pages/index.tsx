@@ -4,19 +4,23 @@ import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { PageHeader } from "@/components/layout/page-header";
-import { AttentionPanel, CollapsibleSection } from "@/components/layout/progressive-disclosure";
+import { CollapsibleSection, NeedsAttention } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UnitBadge } from "@/components/status/unit-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters";
+import { getCurrentUser } from "@/server/auth/current-user";
 import { getCommandDashboardData } from "@/server/dashboard";
 import type {
   DashboardActivityItem,
   DashboardListItem,
   DashboardTone,
 } from "@/server/dashboard";
+import { buildMyWorkQueue, getSelectedWorkspacePreference, resolveWorkspaceProfile } from "@/server/personas";
+import type { MyWorkItem } from "@/server/personas/my-work";
+import type { WorkspaceId } from "@/server/personas/types";
 
 function toneForPercent(value: number | null): DashboardTone {
   if (value === null) {
@@ -120,8 +124,306 @@ function SectionCard(props: {
   );
 }
 
+function PersonaWorkspaceCard(props: {
+  quickActions: Array<{
+    href: string;
+    id: string;
+    label: string;
+    reason: string;
+  }>;
+  workspaceDescription: string;
+  workspaceLabel: string;
+  primaryActionLabel: string;
+  personaLabel: string;
+  reason: string;
+}) {
+  return (
+    <Card className="overflow-hidden border-primary/25 bg-linear-to-br from-primary/12 via-card/88 to-card/70">
+      <CardHeader>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <CardDescription>Current workspace</CardDescription>
+            <CardTitle className="mt-2 text-2xl">{props.workspaceLabel}</CardTitle>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {props.workspaceDescription}
+            </p>
+          </div>
+          <StatusBadge label={props.personaLabel} tone="info" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-xl border border-border/70 bg-background/40 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Recommended because
+          </p>
+          <p className="mt-1 text-sm text-foreground">{props.reason}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {props.quickActions.length > 0 ? (
+            props.quickActions.slice(0, 4).map((action, index) => (
+              <Button asChild key={action.id} size={index === 0 ? "default" : "sm"} variant={index === 0 ? "default" : "outline"}>
+                <Link href={action.href}>{action.label}</Link>
+              </Button>
+            ))
+          ) : (
+            <Button asChild>
+              <Link href="/dashboard">{props.primaryActionLabel}</Link>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MyWorkCard({ items }: { items: MyWorkItem[] }) {
+  return (
+    <SectionCard
+      description="Persona-aware tasks pulled from existing portal signals. Critical cross-domain alerts stay visible when relevant."
+      title="My Work"
+    >
+      {items.length === 0 ? (
+        <EmptyState
+          description="No actionable items are assigned or relevant to this workspace right now."
+          title="No current work"
+        />
+      ) : (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div
+              className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/45 p-3 sm:flex-row sm:items-center sm:justify-between"
+              key={item.id}
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-foreground">{item.title}</p>
+                  <StatusBadge label={item.category} tone={item.tone} />
+                </div>
+                {item.relatedEntity ? (
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    {item.relatedEntity}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-sm text-muted-foreground">{item.reason}</p>
+              </div>
+              <Button asChild size="sm" variant={item.priority === "critical" ? "default" : "outline"}>
+                <Link href={item.actionHref}>{item.actionLabel}</Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function PersonaKpiRow({
+  dashboard,
+  workspaceId,
+}: {
+  dashboard: Awaited<ReturnType<typeof getCommandDashboardData>>;
+  workspaceId?: WorkspaceId;
+}) {
+  if (workspaceId === "my_portal" || workspaceId === "zeus") {
+    return (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ReadinessCard
+          hint="Personal readiness based on profile, assignment, attendance, and required qualifications"
+          label="My Readiness"
+          statusLabel="Member signal"
+          value={percentLabel(dashboard.readiness.memberPercent)}
+        />
+        <DashboardWidget
+          description={dashboard.member.nextEvent?.meta ?? "No visible upcoming event for your scope"}
+          footer={dashboard.member.nextEvent?.statusLabel ?? "No event"}
+          title="Next Operation"
+          tone={dashboard.member.nextEvent ? "info" : "muted"}
+          value={dashboard.member.nextEvent?.label ?? "None"}
+        />
+        <KpiCard
+          hint="Required qualification gaps visible for your profile"
+          label="Missing Quals"
+          tone={dashboard.member.missingRequiredQualifications > 0 ? "warning" : "success"}
+          value={String(dashboard.member.missingRequiredQualifications)}
+        />
+        <DashboardWidget
+          description="Current linked deployment context"
+          footer={dashboard.member.unitLabel ?? "No unit linked"}
+          title="Current Deployment"
+          tone={dashboard.member.campaignLabel === "No active campaign" ? "muted" : "info"}
+          value={dashboard.member.campaignLabel}
+        />
+      </section>
+    );
+  }
+
+  if (workspaceId === "operations" || workspaceId === "deployment_creator" || workspaceId === "patrol_leader") {
+    return (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          hint="AARs submitted for S3 review"
+          label="AAR Queue"
+          tone={dashboard.s3.aarQueue > 0 ? "warning" : "success"}
+          value={String(dashboard.s3.aarQueue)}
+        />
+        <KpiCard
+          hint="Operations waiting for review"
+          label="Operation Review"
+          tone={dashboard.s3.missionReviewQueue > 0 ? "warning" : "success"}
+          value={String(dashboard.s3.missionReviewQueue)}
+        />
+        <KpiCard
+          hint="Approved operations not yet published"
+          label="Unpublished"
+          tone={dashboard.s3.approvedUnpublishedMissions > 0 ? "info" : "success"}
+          value={String(dashboard.s3.approvedUnpublishedMissions)}
+        />
+        <ReadinessCard
+          hint="Attendance readiness from visible final attendance records"
+          label="Attendance"
+          statusLabel="Readiness"
+          value={percentLabel(dashboard.readiness.attendancePercent)}
+        />
+      </section>
+    );
+  }
+
+  if (workspaceId === "personnel" || workspaceId === "unit_leadership") {
+    return (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <DashboardWidget
+          description="Members currently tracked in the visible personnel scope"
+          footer={`${dashboard.community.activeMembers} active / ${dashboard.community.loaMembers} LOA`}
+          title="Visible Strength"
+          tone="info"
+          value={String(dashboard.community.totalMembers)}
+        />
+        <KpiCard
+          hint="Recruit, transfer, and LOA forms awaiting review"
+          label="Pending Requests"
+          tone={dashboard.personnel.pendingApplications > 0 ? "warning" : "success"}
+          value={String(dashboard.personnel.pendingApplications)}
+        />
+        <KpiCard
+          hint="Portal users not linked to member profiles"
+          label="Unlinked"
+          tone={dashboard.personnel.unlinkedUsers > 0 ? "warning" : "success"}
+          value={String(dashboard.personnel.unlinkedUsers)}
+        />
+        <ReadinessCard
+          hint="Required qualification coverage across visible members"
+          label="Qualification Readiness"
+          statusLabel="Training signal"
+          value={percentLabel(dashboard.readiness.qualificationPercent)}
+        />
+      </section>
+    );
+  }
+
+  if (workspaceId === "training") {
+    return (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard hint="Active qualification catalog entries" label="Catalog" tone="info" value={String(dashboard.training.totalQualifications)} />
+        <KpiCard
+          hint="Records awaiting instructor signoff"
+          label="Signoffs"
+          tone={dashboard.training.pendingSignoffs > 0 ? "warning" : "success"}
+          value={String(dashboard.training.pendingSignoffs)}
+        />
+        <KpiCard
+          hint="Required qualification gaps"
+          label="Missing"
+          tone={dashboard.training.missingRequired > 0 ? "warning" : "success"}
+          value={String(dashboard.training.missingRequired)}
+        />
+        <KpiCard
+          hint="Qualifications expiring within 30 days"
+          label="Expiring"
+          tone={dashboard.training.expiringSoon > 0 ? "warning" : "muted"}
+          value={String(dashboard.training.expiringSoon)}
+        />
+      </section>
+    );
+  }
+
+  if (workspaceId === "administration" || workspaceId === "developer") {
+    return (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          hint="Failed, retrying, and pending delivery records"
+          label="Delivery Issues"
+          tone={dashboard.community.failedNotifications > 0 ? "danger" : "success"}
+          value={String(dashboard.community.failedNotifications)}
+        />
+        <KpiCard
+          hint="Active Discord server mappings"
+          label="Discord Servers"
+          tone="info"
+          value={String(dashboard.admin.discordConnectedServers)}
+        />
+        <DashboardWidget
+          description="Current bot/environment health"
+          footer={dashboard.visibility.discordHealth ? "Visible" : "Hidden"}
+          title="Discord Health"
+          tone={dashboard.visibility.discordHealth ? "info" : "muted"}
+          value={dashboard.admin.discordStatusLabel}
+        />
+        <KpiCard
+          hint="Users without linked member profiles"
+          label="Identity Issues"
+          tone={dashboard.personnel.unlinkedUsers > 0 ? "warning" : "success"}
+          value={String(dashboard.personnel.unlinkedUsers)}
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <DashboardWidget
+        description="Members currently tracked in the visible command scope"
+        footer={`${dashboard.community.activeMembers} active / ${dashboard.community.loaMembers} LOA`}
+        title="Community Strength"
+        tone="info"
+        value={String(dashboard.community.totalMembers)}
+      />
+      <ReadinessCard
+        hint="Attendance readiness from final attendance records"
+        label="Attendance"
+        statusLabel="Readiness"
+        value={percentLabel(dashboard.readiness.attendancePercent)}
+      />
+      <ReadinessCard
+        hint="Required qualification coverage across visible members"
+        label="Qualification Readiness"
+        statusLabel="Training signal"
+        value={percentLabel(dashboard.readiness.qualificationPercent)}
+      />
+      <KpiCard
+        hint="Forms, failed notifications, and active deployments needing awareness"
+        label="Command Queue"
+        tone={
+          dashboard.community.pendingForms + dashboard.community.failedNotifications > 0
+            ? "warning"
+            : "success"
+        }
+        trend={`${dashboard.community.activeCampaigns} active deployments`}
+        value={String(dashboard.community.pendingForms + dashboard.community.failedNotifications)}
+      />
+    </section>
+  );
+}
+
 export async function DashboardPage() {
-  const dashboard = await getCommandDashboardData();
+  const [dashboard, currentUser, selectedWorkspace] = await Promise.all([
+    getCommandDashboardData(),
+    getCurrentUser(),
+    getSelectedWorkspacePreference(),
+  ]);
+  const workspaceProfile = currentUser
+    ? resolveWorkspaceProfile(currentUser, selectedWorkspace)
+    : null;
+  const myWorkItems = workspaceProfile ? buildMyWorkQueue(dashboard, workspaceProfile) : [];
   const memberNextEvent = dashboard.member.nextEvent;
   const recentActivityItems = dashboard.visibility.audit
     ? dashboard.admin.auditActivity
@@ -172,44 +474,31 @@ export async function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={["Dashboard"]}
-        description="Role-aware command overview built from personnel, readiness, operations, workflow, Discord, and system data."
-        title="Command Dashboard"
+        description={
+          workspaceProfile
+            ? workspaceProfile.dashboardProfile.description
+            : "Role-aware command overview built from personnel, readiness, operations, workflow, Discord, and system data."
+        }
+        title={workspaceProfile ? `${workspaceProfile.dashboardProfile.label} Dashboard` : "Command Dashboard"}
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <DashboardWidget
-          description="Members currently tracked in the visible command scope"
-          footer={`${dashboard.community.activeMembers} active / ${dashboard.community.loaMembers} LOA`}
-          title="Community Strength"
-          tone="info"
-          value={String(dashboard.community.totalMembers)}
-        />
-        <ReadinessCard
-          hint="Attendance readiness from final attendance records"
-          label="Attendance"
-          statusLabel="Readiness"
-          value={percentLabel(dashboard.readiness.attendancePercent)}
-        />
-        <ReadinessCard
-          hint="Required qualification coverage across visible members"
-          label="Qualification Readiness"
-          statusLabel="Training signal"
-          value={percentLabel(dashboard.readiness.qualificationPercent)}
-        />
-        <KpiCard
-          hint="Forms, failed notifications, and active deployments needing awareness"
-          label="Command Queue"
-          tone={
-            dashboard.community.pendingForms + dashboard.community.failedNotifications > 0
-              ? "warning"
-              : "success"
-          }
-          trend={`${dashboard.community.activeCampaigns} active deployments`}
-          value={String(dashboard.community.pendingForms + dashboard.community.failedNotifications)}
-        />
-      </section>
+      {workspaceProfile ? (
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
+          <PersonaWorkspaceCard
+            personaLabel={workspaceProfile.primaryPersona.label}
+            primaryActionLabel={workspaceProfile.dashboardProfile.primaryActionLabel}
+            quickActions={workspaceProfile.quickActions}
+            reason={workspaceProfile.primaryPersona.reason}
+            workspaceDescription={workspaceProfile.selectedWorkspace.description}
+            workspaceLabel={workspaceProfile.selectedWorkspace.label}
+          />
+          <MyWorkCard items={myWorkItems} />
+        </section>
+      ) : null}
 
-      <AttentionPanel items={attentionItems} />
+      <PersonaKpiRow dashboard={dashboard} workspaceId={workspaceProfile?.selectedWorkspace.id} />
+
+      <NeedsAttention items={attentionItems} />
 
       {dashboard.member.currentModPreset ? (
         <SectionCard

@@ -358,6 +358,28 @@ const operationsCenterWidgetRegistry: DashboardWidgetDefinition[] = [
     title: "Gateway Error Queue",
   },
   {
+    collapsedByDefault: false,
+    dataProvider: "discord.discovery.reconciliation",
+    icon: "git-compare-arrows",
+    id: "discord-resource-reconciliation",
+    permissions: ["discord.reconciliation.view", "discord.discovery.view"],
+    priority: 98,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Discord Reconciliation",
+  },
+  {
+    collapsedByDefault: false,
+    dataProvider: "discord.automation",
+    icon: "workflow",
+    id: "discord-automation",
+    permissions: ["discord.automation.view", "discord.automation.history.view"],
+    priority: 98,
+    refreshIntervalSeconds: 180,
+    size: "md",
+    title: "Discord Automation",
+  },
+  {
     collapsedByDefault: true,
     dataProvider: "community-management.open-cases",
     icon: "briefcase-business",
@@ -568,7 +590,7 @@ function buildQuickActions(input: {
           requiredPermissions: ["operations.package.view"],
         }
       : {
-          href: "/operations/campaigns",
+          href: "/operations/deployments",
           id: "open-deployments",
           label: "Open Deployments",
           primary: true,
@@ -587,7 +609,7 @@ function buildQuickActions(input: {
       requiredPermissions: ["patrols.aar.review", "s3.aars.review"],
     },
     {
-      href: input.packageHref ? `${input.packageHref}#planning` : "/operations/campaigns",
+      href: input.packageHref ? `${input.packageHref}#planning` : "/operations/deployments",
       id: "review-planning",
       label: "Review Planning",
       requiredPermissions: ["operations.planning.view"],
@@ -613,7 +635,7 @@ function buildQuickActions(input: {
     ...(input.canCreateDeployment
       ? [
           {
-            href: "/operations/campaigns?panel=create",
+            href: "/operations/deployments?panel=create",
             id: "create-deployment",
             label: "Create Deployment",
             requiredPermissions: ["deployments.create", "campaigns.create"],
@@ -629,7 +651,7 @@ function buildTimeline(input: {
   s3Dashboard: Awaited<ReturnType<typeof getS3DashboardData>>;
 }): OperationsCenterTimelineItem[] {
   const deploymentItems = input.s3Dashboard.activeCampaigns.slice(0, 3).map((campaign) => ({
-    href: campaign.packageHref ?? `/operations/campaigns/${campaign.id}`,
+    href: campaign.packageHref ?? `/operations/deployments/${campaign.id}`,
     id: `deployment:${campaign.id}`,
     label: campaign.title,
     meta: `Week ${campaign.currentWeekNumber ?? "TBD"} / ${campaign.releaseVersion ?? "No release"} / ${campaign.planningStatus}`,

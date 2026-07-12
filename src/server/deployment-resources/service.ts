@@ -62,7 +62,9 @@ function normalizeOptionalString(value?: string | null) {
 function revalidateResourceRoutes(campaignId: string, eventId?: string | null) {
   revalidatePath("/dashboard");
   revalidatePath("/operations/campaigns");
+  revalidatePath("/operations/deployments");
   revalidatePath(`/operations/campaigns/${campaignId}`);
+  revalidatePath(`/operations/deployments/${campaignId}`);
 
   if (eventId) {
     revalidatePath(`/operations/events/${eventId}`);
@@ -203,7 +205,7 @@ async function queueDeploymentResourceNotification(input: {
 }) {
   try {
     await createNotification({
-      actionUrl: `/operations/campaigns/${input.campaignId}`,
+      actionUrl: `/operations/deployments/${input.campaignId}`,
       createdByUserId: input.actorUserId,
       message: `${input.resourceDisplayName} was updated for ${input.campaignTitle}. Portal resources remain the source of truth.`,
       metadata: {

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection, NeedsAttention, SummaryCard } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,38 @@ export async function CommunicationsCenterPage() {
     ["pending", "processing", "retrying"].includes(delivery.status),
   );
   const recentDeliveries = data.deliveries.slice(0, 12);
+  const attentionItems = [
+    failedDeliveries.length > 0
+      ? {
+          actionLabel: "Review failures",
+          affectedEntity: "Delivery queue",
+          href: "/communications#failed-delivery-queue",
+          label: `Retry ${failedDeliveries.length} failed delivery${failedDeliveries.length === 1 ? "" : "ies"}`,
+          meta: "Provider failures are preserved with retry controls and safe payload details.",
+          tone: "danger" as const,
+        }
+      : null,
+    activeDeliveries.length > 0
+      ? {
+          actionLabel: "Check active work",
+          affectedEntity: "Provider pipeline",
+          href: "/communications#active-deliveries",
+          label: `${activeDeliveries.length} delivery${activeDeliveries.length === 1 ? "" : "ies"} still processing`,
+          meta: "Pending, processing, and retrying records should finish or move into failure review.",
+          tone: "warning" as const,
+        }
+      : null,
+    data.scheduledCommunications.length > 0
+      ? {
+          actionLabel: "Review schedule",
+          affectedEntity: "Scheduled communications",
+          href: "/communications#scheduled-communications",
+          label: `${data.scheduledCommunications.length} scheduled communication${data.scheduledCommunications.length === 1 ? "" : "s"}`,
+          meta: "Scheduled sends remain explicit so staff can cancel before dispatch.",
+          tone: "info" as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <div className="space-y-6">
@@ -60,53 +93,40 @@ export async function CommunicationsCenterPage() {
         title="Communications Center"
       />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <CardTitle>Total Communications</CardTitle>
-            <CardDescription>Requests processed through the unified pipeline.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{data.metrics.totalCommunications}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <CardTitle>Success Rate</CardTitle>
-            <CardDescription>Delivered communication delivery rows.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">
-              {data.metrics.successRate === null ? "N/A" : `${data.metrics.successRate}%`}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <CardTitle>Failed Deliveries</CardTitle>
-            <CardDescription>Failures preserve attempt history and source context.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StatusBadge label={String(data.metrics.failedDeliveries)} tone={data.metrics.failedDeliveries > 0 ? "danger" : "success"} />
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <CardTitle>Pending</CardTitle>
-            <CardDescription>Pending, processing, or retrying deliveries.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StatusBadge label={String(data.metrics.pendingDeliveries)} tone={data.metrics.pendingDeliveries > 0 ? "warning" : "success"} />
-          </CardContent>
-        </Card>
+        <SummaryCard
+          description="Requests processed through the unified pipeline."
+          title="Total communications"
+          value={data.metrics.totalCommunications}
+        />
+        <SummaryCard
+          description="Delivered communication delivery rows."
+          title="Success rate"
+          value={data.metrics.successRate === null ? "N/A" : `${data.metrics.successRate}%`}
+        />
+        <SummaryCard
+          description="Failures preserve attempt history and source context."
+          status={<StatusBadge label={String(data.metrics.failedDeliveries)} tone={data.metrics.failedDeliveries > 0 ? "danger" : "success"} />}
+          title="Failed deliveries"
+          value={data.metrics.failedDeliveries}
+        />
+        <SummaryCard
+          description="Pending, processing, or retrying deliveries."
+          status={<StatusBadge label={String(data.metrics.pendingDeliveries)} tone={data.metrics.pendingDeliveries > 0 ? "warning" : "success"} />}
+          title="Pending"
+          value={data.metrics.pendingDeliveries}
+        />
       </section>
+      <NeedsAttention
+        emptyDescription="No failed, pending, or scheduled communications need staff action right now."
+        items={attentionItems}
+      />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
-          <Card className="border-border/80 bg-card/88">
-            <CardHeader>
-              <CardTitle>Communication History</CardTitle>
-              <CardDescription>Permanent request history with source, category, related entity, and delivery summary.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <CollapsibleSection
+            description="Permanent request history with source, category, related entity, and delivery summary."
+            title="Communication history"
+          >
+            <div className="space-y-3">
               {data.communications.length > 0 ? (
                 data.communications.map((communication) => (
                   <div key={communication.id} className="rounded-xl border border-border/70 bg-background/45 p-4">
@@ -130,9 +150,9 @@ export async function CommunicationsCenterPage() {
               ) : (
                 <EmptyState description="Communication requests will appear here after domains start using the pipeline." title="No communication history" />
               )}
-            </CardContent>
-          </Card>
-          <Card className="border-border/80 bg-card/88">
+            </div>
+          </CollapsibleSection>
+          <Card className="border-border/80 bg-card/88" id="failed-delivery-queue">
             <CardHeader>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -186,12 +206,11 @@ export async function CommunicationsCenterPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/88">
-            <CardHeader>
-              <CardTitle>Delivery Timeline</CardTitle>
-              <CardDescription>Recent delivery records across portal and Discord providers.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <CollapsibleSection
+            description="Recent delivery records across portal and Discord providers."
+            title="Delivery timeline"
+          >
+            <div className="space-y-3">
               {recentDeliveries.length > 0 ? (
                 recentDeliveries.map((delivery) => (
                   <div key={delivery.id} className="rounded-xl border border-border/70 bg-background/45 p-4">
@@ -213,8 +232,8 @@ export async function CommunicationsCenterPage() {
               ) : (
                 <EmptyState description="Delivery records appear once communications are dispatched." title="No delivery history" />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
           <Card className="border-border/80 bg-card/88">
             <CardHeader>
               <CardTitle>Announcements</CardTitle>
@@ -266,7 +285,7 @@ export async function CommunicationsCenterPage() {
           </Card>
         </div>
         <div className="space-y-6">
-          <Card className="border-border/80 bg-card/82">
+          <Card className="border-border/80 bg-card/82" id="scheduled-communications">
             <CardHeader>
               <CardTitle>Scheduled Communications</CardTitle>
               <CardDescription>Scheduling is explicit; no fake sends are marked successful.</CardDescription>
@@ -290,7 +309,7 @@ export async function CommunicationsCenterPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/82">
+          <Card className="border-border/80 bg-card/82" id="active-deliveries">
             <CardHeader>
               <CardTitle>Active Deliveries</CardTitle>
               <CardDescription>Pending, processing, and retrying provider work.</CardDescription>
@@ -311,12 +330,11 @@ export async function CommunicationsCenterPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-              <CardDescription>Template records validate variables and keep provider formatting separate.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <CollapsibleSection
+            description="Template records validate variables and keep provider formatting separate."
+            title="Templates"
+          >
+            <div className="space-y-3">
               <form action={ensureCommunicationTemplatesAction}>
                 <Button size="sm" type="submit" variant="outline">Ensure Default Templates</Button>
               </form>
@@ -330,14 +348,13 @@ export async function CommunicationsCenterPage() {
               ) : (
                 <EmptyState description="Create default templates to initialize the communication template catalog." title="No templates yet" />
               )}
-            </CardContent>
-          </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>User preference records are honored by the pipeline where applicable.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+            </div>
+          </CollapsibleSection>
+          <CollapsibleSection
+            description="User preference records are honored by the pipeline where applicable."
+            title="Preferences"
+          >
+            <div className="space-y-3">
               {data.preferences.length > 0 ? (
                 data.preferences.map((preference) => (
                   <div key={preference.category} className="rounded-xl border border-border/70 bg-background/45 p-3">
@@ -350,19 +367,19 @@ export async function CommunicationsCenterPage() {
               ) : (
                 <EmptyState description="Preference rows appear after users customize communication delivery." title="No preferences set" />
               )}
-            </CardContent>
-          </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Diagnostics</CardTitle>
-              <CardDescription>Pipeline safety checks and future provider readiness.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
+            </div>
+          </CollapsibleSection>
+          <CollapsibleSection
+            badgeLabel="Technical"
+            description="Pipeline safety checks and future provider readiness."
+            title="Diagnostics"
+          >
+            <div className="space-y-2 text-sm text-muted-foreground">
               <p>Provider failures are isolated and recorded as delivery failures.</p>
               <p>Idempotency keys prevent duplicate sends for repeated source events.</p>
               <p>Email, SMS, and Discord DM providers are intentionally placeholders.</p>
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
         </div>
       </div>
     </div>

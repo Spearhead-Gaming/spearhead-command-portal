@@ -7,6 +7,7 @@ import {
   handleDiscordRsvpInteraction,
   handleDiscordViewEventInteraction,
 } from "@/server/discord/interactions/event-rsvp";
+import { handleDiscordApplicationReviewQuickAction } from "@/server/discord/applications/service";
 import {
   completeInteractionSession,
   continueInteractionSession,
@@ -870,6 +871,42 @@ async function handleSubmitPatrolAarInteraction(input: {
   }
 }
 
+async function handleApplicationReviewInteraction(input: {
+  customId: string;
+  discordUserId: string;
+}) {
+  const [, action, submissionId] = input.customId.split(":");
+
+  if (
+    !submissionId ||
+    !["approve", "assign", "deny", "open", "request_information"].includes(action)
+  ) {
+    return buildEphemeralPlaceholderResponse("That application review action is invalid or expired.");
+  }
+
+  try {
+    const result = await handleDiscordApplicationReviewQuickAction({
+      action: action as "approve" | "assign" | "deny" | "open" | "request_information",
+      discordUserId: input.discordUserId,
+      submissionId,
+    });
+
+    return buildEphemeralPlaceholderResponse(result.content, [
+      {
+        label: "Open Portal",
+        style: "link",
+        url: result.portalUrl,
+      },
+    ]);
+  } catch (error) {
+    return buildEphemeralPlaceholderResponse(
+      error instanceof Error
+        ? error.message
+        : "Application review action could not be completed.",
+    );
+  }
+}
+
 export async function handleDiscordInteractionRequest(request: Request) {
   const rawBody = await request.text();
   const validation = validateDiscordInteractionRequest({
@@ -986,8 +1023,10 @@ export async function handleDiscordInteractionRequest(request: Request) {
     }
 
     const result = await executeDiscordSlashCommand({
+      channelId: payload.channel_id ?? null,
       commandName: definition.name,
       discordUserId,
+      guildId: payload.guild_id ?? null,
       options: payload.data?.options,
       resolvedAttachments: payload.data?.resolved?.attachments,
     });
@@ -1043,6 +1082,13 @@ export async function handleDiscordInteractionRequest(request: Request) {
         customId,
         discordUserId,
         payload,
+      });
+    }
+
+    if (customId.startsWith("application-review:")) {
+      return handleApplicationReviewInteraction({
+        customId,
+        discordUserId,
       });
     }
 

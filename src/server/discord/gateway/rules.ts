@@ -3,11 +3,15 @@ import type { RuleEvaluationContext, RuleEvaluationResult, RuleProvider } from "
 
 export type DiscordGatewayHealthFacts = {
   enabled: boolean;
+  failedEventCount: number;
   guildCount: number;
   hasBotToken: boolean;
   hasGuildMembersIntent: boolean;
+  hasGuildScheduledEventsIntent: boolean;
+  hasMessageContentIntent: boolean;
   lastErrorSummary: string | null;
   reconnectCount: number;
+  staleEventCount: number;
   status: string;
 };
 
@@ -76,6 +80,38 @@ export function createDiscordGatewayHealthProvider(): RuleProvider<RuleEvaluatio
           severity: facts.reconnectCount > 5 ? "MEDIUM" : "LOW",
           status: facts.reconnectCount > 5 ? "WARNING" : "PASS",
           title: "Reconnect health",
+        }),
+        gatewayRule({
+          id: "gateway.failed-events",
+          message:
+            facts.failedEventCount > 0
+              ? `${facts.failedEventCount} failed Gateway event(s) are waiting for review.`
+              : "No failed Gateway events are waiting for review.",
+          recommendedAction: "Open the Gateway failed-event queue and retry or mark items resolved after configuration fixes.",
+          severity: facts.failedEventCount > 0 ? "HIGH" : "LOW",
+          status: facts.failedEventCount > 0 ? "WARNING" : "PASS",
+          title: "Failed event queue",
+        }),
+        gatewayRule({
+          id: "gateway.stale-queue",
+          message:
+            facts.staleEventCount > 0
+              ? `${facts.staleEventCount} queued Gateway event(s) are stale.`
+              : "No stale queued Gateway events were detected.",
+          recommendedAction: "Review worker lease, duplicate worker protection, and dispatcher health.",
+          severity: facts.staleEventCount > 0 ? "HIGH" : "LOW",
+          status: facts.staleEventCount > 0 ? "WARNING" : "PASS",
+          title: "Gateway event queue freshness",
+        }),
+        gatewayRule({
+          id: "gateway.message-content-intent",
+          message: facts.hasMessageContentIntent
+            ? "Message Content intent is enabled. This should only be used for documented scoped workflows."
+            : "Message Content intent is disabled.",
+          recommendedAction: "Keep Message Content disabled unless an approved scoped attachment/text continuation requires it.",
+          severity: facts.hasMessageContentIntent ? "MEDIUM" : "LOW",
+          status: facts.hasMessageContentIntent ? "WARNING" : "PASS",
+          title: "Message Content minimization",
         }),
       ];
     },

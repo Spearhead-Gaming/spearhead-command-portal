@@ -4,6 +4,7 @@ import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { QualificationBadge } from "@/components/status/qualification-badge";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
@@ -382,7 +383,13 @@ export async function QualificationsCatalogPage({
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
-          <CatalogFilters categories={referenceData.categories} categoryId={categoryId} q={q} state={state} />
+          <CollapsibleSection
+            defaultOpen={Boolean(q || categoryId || (state && state !== "active"))}
+            description="Catalog search and archive/category filters stay available without taking over the qualification workspace."
+            title="Search and advanced filters"
+          >
+            <CatalogFilters categories={referenceData.categories} categoryId={categoryId} q={q} state={state} />
+          </CollapsibleSection>
           {catalogData.qualifications.length === 0 ? (
             <EmptyState
               actionLabel={canCreate ? "Create First Qualification" : undefined}
@@ -905,14 +912,20 @@ export async function QualificationMatrixFoundationPage({
           value={String(matrixData.summary.missingRequiredCount)}
         />
       </section>
-      <MatrixFilters
-        categoryId={categoryId}
-        positionId={positionId}
-        q={q}
-        readiness={readiness}
-        referenceData={referenceData}
-        unitId={unitId}
-      />
+      <CollapsibleSection
+        defaultOpen={Boolean(q || unitId || positionId || categoryId || readiness)}
+        description="The matrix should default to a scoped readiness answer; expand filters when you need a narrower unit, position, category, or exception view."
+        title="Matrix filters"
+      >
+        <MatrixFilters
+          categoryId={categoryId}
+          positionId={positionId}
+          q={q}
+          readiness={readiness}
+          referenceData={referenceData}
+          unitId={unitId}
+        />
+      </CollapsibleSection>
       <Card className="border-border/80 bg-card/88">
         <CardHeader>
           <CardTitle>Matrix</CardTitle>
@@ -927,6 +940,7 @@ export async function QualificationMatrixFoundationPage({
               title="Nothing to display"
             />
           ) : (
+            <div className="overflow-x-auto">
               <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
@@ -950,7 +964,7 @@ export async function QualificationMatrixFoundationPage({
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-foreground">{row.memberDisplayName}</p>
                         <p className="text-xs text-muted-foreground">
-                          {[row.unitShortName, row.positionTitle, row.rankAbbreviation]
+                          {[row.unitShortName, row.positionTitle]
                             .filter(Boolean)
                             .join(" / ")}
                         </p>
@@ -1003,7 +1017,8 @@ export async function QualificationMatrixFoundationPage({
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { DiscordOperationsCenter } from "@/features/administration/components/discord-operations-center";
+import { CollapsibleSection, NeedsAttention } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
@@ -17,8 +19,11 @@ import {
 } from "@/components/ui/table";
 import { requirePermission } from "@/server/permissions/access";
 import {
+  bootstrapPrimaryCommunityGuildAction,
+  discoverDiscordGuildsAction,
   disableDiscordChannelMappingAction,
   disableDiscordRoleMappingAction,
+  importDiscordGuildInventoryAction,
   kickDiscordMemberAction,
   mergeDiscordIdentityDuplicateAction,
   previewDiscordRoleSyncAction,
@@ -113,6 +118,48 @@ export async function DiscordSettingsPage() {
 
   const overview = await getDiscordAdministrationOverview(user);
   const commandPlan = getDiscordCommandRegistrationPlan();
+  const attentionItems = [
+    overview.failedDeliveryCount > 0
+      ? {
+          actionLabel: "Open deliveries",
+          affectedEntity: "Discord delivery",
+          href: "/administration/notifications",
+          label: `Review ${overview.failedDeliveryCount} failed Discord deliver${overview.failedDeliveryCount === 1 ? "y" : "ies"}`,
+          meta: "Failed sends should be reviewed without blocking core portal workflows.",
+          tone: "danger" as const,
+        }
+      : null,
+    overview.identityDiagnostics?.duplicateDiscordIdentities.length
+      ? {
+          actionLabel: "Review identity sync",
+          affectedEntity: "Identity sync",
+          href: "/administration/discord#identity-sync",
+          label: `${overview.identityDiagnostics.duplicateDiscordIdentities.length} exact Discord duplicate${overview.identityDiagnostics.duplicateDiscordIdentities.length === 1 ? "" : "s"}`,
+          meta: "Exact Discord ID duplicates can be merged safely through the identity sync panel.",
+          tone: "warning" as const,
+        }
+      : null,
+    !overview.botHealth.interactionValidationReady
+      ? {
+          actionLabel: "Check health",
+          affectedEntity: "Interaction webhook",
+          href: "/administration/discord#bot-health",
+          label: "Interaction validation is not ready",
+          meta: "Discord webhooks must validate signatures before production use.",
+          tone: "warning" as const,
+        }
+      : null,
+    overview.gatewayHealth?.status === "failed"
+      ? {
+          actionLabel: "Open gateway health",
+          affectedEntity: "Gateway worker",
+          href: "/administration/discord#gateway-health",
+          label: "Gateway worker is failing",
+          meta: overview.gatewayHealth.lastErrorSummary ?? "Gateway errors are isolated from the web app but should be reviewed.",
+          tone: "danger" as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <div className="space-y-6">
@@ -186,8 +233,157 @@ export async function DiscordSettingsPage() {
         />
       </section>
 
+      <NeedsAttention
+        emptyDescription="Discord delivery, identity, webhook, and gateway signals are clear enough for normal operation."
+        items={attentionItems}
+      />
+
+      <DiscordOperationsCenter overview={overview} />
+
+      <Card className="border-border/70 bg-card/78" id="guild-platform">
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label="Phase 4 Foundation" tone="info" />
+            <StatusBadge
+              label={`${overview.platform.totalGuildCount} managed guild${overview.platform.totalGuildCount === 1 ? "" : "s"}`}
+              tone={overview.platform.totalGuildCount > 0 ? "success" : "warning"}
+            />
+            <StatusBadge
+              label={overview.platform.primaryGuildName ? "Primary Community Guild Set" : "Primary Guild Missing"}
+              tone={overview.platform.primaryGuildName ? "success" : "warning"}
+            />
+          </div>
+          <CardTitle>Discord platform</CardTitle>
+          <CardDescription>
+            Multi-guild foundation for one community Discord, unit Discords, testing guilds, and
+            future servers. Guild inventory is discovered and tracked, while mappings and portal
+            permissions remain administrator-controlled.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <KpiCard
+              hint="All configured Discord guild records, including inactive and future unit guilds."
+              label="Guilds"
+              tone="info"
+              value={String(overview.platform.totalGuildCount)}
+            />
+            <KpiCard
+              hint="Guilds currently enabled for portal-managed Discord workflows."
+              label="Active"
+              tone={overview.platform.activeGuildCount > 0 ? "success" : "muted"}
+              value={String(overview.platform.activeGuildCount)}
+            />
+            <KpiCard
+              hint="Channels discovered from Discord inventory; mappings are still explicit."
+              label="Channels"
+              tone={overview.platform.channelInventoryCount > 0 ? "success" : "muted"}
+              value={String(overview.platform.channelInventoryCount)}
+            />
+            <KpiCard
+              hint="Roles discovered as automation targets. Portal never authorizes by role name."
+              label="Roles"
+              tone={overview.platform.roleInventoryCount > 0 ? "success" : "muted"}
+              value={String(overview.platform.roleInventoryCount)}
+            />
+            <KpiCard
+              hint="Latest safe discovery or health issue count."
+              label="Health Issues"
+              tone={overview.platform.healthIssueCount > 0 ? "warning" : "muted"}
+              value={String(overview.platform.healthIssueCount)}
+            />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]">
+            <div className="rounded-2xl border border-border/70 bg-background/35 p-4">
+              <h3 className="text-sm font-semibold text-foreground">Managed guilds</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Primary: {overview.platform.primaryGuildName ?? "not configured"}.
+                Latest discovery: {overview.platform.latestDiscoveryAtLabel ?? "not run yet"}.
+              </p>
+              <div className="mt-4 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Guild</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden lg:table-cell">Inventory</TableHead>
+                      <TableHead className="hidden xl:table-cell">Last Discovery</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {overview.servers.map((server) => (
+                      <TableRow key={server.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-foreground">{server.name}</p>
+                            <p className="text-xs text-muted-foreground">{server.guildId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge label={server.guildType} tone={server.isPrimary ? "success" : "muted"} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            <StatusBadge label={server.status} tone={server.isActive ? "success" : "muted"} />
+                            <StatusBadge label={`REST ${server.restStatus}`} tone={server.restStatus === "ok" ? "success" : "muted"} />
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                          {server.discoveredChannelCount} channels / {server.discoveredRoleCount} roles
+                        </TableCell>
+                        <TableCell className="hidden text-sm text-muted-foreground xl:table-cell">
+                          {server.lastDiscoveryAtLabel ?? "Never"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-border/70 bg-background/35 p-4">
+              <h3 className="text-sm font-semibold text-foreground">Platform actions</h3>
+              <form action={bootstrapPrimaryCommunityGuildAction} className="space-y-3">
+                <Input name="guildId" placeholder="Optional guild ID override" />
+                <Button className="w-full" type="submit" variant="outline">
+                  Bootstrap Primary Guild
+                </Button>
+              </form>
+              <form action={discoverDiscordGuildsAction}>
+                <Button className="w-full" type="submit" variant="outline">
+                  Discover Configured Guilds
+                </Button>
+              </form>
+              <form action={importDiscordGuildInventoryAction} className="space-y-3">
+                <select
+                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  defaultValue={overview.servers[0]?.id ?? ""}
+                  name="discordServerId"
+                >
+                  <option value="">Select guild</option>
+                  {overview.servers.map((server) => (
+                    <option key={server.id} value={server.id}>
+                      {server.name}
+                    </option>
+                  ))}
+                </select>
+                <Button className="w-full" type="submit">
+                  Import Channel / Role Inventory
+                </Button>
+              </form>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Discovery stores snapshots and inventory only. It does not automatically map
+                channels, change portal permissions, or modify Discord roles.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {overview.gatewayHealth ? (
-        <Card className="border-border/70 bg-card/78">
+        <Card className="border-border/70 bg-card/78" id="gateway-health">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge
@@ -306,47 +502,53 @@ export async function DiscordSettingsPage() {
                 </div>
               </div>
             ) : null}
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Gateway event handlers
-                </h3>
-                {overview.gatewayHealth.eventHandlers.map((handler) => (
-                  <div key={handler.handlerId} className="rounded-xl border border-border/70 bg-background/35 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-foreground">{handler.eventName}</p>
-                      <StatusBadge label={handler.enabled ? "Enabled" : "Disabled"} tone={handler.enabled ? "success" : "muted"} />
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{handler.description}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {handler.owningDomain} / {handler.requiredIntents.join(", ") || "No intent"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Recent Gateway events
-                </h3>
-                {overview.gatewayHealth.recentEvents.length === 0 ? (
-                  <EmptyState
-                    description="Gateway events will appear after the worker connects and receives real-time Discord events."
-                    title="No Gateway events yet"
-                  />
-                ) : (
-                  overview.gatewayHealth.recentEvents.map((event) => (
-                    <div key={event.id} className="rounded-xl border border-border/70 bg-background/35 p-3">
+            <CollapsibleSection
+              badgeLabel="Diagnostics"
+              description="Handler inventory and event logs are useful for troubleshooting, but they should not dominate the default settings view."
+              title="Gateway handlers and event log"
+            >
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Gateway event handlers
+                  </h3>
+                  {overview.gatewayHealth.eventHandlers.map((handler) => (
+                    <div key={handler.handlerId} className="rounded-xl border border-border/70 bg-background/35 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-semibold text-foreground">{event.eventName}</p>
-                        <StatusBadge label={event.status} tone={getStatusTone(event.status)} />
+                        <p className="font-semibold text-foreground">{handler.eventName}</p>
+                        <StatusBadge label={handler.enabled ? "Enabled" : "Disabled"} tone={handler.enabled ? "success" : "muted"} />
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{event.summary}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{event.occurredAtLabel}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{handler.description}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {handler.owningDomain} / {handler.requiredIntents.join(", ") || "No intent"}
+                      </p>
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Recent Gateway events
+                  </h3>
+                  {overview.gatewayHealth.recentEvents.length === 0 ? (
+                    <EmptyState
+                      description="Gateway events will appear after the worker connects and receives real-time Discord events."
+                      title="No Gateway events yet"
+                    />
+                  ) : (
+                    overview.gatewayHealth.recentEvents.map((event) => (
+                      <div key={event.id} className="rounded-xl border border-border/70 bg-background/35 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-foreground">{event.eventName}</p>
+                          <StatusBadge label={event.status} tone={getStatusTone(event.status)} />
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">{event.summary}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{event.occurredAtLabel}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
+            </CollapsibleSection>
           </CardContent>
         </Card>
       ) : null}
@@ -354,7 +556,7 @@ export async function DiscordSettingsPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.95fr)]">
         <div className="space-y-6">
           {overview.canViewBotHealth ? (
-            <Card className="border-border/70 bg-card/78">
+            <Card className="border-border/70 bg-card/78" id="bot-health">
               <CardHeader>
                 <CardTitle>Bot health placeholder</CardTitle>
                 <CardDescription>
@@ -734,7 +936,7 @@ export async function DiscordSettingsPage() {
               </div>
 
               {overview.identityDiagnostics ? (
-                <Card className="border-border/70 bg-background/35">
+                <Card className="border-border/70 bg-background/35" id="identity-sync">
                   <CardHeader>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>

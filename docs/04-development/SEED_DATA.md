@@ -128,6 +128,16 @@ Seed permissions by module.
 - discord.view
 - discord.manage
 - discord.channels.manage
+- discord.roles.manage
+- discord.discovery.view
+- discord.discovery.run
+- discord.discovery.cancel
+- discord.resources.view
+- discord.resources.manage
+- discord.reconciliation.view
+- discord.reconciliation.manage
+- discord.sync.schedule.manage
+- discord.mappings.manage
 - discord.notifications.send
 
 ### Admin

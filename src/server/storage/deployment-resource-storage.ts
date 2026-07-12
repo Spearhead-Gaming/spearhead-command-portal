@@ -2,7 +2,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const storageRoot = process.env.FILE_STORAGE_ROOT ?? path.join(process.cwd(), "storage");
+import { getFileStorageRoot } from "@/server/deployment/storage";
+
+const storageRoot = getFileStorageRoot();
 const deploymentResourceRoot = path.join(storageRoot, "deployment-resources");
 
 function sanitizeFileName(fileName: string) {

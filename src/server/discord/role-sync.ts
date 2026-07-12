@@ -1,17 +1,15 @@
 import { prisma } from "@/server/database/client";
-import { getDiscordIntegrationConfig } from "@/server/discord/config";
+import {
+  addDiscordGuildRole,
+  getDiscordGuildMemberRoleState,
+  removeDiscordGuildRole,
+} from "@/server/discord/automation/role-actions";
 import type {
   DiscordRoleSyncMemberChange,
   DiscordRoleSyncPreview,
   DiscordRoleSyncRunResult,
 } from "@/server/discord/types";
 import { recordAuditEvent } from "@/server/services/audit-log-service";
-
-type DiscordMemberRoleState = {
-  ok: boolean;
-  roleIds: string[];
-  errorMessage: string | null;
-};
 
 type DiscordRoleMappingLabelRecord = {
   discordRoleId: string;
@@ -102,154 +100,6 @@ async function getManagedDiscordRoleMappings(discordServerId: string) {
       },
     ],
   });
-}
-
-async function getDiscordGuildMemberRoleState(input: {
-  discordUserId: string;
-  guildId: string;
-}): Promise<DiscordMemberRoleState> {
-  const { botToken } = getDiscordIntegrationConfig();
-
-  if (!botToken) {
-    return {
-      errorMessage: "DISCORD_BOT_TOKEN is not configured.",
-      ok: false,
-      roleIds: [],
-    };
-  }
-
-  let response: Response;
-
-  try {
-    response = await fetch(
-      `https://discord.com/api/v10/guilds/${input.guildId}/members/${input.discordUserId}`,
-      {
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      },
-    );
-  } catch {
-    return {
-      errorMessage: "The Discord API could not be reached.",
-      ok: false,
-      roleIds: [],
-    };
-  }
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      return {
-        errorMessage: "Member is not available in the mapped Discord server.",
-        ok: false,
-        roleIds: [],
-      };
-    }
-
-    if (response.status === 403) {
-      return {
-        errorMessage: "The Discord bot cannot inspect member roles in this server.",
-        ok: false,
-        roleIds: [],
-      };
-    }
-
-    return {
-      errorMessage: `Discord member lookup failed with status ${response.status}.`,
-      ok: false,
-      roleIds: [],
-    };
-  }
-
-  const body = (await response.json()) as {
-    roles?: string[];
-  };
-
-  return {
-    errorMessage: null,
-    ok: true,
-    roleIds: Array.isArray(body.roles) ? body.roles : [],
-  };
-}
-
-async function addDiscordGuildRole(input: {
-  discordRoleId: string;
-  discordUserId: string;
-  guildId: string;
-}) {
-  const { botToken } = getDiscordIntegrationConfig();
-
-  if (!botToken) {
-    return "DISCORD_BOT_TOKEN is not configured.";
-  }
-
-  try {
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${input.guildId}/members/${input.discordUserId}/roles/${input.discordRoleId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      },
-    );
-
-    if (response.ok) {
-      return null;
-    }
-
-    if (response.status === 403) {
-      return "The Discord bot cannot add that role in this server.";
-    }
-
-    if (response.status === 404) {
-      return "The Discord role or member could not be found in this server.";
-    }
-
-    return `Discord role add failed with status ${response.status}.`;
-  } catch {
-    return "The Discord API could not be reached while adding a role.";
-  }
-}
-
-async function removeDiscordGuildRole(input: {
-  discordRoleId: string;
-  discordUserId: string;
-  guildId: string;
-}) {
-  const { botToken } = getDiscordIntegrationConfig();
-
-  if (!botToken) {
-    return "DISCORD_BOT_TOKEN is not configured.";
-  }
-
-  try {
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${input.guildId}/members/${input.discordUserId}/roles/${input.discordRoleId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      },
-    );
-
-    if (response.ok) {
-      return null;
-    }
-
-    if (response.status === 403) {
-      return "The Discord bot cannot remove that role in this server.";
-    }
-
-    if (response.status === 404) {
-      return "The Discord role or member could not be found in this server.";
-    }
-
-    return `Discord role removal failed with status ${response.status}.`;
-  } catch {
-    return "The Discord API could not be reached while removing a role.";
-  }
 }
 
 async function getRoleSyncCandidates(discordServerId: string) {

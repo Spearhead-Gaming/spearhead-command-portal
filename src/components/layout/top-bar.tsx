@@ -5,11 +5,13 @@ import { Menu } from "lucide-react";
 import { GlobalSearchButton } from "@/components/layout/global-search-button";
 import { NotificationButton } from "@/components/layout/notification-button";
 import { UserMenu } from "@/components/layout/user-menu";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { AuthenticatedPortalSession } from "@/features/auth/types";
 import type { NotificationCenterData } from "@/server/notifications/types";
+import type { WorkspaceProfile } from "@/server/personas/types";
 
 type TopBarProps = {
   session: AuthenticatedPortalSession;
@@ -17,6 +19,7 @@ type TopBarProps = {
   onOpenCommandPalette: () => void;
   onOpenNotifications: () => void;
   onOpenNavigation: () => void;
+  workspaceProfile: WorkspaceProfile;
 };
 
 export function TopBar({
@@ -25,6 +28,7 @@ export function TopBar({
   onOpenCommandPalette,
   onOpenNotifications,
   onOpenNavigation,
+  workspaceProfile,
 }: TopBarProps) {
   return (
     <header className="z-30 shrink-0 border-b border-border/80 bg-background/88 backdrop-blur-xl">
@@ -39,6 +43,7 @@ export function TopBar({
           <span className="sr-only">Open navigation</span>
         </Button>
         <GlobalSearchButton onOpen={onOpenCommandPalette} />
+        <WorkspaceSwitcher workspaceProfile={workspaceProfile} />
         <div className="hidden min-w-0 shrink items-center gap-2 2xl:flex">
           <StatusBadge label="Authenticated" tone="success" />
           <StatusBadge

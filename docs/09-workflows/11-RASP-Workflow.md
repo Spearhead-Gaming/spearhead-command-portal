@@ -11,6 +11,9 @@ Document the specialized selection and transfer path for RASP-style unit movemen
 ## Business Rules
 
 - RASP starts as a configurable application.
+- RASP is for the 75th Ranger Regiment.
+- Discord eligibility requires a linked Portal identity and at least 30 days of qualifying 3rd Infantry Division service.
+- The RASP application must not request Target Unit or Prior Experience.
 - Eligibility may check status, attendance, service time, current unit, and qualifications.
 - Staff approval is required before transfer.
 - Training gates should use qualification requirements where practical.
@@ -29,7 +32,7 @@ Applicant, RASP Cadre, Unit Leadership, S1 Staff, Training Staff, Discord Bot.
 
 ## Entry Points
 
-`/applications`, `/administration/submissions`, `/personnel/members/[id]`, `/training/qualification-matrix`, `/personnel/roster`.
+`/apply info`, `/apply start`, `/apply status`, `/applications`, `/administration/submissions`, `/personnel/members/[id]`, `/training/qualification-matrix`, `/personnel/roster`.
 
 ## Exit Points
 
@@ -188,4 +191,3 @@ RASP scorecards, interview scheduling, selection board workflow, cadre dashboard
 - [Application Workflow](10-Application-Workflow.md)
 - [Transfer Workflow](12-Transfer-Workflow.md)
 - [ROSTER_WORKFLOW.md](../06-community/ROSTER_WORKFLOW.md)
-

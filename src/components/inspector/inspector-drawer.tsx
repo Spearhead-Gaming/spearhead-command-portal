@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import Link from "next/link";
 
+import { useFocusTrap } from "@/components/layout/focus-management";
 import { StatusBadge } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { PlaceholderAction, PlaceholderSection } from "@/types/placeholder-page";
 
 type InspectorDrawerProps = {
@@ -18,6 +20,7 @@ type InspectorDrawerProps = {
     label: string;
     tone?: "info" | "success" | "warning" | "danger" | "muted";
   };
+  size?: "standard" | "wide" | "extra-wide";
   tabs?: string[];
   sections?: PlaceholderSection[];
   tabPanels?: Array<{
@@ -55,12 +58,14 @@ export function InspectorDrawer({
   title,
   subtitle,
   statusBadge,
+  size = "wide",
   tabs,
   sections = [],
   tabPanels,
   actions,
   children,
 }: InspectorDrawerProps) {
+  const drawerRef = useRef<HTMLElement | null>(null);
   const availableTabs = useMemo(
     () =>
       tabPanels?.map((panel) => panel.label) ??
@@ -86,21 +91,10 @@ export function InspectorDrawer({
     [resolvedActiveTab, tabPanels],
   );
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, open]);
+  useFocusTrap(drawerRef, {
+    active: open,
+    onEscape: onClose,
+  });
 
   if (!open) {
     return null;
@@ -115,8 +109,19 @@ export function InspectorDrawer({
         type="button"
       />
       <aside
-        className="ml-auto flex h-full w-full max-w-full flex-col border-l border-border/80 bg-background/96 shadow-[0_24px_80px_rgba(2,6,14,0.55)] sm:max-w-[min(48rem,calc(100vw-2rem))]"
+        aria-describedby="inspector-drawer-description"
+        aria-labelledby="inspector-drawer-title"
+        aria-modal="true"
+        className={cn(
+          "ml-auto flex h-full w-full max-w-full flex-col border-l border-border/80 bg-background/96 outline-none shadow-[0_24px_80px_rgba(2,6,14,0.55)]",
+          size === "standard" && "sm:max-w-[min(40rem,calc(100vw-2rem))]",
+          size === "wide" && "sm:max-w-[min(48rem,calc(100vw-2rem))]",
+          size === "extra-wide" && "sm:max-w-[min(64rem,calc(100vw-2rem))]",
+        )}
         data-inspector-drawer
+        ref={drawerRef}
+        role="dialog"
+        tabIndex={-1}
       >
         <div className="flex items-center justify-between border-b border-border/80 px-4 py-3 sm:hidden">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -136,7 +141,9 @@ export function InspectorDrawer({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <CardTitle className="text-xl sm:text-2xl">{title}</CardTitle>
+                    <CardTitle className="text-xl sm:text-2xl" id="inspector-drawer-title">
+                      {title}
+                    </CardTitle>
                     {statusBadge ? (
                       <StatusBadge
                         label={statusBadge.label}
@@ -144,7 +151,9 @@ export function InspectorDrawer({
                       />
                     ) : null}
                   </div>
-                  <CardDescription className="max-w-2xl">{subtitle}</CardDescription>
+                  <CardDescription className="max-w-2xl" id="inspector-drawer-description">
+                    {subtitle}
+                  </CardDescription>
                 </div>
                 <Button className="hidden sm:inline-flex" onClick={onClose} size="icon" variant="ghost">
                   <X className="h-4 w-4" />

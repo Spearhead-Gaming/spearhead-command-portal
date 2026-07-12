@@ -1,5 +1,6 @@
 import { getDiscordGatewayConfig } from "@/server/discord/config";
 import { DiscordGatewayEventDispatcher } from "@/server/discord/gateway/dispatcher";
+import { createDiscordGatewayEventEnvelope } from "@/server/discord/gateway/envelope";
 import { calculateGatewayIntentBitmask, normalizeGatewayIntents } from "@/server/discord/gateway/intents";
 import { getDiscordGatewayEventRegistry } from "@/server/discord/gateway/registry";
 import {
@@ -7,7 +8,7 @@ import {
   recordGatewayHeartbeatAck,
   setGatewayStatus,
 } from "@/server/discord/gateway/state-store";
-import type { DiscordGatewayEventEnvelope, DiscordGatewayEventName } from "@/server/discord/gateway/types";
+import type { DiscordGatewayEventName } from "@/server/discord/gateway/types";
 import { prisma } from "@/server/database/client";
 
 type DiscordGatewayPayload = {
@@ -25,22 +26,6 @@ function isHelloPayload(value: unknown): value is DiscordHelloPayload {
   return Boolean(value && typeof value === "object" && "heartbeat_interval" in value);
 }
 
-function getGuildId(payload: unknown) {
-  if (payload && typeof payload === "object" && "guild_id" in payload) {
-    const guildId = (payload as { guild_id?: unknown }).guild_id;
-
-    return typeof guildId === "string" ? guildId : null;
-  }
-
-  if (payload && typeof payload === "object" && "id" in payload) {
-    const id = (payload as { id?: unknown }).id;
-
-    return typeof id === "string" ? id : null;
-  }
-
-  return null;
-}
-
 function calculateReconnectDelay(attempt: number, maxDelayMs: number) {
   const baseDelay = Math.min(1000 * 2 ** Math.min(attempt, 5), maxDelayMs);
   const jitter = Math.floor(Math.random() * 500);
@@ -54,6 +39,7 @@ export class DiscordGatewayClient {
   private lastHeartbeatSentAt: number | null = null;
   private reconnectAttempts = 0;
   private sequence: number | null = null;
+  private sessionId: string | null = null;
   private shouldReconnect = true;
   private socket: WebSocket | null = null;
 
@@ -185,17 +171,21 @@ export class DiscordGatewayClient {
   }
 
   private handleDispatch(payload: DiscordGatewayPayload) {
-    if (!payload.t) {
+    const event = createDiscordGatewayEventEnvelope({
+      payload,
+      sessionId: this.sessionId,
+      shardId: 0,
+    });
+
+    if (!event) {
       return;
     }
 
-    const event: DiscordGatewayEventEnvelope = {
-      eventName: payload.t,
-      guildId: getGuildId(payload.d),
-      payload: payload.d,
-      receivedAt: new Date(),
-      sequence: payload.s ?? null,
-    };
+    if (event.eventName === "READY" && event.payload && typeof event.payload === "object" && "session_id" in event.payload) {
+      const sessionId = (event.payload as { session_id?: unknown }).session_id;
+
+      this.sessionId = typeof sessionId === "string" ? sessionId : this.sessionId;
+    }
 
     this.dispatcher.dispatch(event);
   }

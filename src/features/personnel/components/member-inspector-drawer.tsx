@@ -83,7 +83,7 @@ export function MemberInspectorDrawer({
           content: <MemberAttendanceSummaryCard dashboard={member} />,
         },
         {
-          label: "Campaigns",
+          label: "Deployments",
           content: <MemberCampaignSummaryCard dashboard={member} />,
         },
         {
@@ -95,7 +95,7 @@ export function MemberInspectorDrawer({
           content: (
             <ServiceTimeline
               description="Recent service-record activity stays visible without breaking page context."
-              emptyDescription="Timeline entries will appear here once this member accrues roster, qualification, attendance, or campaign history."
+              emptyDescription="Timeline entries will appear here once this member accrues roster, qualification, attendance, or deployment history."
               entries={member.serviceTimeline ?? []}
               order="desc"
               title="Service timeline"

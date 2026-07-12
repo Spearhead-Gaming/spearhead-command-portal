@@ -104,6 +104,65 @@ export const discordSlashCommandCatalog = [
     options: [],
   },
   {
+    name: "apply",
+    description: "Discover, start, and check Portal-owned applications.",
+    linkedMemberOnly: false,
+    defaultEphemeral: true,
+    requiredPortalPermission: null,
+    options: [
+      {
+        name: "list",
+        description: "List application entry points available from this Discord guild.",
+        type: 1,
+        options: [],
+      },
+      {
+        name: "info",
+        description: "Show eligibility and process information for an application type.",
+        type: 1,
+        options: [
+          {
+            name: "type",
+            description: "Application type.",
+            type: 3,
+            required: true,
+            choices: [
+              { name: "Recruit Application", value: "recruit_application" },
+              { name: "RASP Application", value: "rasp_application" },
+              { name: "Unit Transfer Request", value: "unit_transfer_request" },
+              { name: "Staff Application", value: "staff_application" },
+              { name: "Instructor Application", value: "instructor_application" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "start",
+        description: "Create a secure Portal continuation link for an application.",
+        type: 1,
+        options: [
+          {
+            name: "type",
+            description: "Application type.",
+            type: 3,
+            required: true,
+            choices: [
+              { name: "Recruit Application", value: "recruit_application" },
+              { name: "RASP Application", value: "rasp_application" },
+              { name: "Unit Transfer Request", value: "unit_transfer_request" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "status",
+        description: "Show your recent Portal application statuses.",
+        type: 1,
+        options: [],
+      },
+    ],
+  },
+  {
     name: "patrol",
     description: "Start, list, inspect, complete, or submit AAR follow-up for lightweight patrols.",
     linkedMemberOnly: true,

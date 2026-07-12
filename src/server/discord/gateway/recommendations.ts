@@ -14,6 +14,7 @@ function hasFailedRule(rules: RuleEvaluationResult[], id: string) {
 
 export function getDiscordGatewayRecommendations(input: {
   enabled: boolean;
+  failedEventCount?: number;
   hasBotToken: boolean;
   reconnectCount: number;
   rules: RuleEvaluationResult[];
@@ -63,6 +64,15 @@ export function getDiscordGatewayRecommendations(input: {
       id: "gateway.review-reconnects",
       priority: "medium",
       title: "Gateway is reconnecting frequently",
+    });
+  }
+
+  if ((input.failedEventCount ?? 0) > 0) {
+    recommendations.push({
+      action: "Open the Discord Operations Center Gateway queue, review safe error summaries, then retry only corrected events.",
+      id: "gateway.review-failed-events",
+      priority: "medium",
+      title: "Gateway failed events need review",
     });
   }
 

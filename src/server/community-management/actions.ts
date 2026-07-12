@@ -7,11 +7,11 @@ import {
   createCommunityCase,
   issueWarning,
   recordCaseDecision,
-  requestModerationAction,
   submitAppeal,
   submitIncidentReport,
   transitionCommunityCase,
 } from "@/server/community-management/service";
+import { executeCaseBackedDiscordModerationAction } from "@/server/discord/moderation/service";
 import type { CaseConfidentiality, CasePriority, CaseTypeId } from "@/server/community-management/types";
 
 function getRequiredString(formData: FormData, key: string, label: string) {
@@ -111,7 +111,7 @@ export async function issueWarningAction(formData: FormData) {
 }
 
 export async function requestModerationActionAction(formData: FormData) {
-  await requestModerationAction({
+  await executeCaseBackedDiscordModerationAction({
     action: getRequiredString(formData, "action", "Action") as never,
     caseId: getOptionalString(formData, "caseId"),
     discordServerId: getRequiredString(formData, "discordServerId", "Discord server"),

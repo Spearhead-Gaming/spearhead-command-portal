@@ -12,6 +12,9 @@ import {
   getDiscordSafeConfigDiagnostics,
 } from "../src/server/discord/config";
 import { getDiscordGatewayHealthSummary } from "../src/server/discord/gateway/health";
+import { gatewayIntentFeatureMatrix } from "../src/server/discord/gateway/intents";
+import { listFailedGatewayEvents } from "../src/server/discord/gateway/diagnostics";
+import { getDiscordPlatformReadiness } from "../src/server/discord/readiness";
 
 function printHeading(title: string) {
   console.log(`\n${title}`);
@@ -133,9 +136,96 @@ async function run() {
       console.log(`Recent Gateway events: ${health.recentEvents.length}`);
       return;
     }
+    case "gateway:diagnostics": {
+      printSafeGatewayDiagnostics();
+      const health = await getDiscordGatewayHealthSummary();
+
+      printHeading("Gateway Diagnostics");
+      console.log(`Status: ${health.status}`);
+      console.log(`Failed events: ${health.metrics.failedEventCount}`);
+      console.log(`Processed events: ${health.metrics.processedEventCount}`);
+      console.log(`Skipped events: ${health.metrics.skippedEventCount}`);
+      console.log(`Stale queued events: ${health.metrics.staleEventCount}`);
+      console.log(`Registered handlers: ${health.eventHandlers.length}`);
+      for (const handler of health.eventHandlers) {
+        console.log(`- ${handler.handlerId} (${handler.eventName}) v${handler.version}: ${handler.enabled ? "enabled" : "disabled"}`);
+      }
+      return;
+    }
+    case "gateway:events:list": {
+      printSafeGatewayDiagnostics();
+      const failedEvents = await listFailedGatewayEvents(25);
+
+      printHeading("Failed Gateway Events");
+      if (failedEvents.length === 0) {
+        console.log("No failed Gateway events are queued.");
+        return;
+      }
+
+      for (const event of failedEvents) {
+        console.log(`- ${event.eventName} / ${event.handlerId ?? "no handler"} / ${event.occurredAt.toISOString()}: ${event.summary}`);
+      }
+      return;
+    }
+    case "gateway:preflight": {
+      printSafeGatewayDiagnostics();
+      printHeading("Gateway Intent Feature Matrix");
+      for (const entry of gatewayIntentFeatureMatrix) {
+        console.log(`- ${entry.intent}: ${entry.features.join(", ")}${entry.privileged ? " (privileged)" : ""}`);
+      }
+      const health = await getDiscordGatewayHealthSummary();
+      printHeading("Preflight Result");
+      console.log(`Status: ${health.status}`);
+      console.log(`Recommendations: ${health.recommendations.length}`);
+      for (const recommendation of health.recommendations) {
+        console.log(`- [${recommendation.priority}] ${recommendation.title}: ${recommendation.action}`);
+      }
+      return;
+    }
+    case "platform:preflight": {
+      printSafeConfigDiagnostics();
+      printSafeGatewayDiagnostics();
+      const readiness = await getDiscordPlatformReadiness();
+
+      printHeading("Discord Platform Readiness");
+      console.log(`Overall: ${readiness.overall.status}`);
+      console.log(readiness.overall.summary);
+
+      printHeading("Component Statuses");
+      for (const component of readiness.componentStatuses) {
+        console.log(`- ${component.component}: ${component.status} (${component.optional ? "optional" : "required"})`);
+        console.log(`  ${component.summary}`);
+      }
+
+      printHeading("Preflight Checks");
+      for (const check of readiness.preflightChecks) {
+        console.log(`- [${check.status}] ${check.id}: ${check.summary}`);
+        console.log(`  Recommendation: ${check.recommendation}`);
+      }
+
+      printHeading("Release Blockers");
+      if (readiness.releaseBlockers.length === 0) {
+        console.log("No critical/high release blockers were detected by local preflight.");
+      } else {
+        for (const blocker of readiness.releaseBlockers) {
+          console.log(`- [${blocker.severity}] ${blocker.title}: ${blocker.summary}`);
+        }
+      }
+
+      printHeading("Guild Certification");
+      if (readiness.guildCertifications.length === 0) {
+        console.log("No active managed guilds are available for certification.");
+      } else {
+        for (const guild of readiness.guildCertifications) {
+          console.log(`- ${guild.guildName}: ${guild.state}`);
+        }
+      }
+
+      return;
+    }
     default:
       throw new Error(
-        `Unknown Discord script command "${command}". Use health, gateway:health, commands:register, commands:list, or commands:clear:guild.`,
+        `Unknown Discord script command "${command}". Use health, platform:preflight, gateway:health, gateway:diagnostics, gateway:events:list, gateway:preflight, commands:register, commands:list, or commands:clear:guild.`,
       );
   }
 }

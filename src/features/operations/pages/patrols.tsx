@@ -4,6 +4,7 @@ import { Clock, Crosshair, FileText, RadioTower } from "lucide-react";
 import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { NeedsAttention } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
   StartPatrolForm,
 } from "@/features/operations/components/patrol-forms";
 import { PatrolInspectorShell } from "@/features/operations/components/patrol-inspector-shell";
+import { ContextHeader, NextActionCard } from "@/features/operations/components/workflow";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { can } from "@/server/permissions/access";
 import { getPatrolReferenceData, listPatrolDashboard } from "@/server/patrols/queries";
@@ -218,6 +220,7 @@ function PatrolSection({
   returnTo,
   searchParams,
   title,
+  sectionId,
 }: {
   canComplete: boolean;
   canReviewAar: boolean;
@@ -228,10 +231,11 @@ function PatrolSection({
   patrols: PatrolListItem[];
   returnTo: string;
   searchParams: SearchParamsRecord;
+  sectionId?: string;
   title: string;
 }) {
   return (
-    <section className="space-y-4">
+    <section className="scroll-mt-6 space-y-4" id={sectionId}>
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -510,6 +514,64 @@ export async function PatrolsPage({
   const canReviewAar = user
     ? can(user, "aars.review") || can(user, "patrols.aar.review") || can(user, "s3.aars.review")
     : false;
+  const attentionItems = [
+    dashboard.summary.awaitingAar > 0
+      ? {
+          actionLabel: "Submit AAR",
+          affectedEntity: "Patrol AAR",
+          href: "/operations/patrols#awaiting-aar",
+          label: `${dashboard.summary.awaitingAar} patrol${dashboard.summary.awaitingAar === 1 ? "" : "s"} awaiting AAR`,
+          meta: "Completed patrols should submit the official Spearhead AAR and required map screenshot.",
+          tone: "warning" as const,
+        }
+      : null,
+    dashboard.summary.awaitingReview > 0
+      ? {
+          actionLabel: "Review AARs",
+          affectedEntity: "S3 review",
+          href: "/operations/patrols#awaiting-review",
+          label: `${dashboard.summary.awaitingReview} AAR${dashboard.summary.awaitingReview === 1 ? "" : "s"} awaiting review`,
+          meta: "Reviewed Patrol AARs feed deployment progression and next-week planning.",
+          tone: "warning" as const,
+        }
+      : null,
+    dashboard.summary.active > 0
+      ? {
+          actionLabel: "Open active patrols",
+          affectedEntity: "Running patrols",
+          href: "/operations/patrols#active-patrols",
+          label: `${dashboard.summary.active} active patrol${dashboard.summary.active === 1 ? "" : "s"}`,
+          meta: "Patrol leaders can manage participants and complete patrols from the inspector.",
+          tone: "info" as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
+  const nextPatrolAction =
+    dashboard.summary.awaitingAar > 0
+      ? {
+          href: "/operations/patrols#awaiting-aar",
+          label: "Submit Patrol AAR",
+          reason: "A completed patrol is waiting for its required AAR and map screenshot.",
+          responsible: "Patrol Leader",
+          status: "warning" as const,
+        }
+      : dashboard.summary.awaitingReview > 0
+        ? {
+            href: "/operations/patrols#awaiting-review",
+            label: "Review Patrol AARs",
+            reason: "Submitted AARs need S3 review before they can inform deployment progression.",
+            responsible: "S3",
+            status: "warning" as const,
+          }
+        : canStart
+          ? {
+              href: buildHref("/operations/patrols", resolvedSearchParams, { panel: "start" }),
+              label: "Start Patrol",
+              reason: "No patrol follow-up is blocking the queue; start a lightweight patrol when ready.",
+              responsible: "Patrol Leader",
+              status: "current" as const,
+            }
+          : null;
 
   return (
     <div className="space-y-6">
@@ -536,6 +598,22 @@ export async function PatrolsPage({
       </div>
       {message ? <FlashNotice message={message} tone="success" /> : null}
       {error ? <FlashNotice message={error} tone="danger" /> : null}
+      <ContextHeader
+        deployment={
+          referenceData.deployments.find((deployment) => deployment.id === referenceData.currentDeploymentId)?.label ??
+          referenceData.deployments[0]?.label ??
+          "No active deployment context"
+        }
+        packageStatus="Patrol workflow"
+        publishStatus="Patrols remain separate from Weekend Operation attendance"
+        weekendOperation="Patrols are lightweight and concurrent"
+        week={`Week ${referenceData.currentWeek}`}
+      />
+      <NextActionCard action={nextPatrolAction} title="Patrol next action" />
+      <NeedsAttention
+        emptyDescription="No active patrol, AAR submission, or AAR review item needs immediate follow-up."
+        items={attentionItems}
+      />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           hint="Multiple patrols may run concurrently."
@@ -592,6 +670,7 @@ export async function PatrolsPage({
         patrols={dashboard.activePatrols}
         returnTo={currentHref}
         searchParams={resolvedSearchParams}
+        sectionId="active-patrols"
         title="Active Patrols"
       />
       <PatrolSection
@@ -604,6 +683,7 @@ export async function PatrolsPage({
         patrols={dashboard.awaitingAar}
         returnTo={currentHref}
         searchParams={resolvedSearchParams}
+        sectionId="awaiting-aar"
         title="Awaiting AAR"
       />
       <PatrolSection
@@ -616,6 +696,7 @@ export async function PatrolsPage({
         patrols={dashboard.awaitingReview}
         returnTo={currentHref}
         searchParams={resolvedSearchParams}
+        sectionId="awaiting-review"
         title="Awaiting Review"
       />
       <PatrolSection

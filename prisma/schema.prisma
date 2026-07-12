@@ -9,89 +9,97 @@ datasource db {
 }
 
 model User {
-  id                                 String                        @id @default(uuid()) @db.VarChar(36)
-  discordId                          String?                       @unique @db.VarChar(32)
-  name                               String?                       @db.VarChar(120)
-  email                              String?                       @unique @db.VarChar(191)
-  emailVerified                      DateTime?
-  image                              String?                       @db.VarChar(512)
-  displayName                        String?                       @db.VarChar(120)
-  callsign                           String?                       @db.VarChar(120)
-  avatarUrl                          String?                       @db.VarChar(512)
-  isActive                           Boolean                       @default(true)
-  deletedAt                          DateTime?
-  createdAt                          DateTime                      @default(now())
-  updatedAt                          DateTime                      @updatedAt
-  accounts                           Account[]
-  sessions                           Session[]
-  memberProfile                      MemberProfile?
-  userRoles                          UserRole[]
-  awardedRecords                     MemberQualification[]         @relation("QualificationAwardedBy")
-  recordedAttendance                 AttendanceRecord[]            @relation("AttendanceRecordedBy")
-  createdNotifications               Notification[]                @relation("NotificationCreatedBy")
-  notificationDeliveries             NotificationDelivery[]        @relation("NotificationRecipient")
-  auditEvents                        AuditLog[]                    @relation("AuditActor")
-  reviewedAars                       Aar[]                         @relation("AarReviewedBy")
-  createdFormTemplates               FormTemplate[]                @relation("FormTemplateCreatedBy")
-  submittedForms                     FormSubmission[]              @relation("FormSubmissionSubmittedBy")
-  assignedFormReviews                FormSubmission[]              @relation("FormSubmissionReviewer")
-  formComments                       SubmissionComment[]           @relation("FormSubmissionCommentAuthor")
-  formDecisions                      ApprovalDecision[]            @relation("ApprovalDecisionActor")
-  authoredDocuments                  Document[]                    @relation("DocumentAuthor")
-  ownedDocuments                     Document[]                    @relation("DocumentOwner")
-  documentVersions                   DocumentVersion[]             @relation("DocumentVersionCreatedBy")
-  documentAttachments                DocumentAttachment[]          @relation("DocumentAttachmentCreatedBy")
-  documentReadReceipts               DocumentReadReceipt[]         @relation("DocumentReadReceiptUser")
-  documentRevisionEvents             DocumentRevisionHistory[]     @relation("DocumentRevisionActor")
-  uploadedDeploymentResourceVersions DeploymentResourceVersion[]   @relation("DeploymentResourceVersionUploadedBy")
-  discordMemberLinks                 DiscordMemberLink[]           @relation("DiscordMemberLinkUser")
-  discordGuildStates                 DiscordGuildMemberState[]     @relation("DiscordGuildMemberStateUser")
-  discordSyncLogs                    DiscordSyncLog[]              @relation("DiscordSyncLogActor")
-  discordModerationTargets           DiscordModerationAction[]     @relation("DiscordModerationTargetUser")
-  discordModerationActions           DiscordModerationAction[]     @relation("DiscordModerationModerator")
-  createdDeployments                 Campaign[]                    @relation("CampaignCreatedBy")
-  zeusDeployments                    Campaign[]                    @relation("CampaignZeus")
-  deploymentZeusAssignments          DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentAssignedTo")
-  changedDeploymentZeusAssignments   DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentChangedBy")
-  ledPatrolEvents                    Event[]                       @relation("EventPatrolLeader")
-  submittedAars                      Aar[]                         @relation("AarSubmittedBy")
-  uploadedAarAttachments             AarAttachment[]               @relation("AarAttachmentUploadedBy")
-  addedPatrolParticipants            PatrolParticipant[]           @relation("PatrolParticipantAddedBy")
-  patrolRsvps                        PatrolRsvp[]                  @relation("PatrolRsvpUser")
-  pendingDiscordAarSubmissions       PendingDiscordAarSubmission[] @relation("PendingDiscordAarSubmittedBy")
-  discordInteractionSessions         DiscordInteractionSession[]   @relation("DiscordInteractionSessionUser")
-  publishedOperationsReleases        OperationsRelease[]           @relation("OperationsReleasePublishedBy")
-  approvedOperationsReleases         OperationsRelease[]           @relation("OperationsReleaseApprovedBy")
-  dismissedRecommendations           CommandRecommendation[]       @relation("CommandRecommendationDismissedBy")
-  resolvedRecommendations            CommandRecommendation[]       @relation("CommandRecommendationResolvedBy")
-  intentAssessments                  CommanderIntentAssessment[]   @relation("CommanderIntentAssessmentAssessedBy")
-  requestedCommunications            Communication[]               @relation("CommunicationRequestedBy")
-  createdAnnouncements               Announcement[]                @relation("AnnouncementCreatedBy")
-  sentAnnouncements                  Announcement[]                @relation("AnnouncementSentBy")
-  communicationPreferences           CommunicationPreference[]
-  communicationTemplatesCreated      CommunicationTemplate[]       @relation("CommunicationTemplateCreatedBy")
-  communicationTemplatesUpdated      CommunicationTemplate[]       @relation("CommunicationTemplateUpdatedBy")
-  createdCommunityCases              CommunityCase[]               @relation("CommunityCaseCreatedBy")
-  assignedCommunityCases             CommunityCase[]               @relation("CommunityCaseAssignedTo")
-  caseAssignmentsAssignedTo          CaseAssignment[]              @relation("CaseAssignmentAssignedTo")
-  caseAssignmentsAssignedBy          CaseAssignment[]              @relation("CaseAssignmentAssignedBy")
-  caseParticipants                   CaseParticipant[]             @relation("CaseParticipantUser")
-  caseNotes                          CaseNote[]                    @relation("CaseNoteAuthor")
-  caseEvidenceUploads                CaseEvidence[]                @relation("CaseEvidenceUploadedBy")
-  caseDecisions                      CaseDecision[]                @relation("CaseDecisionDecidedBy")
-  caseTimelineEntries                CaseTimelineEntry[]           @relation("CaseTimelineActor")
-  incidentReports                    IncidentReport[]              @relation("IncidentReportReporter")
-  caseAppeals                        CaseAppeal[]                  @relation("CaseAppealAppellant")
-  memberAdministrativeNotesAuthored  MemberAdministrativeNote[]    @relation("MemberAdministrativeNoteAuthor")
-  discordModerationApprovals         DiscordModerationAction[]     @relation("DiscordModerationApprovedBy")
-  requestedPersonnelActions          PersonnelAction[]             @relation("PersonnelActionRequestedBy")
-  assignedPersonnelActions           PersonnelAction[]             @relation("PersonnelActionAssignedTo")
-  resolvedPersonnelActions           PersonnelAction[]             @relation("PersonnelActionResolvedBy")
-  submittedTransferRequests          TransferRequest[]             @relation("TransferRequestRequestedBy")
-  reviewedTransferRequests           TransferRequest[]             @relation("TransferRequestReviewedBy")
-  submittedLeaveRequests             LeaveOfAbsence[]              @relation("LeaveOfAbsenceRequestedBy")
-  reviewedLeaveRequests              LeaveOfAbsence[]              @relation("LeaveOfAbsenceReviewedBy")
-  discordVoiceSessions               DiscordVoiceSession[]         @relation("DiscordVoiceSessionUser")
+  id                                  String                        @id @default(uuid()) @db.VarChar(36)
+  discordId                           String?                       @unique @db.VarChar(32)
+  name                                String?                       @db.VarChar(120)
+  email                               String?                       @unique @db.VarChar(191)
+  emailVerified                       DateTime?
+  image                               String?                       @db.VarChar(512)
+  displayName                         String?                       @db.VarChar(120)
+  callsign                            String?                       @db.VarChar(120)
+  avatarUrl                           String?                       @db.VarChar(512)
+  isActive                            Boolean                       @default(true)
+  deletedAt                           DateTime?
+  createdAt                           DateTime                      @default(now())
+  updatedAt                           DateTime                      @updatedAt
+  accounts                            Account[]
+  sessions                            Session[]
+  memberProfile                       MemberProfile?
+  userRoles                           UserRole[]
+  awardedRecords                      MemberQualification[]         @relation("QualificationAwardedBy")
+  recordedAttendance                  AttendanceRecord[]            @relation("AttendanceRecordedBy")
+  createdNotifications                Notification[]                @relation("NotificationCreatedBy")
+  notificationDeliveries              NotificationDelivery[]        @relation("NotificationRecipient")
+  auditEvents                         AuditLog[]                    @relation("AuditActor")
+  reviewedAars                        Aar[]                         @relation("AarReviewedBy")
+  createdFormTemplates                FormTemplate[]                @relation("FormTemplateCreatedBy")
+  submittedForms                      FormSubmission[]              @relation("FormSubmissionSubmittedBy")
+  assignedFormReviews                 FormSubmission[]              @relation("FormSubmissionReviewer")
+  formComments                        SubmissionComment[]           @relation("FormSubmissionCommentAuthor")
+  formDecisions                       ApprovalDecision[]            @relation("ApprovalDecisionActor")
+  authoredDocuments                   Document[]                    @relation("DocumentAuthor")
+  ownedDocuments                      Document[]                    @relation("DocumentOwner")
+  documentVersions                    DocumentVersion[]             @relation("DocumentVersionCreatedBy")
+  documentAttachments                 DocumentAttachment[]          @relation("DocumentAttachmentCreatedBy")
+  documentReadReceipts                DocumentReadReceipt[]         @relation("DocumentReadReceiptUser")
+  documentRevisionEvents              DocumentRevisionHistory[]     @relation("DocumentRevisionActor")
+  uploadedDeploymentResourceVersions  DeploymentResourceVersion[]   @relation("DeploymentResourceVersionUploadedBy")
+  discordMemberLinks                  DiscordMemberLink[]           @relation("DiscordMemberLinkUser")
+  discordGuildStates                  DiscordGuildMemberState[]     @relation("DiscordGuildMemberStateUser")
+  discordSyncLogs                     DiscordSyncLog[]              @relation("DiscordSyncLogActor")
+  requestedDiscordDiscoverySessions   DiscordDiscoverySession[]     @relation("DiscordDiscoverySessionRequestedBy")
+  createdDiscordAutomationDefinitions DiscordAutomationDefinition[] @relation("DiscordAutomationDefinitionCreatedBy")
+  updatedDiscordAutomationDefinitions DiscordAutomationDefinition[] @relation("DiscordAutomationDefinitionUpdatedBy")
+  discordAutomationExecutions         DiscordAutomationExecution[]  @relation("DiscordAutomationExecutionActor")
+  approvedDiscordAutomationExecutions DiscordAutomationExecution[]  @relation("DiscordAutomationExecutionApprovedBy")
+  rejectedDiscordAutomationExecutions DiscordAutomationExecution[]  @relation("DiscordAutomationExecutionRejectedBy")
+  discordAutomationApprovals          DiscordAutomationApproval[]   @relation("DiscordAutomationApprovalActor")
+  createdDiscordAutomationExceptions  DiscordAutomationException[]  @relation("DiscordAutomationExceptionCreatedBy")
+  discordModerationTargets            DiscordModerationAction[]     @relation("DiscordModerationTargetUser")
+  discordModerationActions            DiscordModerationAction[]     @relation("DiscordModerationModerator")
+  createdDeployments                  Campaign[]                    @relation("CampaignCreatedBy")
+  zeusDeployments                     Campaign[]                    @relation("CampaignZeus")
+  deploymentZeusAssignments           DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentAssignedTo")
+  changedDeploymentZeusAssignments    DeploymentZeusAssignment[]    @relation("DeploymentZeusAssignmentChangedBy")
+  ledPatrolEvents                     Event[]                       @relation("EventPatrolLeader")
+  submittedAars                       Aar[]                         @relation("AarSubmittedBy")
+  uploadedAarAttachments              AarAttachment[]               @relation("AarAttachmentUploadedBy")
+  addedPatrolParticipants             PatrolParticipant[]           @relation("PatrolParticipantAddedBy")
+  patrolRsvps                         PatrolRsvp[]                  @relation("PatrolRsvpUser")
+  pendingDiscordAarSubmissions        PendingDiscordAarSubmission[] @relation("PendingDiscordAarSubmittedBy")
+  discordInteractionSessions          DiscordInteractionSession[]   @relation("DiscordInteractionSessionUser")
+  publishedOperationsReleases         OperationsRelease[]           @relation("OperationsReleasePublishedBy")
+  approvedOperationsReleases          OperationsRelease[]           @relation("OperationsReleaseApprovedBy")
+  dismissedRecommendations            CommandRecommendation[]       @relation("CommandRecommendationDismissedBy")
+  resolvedRecommendations             CommandRecommendation[]       @relation("CommandRecommendationResolvedBy")
+  intentAssessments                   CommanderIntentAssessment[]   @relation("CommanderIntentAssessmentAssessedBy")
+  requestedCommunications             Communication[]               @relation("CommunicationRequestedBy")
+  createdAnnouncements                Announcement[]                @relation("AnnouncementCreatedBy")
+  sentAnnouncements                   Announcement[]                @relation("AnnouncementSentBy")
+  communicationPreferences            CommunicationPreference[]
+  communicationTemplatesCreated       CommunicationTemplate[]       @relation("CommunicationTemplateCreatedBy")
+  communicationTemplatesUpdated       CommunicationTemplate[]       @relation("CommunicationTemplateUpdatedBy")
+  createdCommunityCases               CommunityCase[]               @relation("CommunityCaseCreatedBy")
+  assignedCommunityCases              CommunityCase[]               @relation("CommunityCaseAssignedTo")
+  caseAssignmentsAssignedTo           CaseAssignment[]              @relation("CaseAssignmentAssignedTo")
+  caseAssignmentsAssignedBy           CaseAssignment[]              @relation("CaseAssignmentAssignedBy")
+  caseParticipants                    CaseParticipant[]             @relation("CaseParticipantUser")
+  caseNotes                           CaseNote[]                    @relation("CaseNoteAuthor")
+  caseEvidenceUploads                 CaseEvidence[]                @relation("CaseEvidenceUploadedBy")
+  caseDecisions                       CaseDecision[]                @relation("CaseDecisionDecidedBy")
+  caseTimelineEntries                 CaseTimelineEntry[]           @relation("CaseTimelineActor")
+  incidentReports                     IncidentReport[]              @relation("IncidentReportReporter")
+  caseAppeals                         CaseAppeal[]                  @relation("CaseAppealAppellant")
+  memberAdministrativeNotesAuthored   MemberAdministrativeNote[]    @relation("MemberAdministrativeNoteAuthor")
+  discordModerationApprovals          DiscordModerationAction[]     @relation("DiscordModerationApprovedBy")
+  requestedPersonnelActions           PersonnelAction[]             @relation("PersonnelActionRequestedBy")
+  assignedPersonnelActions            PersonnelAction[]             @relation("PersonnelActionAssignedTo")
+  resolvedPersonnelActions            PersonnelAction[]             @relation("PersonnelActionResolvedBy")
+  submittedTransferRequests           TransferRequest[]             @relation("TransferRequestRequestedBy")
+  reviewedTransferRequests            TransferRequest[]             @relation("TransferRequestReviewedBy")
+  submittedLeaveRequests              LeaveOfAbsence[]              @relation("LeaveOfAbsenceRequestedBy")
+  reviewedLeaveRequests               LeaveOfAbsence[]              @relation("LeaveOfAbsenceReviewedBy")
+  discordVoiceSessions                DiscordVoiceSession[]         @relation("DiscordVoiceSessionUser")
 }
 
 model Account {
@@ -132,42 +140,47 @@ model VerificationToken {
 }
 
 model MemberProfile {
-  id                         String                      @id @default(uuid()) @db.VarChar(36)
-  userId                     String?                     @unique @db.VarChar(36)
-  firstName                  String?                     @db.VarChar(80)
-  lastName                   String?                     @db.VarChar(80)
-  displayName                String                      @db.VarChar(120)
-  callsign                   String?                     @db.VarChar(120)
-  joinDate                   DateTime?
-  statusId                   String                      @db.VarChar(36)
-  rankId                     String?                     @db.VarChar(36)
-  currentUnitId              String?                     @db.VarChar(36)
-  currentPositionId          String?                     @db.VarChar(36)
-  isActive                   Boolean                     @default(true)
-  deletedAt                  DateTime?
-  createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime                    @updatedAt
-  user                       User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status                     ProfileStatus               @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  currentRank                Rank?                       @relation("CurrentRank", fields: [rankId], references: [id], onDelete: SetNull)
-  currentUnit                Unit?                       @relation("CurrentUnit", fields: [currentUnitId], references: [id], onDelete: SetNull)
-  currentPosition            Position?                   @relation("CurrentPosition", fields: [currentPositionId], references: [id], onDelete: SetNull)
-  rosterAssignments          RosterAssignment[]
-  qualifications             MemberQualification[]
-  attendanceRecords          AttendanceRecord[]
-  patrolParticipants         PatrolParticipant[]
-  patrolRsvps                PatrolRsvp[]
-  discordMemberLinks         DiscordMemberLink[]         @relation("DiscordMemberLinkProfile")
-  discordGuildStates         DiscordGuildMemberState[]   @relation("DiscordGuildMemberStateProfile")
-  discordModerationActions   DiscordModerationAction[]   @relation("DiscordModerationTargetProfile")
-  discordInteractionSessions DiscordInteractionSession[] @relation("DiscordInteractionSessionProfile")
-  relatedCommunityCases      CommunityCase[]             @relation("CommunityCaseRelatedMember")
-  caseParticipants           CaseParticipant[]           @relation("CaseParticipantMember")
-  memberAdministrativeNotes  MemberAdministrativeNote[]  @relation("MemberAdministrativeNoteProfile")
-  personnelActions           PersonnelAction[]
-  transferRequests           TransferRequest[]
-  leaveOfAbsences            LeaveOfAbsence[]
-  discordVoiceSessions       DiscordVoiceSession[]       @relation("DiscordVoiceSessionProfile")
+  id                          String                             @id @default(uuid()) @db.VarChar(36)
+  userId                      String?                            @unique @db.VarChar(36)
+  firstName                   String?                            @db.VarChar(80)
+  lastName                    String?                            @db.VarChar(80)
+  displayName                 String                             @db.VarChar(120)
+  callsign                    String?                            @db.VarChar(120)
+  joinDate                    DateTime?
+  statusId                    String                             @db.VarChar(36)
+  rankId                      String?                            @db.VarChar(36)
+  currentUnitId               String?                            @db.VarChar(36)
+  currentPositionId           String?                            @db.VarChar(36)
+  isActive                    Boolean                            @default(true)
+  deletedAt                   DateTime?
+  createdAt                   DateTime                           @default(now())
+  updatedAt                   DateTime                           @updatedAt
+  user                        User?                              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status                      ProfileStatus                      @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  currentRank                 Rank?                              @relation("CurrentRank", fields: [rankId], references: [id], onDelete: SetNull)
+  currentUnit                 Unit?                              @relation("CurrentUnit", fields: [currentUnitId], references: [id], onDelete: SetNull)
+  currentPosition             Position?                          @relation("CurrentPosition", fields: [currentPositionId], references: [id], onDelete: SetNull)
+  rosterAssignments           RosterAssignment[]
+  qualifications              MemberQualification[]
+  attendanceRecords           AttendanceRecord[]
+  patrolParticipants          PatrolParticipant[]
+  patrolRsvps                 PatrolRsvp[]
+  discordMemberLinks          DiscordMemberLink[]                @relation("DiscordMemberLinkProfile")
+  discordGuildStates          DiscordGuildMemberState[]          @relation("DiscordGuildMemberStateProfile")
+  discordAutomationExecutions DiscordAutomationExecution[]
+  discordAutomationActions    DiscordAutomationActionExecution[]
+  discordManagedRoles         DiscordManagedRoleAssignment[]
+  discordRoleDrifts           DiscordRoleDrift[]
+  discordAutomationExceptions DiscordAutomationException[]
+  discordModerationActions    DiscordModerationAction[]          @relation("DiscordModerationTargetProfile")
+  discordInteractionSessions  DiscordInteractionSession[]        @relation("DiscordInteractionSessionProfile")
+  relatedCommunityCases       CommunityCase[]                    @relation("CommunityCaseRelatedMember")
+  caseParticipants            CaseParticipant[]                  @relation("CaseParticipantMember")
+  memberAdministrativeNotes   MemberAdministrativeNote[]         @relation("MemberAdministrativeNoteProfile")
+  personnelActions            PersonnelAction[]
+  transferRequests            TransferRequest[]
+  leaveOfAbsences             LeaveOfAbsence[]
+  discordVoiceSessions        DiscordVoiceSession[]              @relation("DiscordVoiceSessionProfile")
 
   @@index([statusId])
   @@index([rankId])
@@ -1632,31 +1645,703 @@ model Announcement {
 }
 
 model DiscordServer {
-  id                    String                    @id @default(uuid()) @db.VarChar(36)
-  unitId                String?                   @db.VarChar(36)
-  guildId               String                    @unique @db.VarChar(32)
-  name                  String                    @db.VarChar(120)
-  isPrimary             Boolean                   @default(false)
-  isActive              Boolean                   @default(true)
-  gatewayEnabled        Boolean                   @default(true)
-  memberSyncPolicy      String                    @default("primary_create_secondary_link") @db.VarChar(80)
-  roleSyncPolicy        String                    @default("manual") @db.VarChar(80)
-  nicknameSyncPolicy    String                    @default("disabled") @db.VarChar(80)
-  voiceAwarenessEnabled Boolean                   @default(false)
-  moderationEnabled     Boolean                   @default(false)
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  unit                  Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  channelMappings       DiscordChannelMapping[]
-  roleMappings          DiscordRoleMapping[]
-  memberStates          DiscordGuildMemberState[]
-  syncLogs              DiscordSyncLog[]
-  moderationActions     DiscordModerationAction[]
-  gatewayEventLogs      DiscordGatewayEventLog[]
-  voiceSessions         DiscordVoiceSession[]
+  id                     String                             @id @default(uuid()) @db.VarChar(36)
+  unitId                 String?                            @db.VarChar(36)
+  guildId                String                             @unique @db.VarChar(32)
+  name                   String                             @db.VarChar(120)
+  shortName              String?                            @db.VarChar(40)
+  description            String?                            @db.VarChar(500)
+  guildType              String                             @default("community") @db.VarChar(50)
+  isPrimary              Boolean                            @default(false)
+  isActive               Boolean                            @default(true)
+  iconUrl                String?                            @db.VarChar(512)
+  inviteUrl              String?                            @db.VarChar(255)
+  ownerUserId            String?                            @db.VarChar(36)
+  timezone               String                             @default("America/New_York") @db.VarChar(80)
+  locale                 String                             @default("en-US") @db.VarChar(20)
+  status                 String                             @default("active") @db.VarChar(50)
+  restStatus             String                             @default("unknown") @db.VarChar(50)
+  interactionStatus      String                             @default("unknown") @db.VarChar(50)
+  gatewayStatus          String                             @default("never_connected") @db.VarChar(50)
+  archivedAt             DateTime?
+  lastSyncAt             DateTime?
+  lastDiscoveryAt        DateTime?
+  gatewayEnabled         Boolean                            @default(true)
+  memberSyncPolicy       String                             @default("primary_create_secondary_link") @db.VarChar(80)
+  roleSyncPolicy         String                             @default("manual") @db.VarChar(80)
+  nicknameSyncPolicy     String                             @default("disabled") @db.VarChar(80)
+  voiceAwarenessEnabled  Boolean                            @default(false)
+  moderationEnabled      Boolean                            @default(false)
+  configuration          DiscordGuildConfiguration?
+  discoveredChannels     DiscordGuildChannel[]
+  discoveredRoles        DiscordGuildRole[]
+  discoveredEvents       DiscordGuildScheduledEvent[]
+  discoveredEmojis       DiscordGuildEmoji[]
+  discoveredStickers     DiscordGuildSticker[]
+  discoverySnapshots     DiscordGuildDiscoverySnapshot[]
+  discoverySessions      DiscordDiscoverySession[]
+  automationDefinitions  DiscordAutomationDefinition[]
+  automationExecutions   DiscordAutomationExecution[]
+  automationActions      DiscordAutomationActionExecution[]
+  managedRoleAssignments DiscordManagedRoleAssignment[]
+  automationExceptions   DiscordAutomationException[]
+  automationConflicts    DiscordAutomationConflict[]
+  roleDrifts             DiscordRoleDrift[]
+  healthChecks           DiscordGuildHealthCheck[]
+  permissionSnapshots    DiscordPermissionSnapshot[]
+  reconciliationItems    DiscordReconciliationItem[]
+  resourceChanges        DiscordResourceChange[]
+  resourceSnapshots      DiscordResourceSnapshot[]
+  syncSchedules          DiscordSyncSchedule[]
+  createdAt              DateTime                           @default(now())
+  updatedAt              DateTime                           @updatedAt
+  unit                   Unit?                              @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  channelMappings        DiscordChannelMapping[]
+  roleMappings           DiscordRoleMapping[]
+  memberStates           DiscordGuildMemberState[]
+  syncLogs               DiscordSyncLog[]
+  moderationActions      DiscordModerationAction[]
+  gatewayEventLogs       DiscordGatewayEventLog[]
+  voiceSessions          DiscordVoiceSession[]
 
   @@index([unitId])
+  @@index([guildType])
+  @@index([isActive, archivedAt])
+  @@index([isPrimary])
+  @@index([status])
   @@index([gatewayEnabled])
+}
+
+model DiscordGuildConfiguration {
+  id                    String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId       String        @unique @db.VarChar(36)
+  generalConfig         Json?
+  channelConfig         Json?
+  roleConfig            Json?
+  applicationConfig     Json?
+  qualificationConfig   Json?
+  eventConfig           Json?
+  communicationConfig   Json?
+  moderationConfig      Json?
+  automationConfig      Json?
+  gatewayConfig         Json?
+  synchronizationConfig Json?
+  diagnosticsConfig     Json?
+  featureFlags          Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  discordServer         DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+}
+
+model DiscordGuildChannel {
+  id                 String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId    String        @db.VarChar(36)
+  guildId            String        @db.VarChar(32)
+  channelId          String        @db.VarChar(32)
+  parentChannelId    String?       @db.VarChar(32)
+  name               String        @db.VarChar(120)
+  channelType        String        @db.VarChar(50)
+  position           Int?
+  nsfw               Boolean       @default(false)
+  isMissing          Boolean       @default(false)
+  permissionSnapshot Json?
+  isArchived         Boolean       @default(false)
+  lastSeenAt         DateTime      @default(now())
+  lastSyncedAt       DateTime      @default(now())
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  discordServer      DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@unique([discordServerId, channelId])
+  @@index([discordServerId, channelType])
+  @@index([guildId])
+  @@index([parentChannelId])
+  @@index([isMissing, isArchived])
+  @@index([lastSeenAt])
+}
+
+model DiscordGuildRole {
+  id                 String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId    String        @db.VarChar(36)
+  guildId            String        @db.VarChar(32)
+  roleId             String        @db.VarChar(32)
+  name               String        @db.VarChar(120)
+  color              Int?
+  position           Int?
+  managed            Boolean       @default(false)
+  mentionable        Boolean       @default(false)
+  hoisted            Boolean       @default(false)
+  botManageable      Boolean       @default(false)
+  isMissing          Boolean       @default(false)
+  permissionSnapshot Json?
+  isArchived         Boolean       @default(false)
+  lastSeenAt         DateTime      @default(now())
+  lastSyncedAt       DateTime      @default(now())
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  discordServer      DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@unique([discordServerId, roleId])
+  @@index([discordServerId])
+  @@index([guildId])
+  @@index([managed])
+  @@index([isMissing, isArchived])
+  @@index([lastSeenAt])
+}
+
+model DiscordGuildScheduledEvent {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId  String        @db.VarChar(36)
+  guildId          String        @db.VarChar(32)
+  eventId          String        @db.VarChar(32)
+  channelId        String?       @db.VarChar(32)
+  creatorId        String?       @db.VarChar(32)
+  name             String        @db.VarChar(120)
+  description      String?       @db.VarChar(1000)
+  status           String        @db.VarChar(50)
+  entityType       String        @db.VarChar(50)
+  scheduledStartAt DateTime?
+  scheduledEndAt   DateTime?
+  imageUrl         String?       @db.VarChar(512)
+  isMissing        Boolean       @default(false)
+  isArchived       Boolean       @default(false)
+  lastSeenAt       DateTime      @default(now())
+  lastSyncedAt     DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  discordServer    DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@unique([discordServerId, eventId])
+  @@index([discordServerId, status])
+  @@index([guildId])
+  @@index([isMissing, isArchived])
+  @@index([scheduledStartAt])
+}
+
+model DiscordEventPolicy {
+  id                       String    @id @default(uuid()) @db.VarChar(36)
+  discordServerId          String    @db.VarChar(36)
+  guildId                  String    @db.VarChar(32)
+  eventType                String    @db.VarChar(80)
+  integrationEnabled       Boolean   @default(false)
+  defaultEntityType        String    @default("external") @db.VarChar(50)
+  defaultChannelId         String?   @db.VarChar(32)
+  defaultExternalLocation  String?   @default("Arma 3") @db.VarChar(160)
+  automaticCreation        Boolean   @default(false)
+  manualApprovalRequired   Boolean   @default(true)
+  previewRequired          Boolean   @default(true)
+  automaticUpdates         Boolean   @default(false)
+  automaticCancellation    Boolean   @default(false)
+  importDiscordInterest    Boolean   @default(false)
+  importDiscordEventStatus Boolean   @default(false)
+  eventImagePolicy         String    @default("none") @db.VarChar(80)
+  communicationDomain      String?   @db.VarChar(80)
+  announcementBehavior     String    @default("communication_pipeline") @db.VarChar(80)
+  rsvpSourceBehavior       String    @default("portal_rsvp_authoritative") @db.VarChar(80)
+  retentionPolicy          String    @default("preserve_history") @db.VarChar(80)
+  conflictPolicy           String    @default("manual_review") @db.VarChar(80)
+  testMode                 Boolean   @default(true)
+  archivedAt               DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([discordServerId, eventType])
+  @@index([guildId, eventType])
+  @@index([integrationEnabled, archivedAt])
+}
+
+model DiscordEventTemplate {
+  id          String                        @id @default(uuid()) @db.VarChar(36)
+  eventType   String                        @db.VarChar(80)
+  name        String                        @db.VarChar(160)
+  description String?                       @db.Text
+  isActive    Boolean                       @default(true)
+  createdAt   DateTime                      @default(now())
+  updatedAt   DateTime                      @updatedAt
+  versions    DiscordEventTemplateVersion[]
+
+  @@index([eventType, isActive])
+}
+
+model DiscordEventTemplateVersion {
+  id                  String               @id @default(uuid()) @db.VarChar(36)
+  templateId          String               @db.VarChar(36)
+  versionNumber       Int
+  titleTemplate       String               @db.VarChar(160)
+  descriptionTemplate String               @db.Text
+  isCurrent           Boolean              @default(false)
+  metadata            Json?
+  createdAt           DateTime             @default(now())
+  template            DiscordEventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, versionNumber])
+  @@index([templateId, isCurrent])
+}
+
+model DiscordEventLink {
+  id                        String    @id @default(uuid()) @db.VarChar(36)
+  portalEventType           String    @db.VarChar(80)
+  portalEventId             String    @db.VarChar(36)
+  discordServerId           String    @db.VarChar(36)
+  guildId                   String    @db.VarChar(32)
+  discordScheduledEventId   String?   @db.VarChar(32)
+  synchronizationState      String    @default("planned") @db.VarChar(50)
+  ownershipMode             String    @default("portal_managed") @db.VarChar(50)
+  entityType                String    @default("external") @db.VarChar(50)
+  associatedChannelId       String?   @db.VarChar(32)
+  sourceVersion             String?   @db.VarChar(80)
+  lastPublishedVersion      String?   @db.VarChar(80)
+  lastSynchronizedAt        DateTime?
+  lastObservedDiscordUpdate DateTime?
+  lastSuccessfulAction      String?   @db.VarChar(80)
+  currentDiscordStatus      String?   @db.VarChar(50)
+  desiredPortalState        Json?
+  driftState                String    @default("none") @db.VarChar(50)
+  cancellationState         String    @default("active") @db.VarChar(50)
+  createdByUserId           String?   @db.VarChar(36)
+  updatedByUserId           String?   @db.VarChar(36)
+  archivedAt                DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([discordServerId, discordScheduledEventId])
+  @@index([portalEventType, portalEventId])
+  @@index([discordServerId, synchronizationState])
+  @@index([guildId, currentDiscordStatus])
+  @@index([driftState, archivedAt])
+}
+
+model DiscordEventPlan {
+  id                String                   @id @default(uuid()) @db.VarChar(36)
+  portalEventType   String                   @db.VarChar(80)
+  portalEventId     String                   @db.VarChar(36)
+  sourceVersion     String                   @db.VarChar(80)
+  status            String                   @default("preview") @db.VarChar(50)
+  generatedByUserId String?                  @db.VarChar(36)
+  expiresAt         DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  targets           DiscordEventPlanTarget[]
+
+  @@index([portalEventType, portalEventId, status])
+  @@index([expiresAt])
+}
+
+model DiscordEventPlanTarget {
+  id                     String           @id @default(uuid()) @db.VarChar(36)
+  planId                 String           @db.VarChar(36)
+  discordServerId        String           @db.VarChar(36)
+  guildId                String           @db.VarChar(32)
+  plannedAction          String           @db.VarChar(50)
+  entityType             String           @db.VarChar(50)
+  channelId              String?          @db.VarChar(32)
+  externalLocation       String?          @db.VarChar(160)
+  title                  String           @db.VarChar(160)
+  description            String           @db.VarChar(1000)
+  startsAt               DateTime
+  endsAt                 DateTime?
+  validationStatus       String           @db.VarChar(50)
+  warnings               Json?
+  blockingIssues         Json?
+  predictedCommunication Json?
+  rsvpBehavior           String           @db.VarChar(80)
+  linkedDiscordEventId   String?          @db.VarChar(32)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  plan                   DiscordEventPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@index([discordServerId, plannedAction])
+  @@index([validationStatus])
+}
+
+model DiscordEventExecution {
+  id                String                        @id @default(uuid()) @db.VarChar(36)
+  planId            String?                       @db.VarChar(36)
+  portalEventType   String                        @db.VarChar(80)
+  portalEventId     String                        @db.VarChar(36)
+  executionType     String                        @db.VarChar(50)
+  status            String                        @default("queued") @db.VarChar(50)
+  requestedByUserId String?                       @db.VarChar(36)
+  idempotencyKey    String                        @unique @db.VarChar(191)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  actions           DiscordEventActionExecution[]
+
+  @@index([portalEventType, portalEventId, status])
+  @@index([planId])
+}
+
+model DiscordEventActionExecution {
+  id                      String                @id @default(uuid()) @db.VarChar(36)
+  executionId             String                @db.VarChar(36)
+  discordEventLinkId      String?               @db.VarChar(36)
+  discordServerId         String                @db.VarChar(36)
+  guildId                 String                @db.VarChar(32)
+  action                  String                @db.VarChar(50)
+  status                  String                @default("queued") @db.VarChar(50)
+  discordScheduledEventId String?               @db.VarChar(32)
+  correlationId           String?               @db.VarChar(80)
+  retryable               Boolean               @default(true)
+  errorMessage            String?               @db.VarChar(500)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  execution               DiscordEventExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+  @@index([discordServerId, status])
+  @@index([discordEventLinkId])
+}
+
+model DiscordEventApproval {
+  id                String    @id @default(uuid()) @db.VarChar(36)
+  planId            String    @db.VarChar(36)
+  status            String    @default("requested") @db.VarChar(50)
+  requestedByUserId String?   @db.VarChar(36)
+  decidedByUserId   String?   @db.VarChar(36)
+  decision          String?   @db.VarChar(50)
+  reason            String?   @db.VarChar(500)
+  requestedAt       DateTime  @default(now())
+  decidedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([planId, status])
+  @@index([requestedByUserId])
+  @@index([decidedByUserId])
+}
+
+model DiscordEventDrift {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  discordEventLinkId String    @db.VarChar(36)
+  discordServerId    String    @db.VarChar(36)
+  guildId            String    @db.VarChar(32)
+  driftType          String    @db.VarChar(80)
+  status             String    @default("open") @db.VarChar(50)
+  severity           String    @default("warning") @db.VarChar(50)
+  desiredState       Json?
+  observedState      Json?
+  summary            String    @db.VarChar(500)
+  detectedAt         DateTime  @default(now())
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([discordEventLinkId, status])
+  @@index([discordServerId, status])
+  @@index([driftType, severity])
+}
+
+model DiscordEventException {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  discordEventLinkId String?   @db.VarChar(36)
+  portalEventType    String?   @db.VarChar(80)
+  portalEventId      String?   @db.VarChar(36)
+  discordServerId    String?   @db.VarChar(36)
+  exceptionType      String    @db.VarChar(80)
+  reason             String    @db.VarChar(500)
+  status             String    @default("active") @db.VarChar(50)
+  createdByUserId    String?   @db.VarChar(36)
+  expiresAt          DateTime?
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([portalEventType, portalEventId, status])
+  @@index([discordEventLinkId, status])
+  @@index([discordServerId, status])
+}
+
+model DiscordEventParticipationObservation {
+  id                      String   @id @default(uuid()) @db.VarChar(36)
+  discordEventLinkId      String?  @db.VarChar(36)
+  portalEventType         String?  @db.VarChar(80)
+  portalEventId           String?  @db.VarChar(36)
+  discordServerId         String   @db.VarChar(36)
+  guildId                 String   @db.VarChar(32)
+  discordScheduledEventId String   @db.VarChar(32)
+  discordUserId           String   @db.VarChar(32)
+  userId                  String?  @db.VarChar(36)
+  memberProfileId         String?  @db.VarChar(36)
+  participationStatus     String   @db.VarChar(50)
+  source                  String   @default("discord_scheduled_event") @db.VarChar(80)
+  observedAt              DateTime @default(now())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([discordScheduledEventId, discordUserId, participationStatus])
+  @@index([portalEventType, portalEventId])
+  @@index([discordEventLinkId])
+  @@index([discordUserId])
+  @@index([memberProfileId])
+}
+
+model DiscordEventReminder {
+  id                 String   @id @default(uuid()) @db.VarChar(36)
+  discordEventLinkId String   @db.VarChar(36)
+  reminderType       String   @db.VarChar(80)
+  dueAt              DateTime
+  status             String   @default("pending") @db.VarChar(50)
+  communicationId    String?  @db.VarChar(36)
+  idempotencyKey     String   @unique @db.VarChar(191)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([discordEventLinkId, status])
+  @@index([dueAt, status])
+}
+
+model DiscordEventHistory {
+  id                 String   @id @default(uuid()) @db.VarChar(36)
+  discordEventLinkId String?  @db.VarChar(36)
+  portalEventType    String?  @db.VarChar(80)
+  portalEventId      String?  @db.VarChar(36)
+  discordServerId    String?  @db.VarChar(36)
+  action             String   @db.VarChar(120)
+  summary            String   @db.VarChar(500)
+  metadata           Json?
+  actorUserId        String?  @db.VarChar(36)
+  createdAt          DateTime @default(now())
+
+  @@index([discordEventLinkId, createdAt])
+  @@index([portalEventType, portalEventId, createdAt])
+  @@index([discordServerId, createdAt])
+}
+
+model DiscordGuildEmoji {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId String        @db.VarChar(36)
+  guildId         String        @db.VarChar(32)
+  emojiId         String        @db.VarChar(32)
+  name            String        @db.VarChar(120)
+  animated        Boolean       @default(false)
+  managed         Boolean       @default(false)
+  available       Boolean       @default(true)
+  isMissing       Boolean       @default(false)
+  isArchived      Boolean       @default(false)
+  lastSeenAt      DateTime      @default(now())
+  lastSyncedAt    DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  discordServer   DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@unique([discordServerId, emojiId])
+  @@index([discordServerId])
+  @@index([guildId])
+  @@index([isMissing, isArchived])
+}
+
+model DiscordGuildSticker {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId String        @db.VarChar(36)
+  guildId         String        @db.VarChar(32)
+  stickerId       String        @db.VarChar(32)
+  name            String        @db.VarChar(120)
+  description     String?       @db.VarChar(500)
+  tags            String?       @db.VarChar(255)
+  formatType      String        @db.VarChar(50)
+  available       Boolean       @default(true)
+  isMissing       Boolean       @default(false)
+  isArchived      Boolean       @default(false)
+  lastSeenAt      DateTime      @default(now())
+  lastSyncedAt    DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  discordServer   DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@unique([discordServerId, stickerId])
+  @@index([discordServerId])
+  @@index([guildId])
+  @@index([isMissing, isArchived])
+}
+
+model DiscordDiscoverySession {
+  id                  String                      @id @default(uuid()) @db.VarChar(36)
+  discordServerId     String                      @db.VarChar(36)
+  guildId             String                      @db.VarChar(32)
+  requestedByUserId   String?                     @db.VarChar(36)
+  discoveryType       String                      @db.VarChar(50)
+  status              String                      @default("queued") @db.VarChar(50)
+  resourceTypes       Json?
+  resourcesFetched    Int                         @default(0)
+  resourcesCreated    Int                         @default(0)
+  resourcesUpdated    Int                         @default(0)
+  resourcesMissing    Int                         @default(0)
+  resourcesRestored   Int                         @default(0)
+  warnings            Json?
+  errors              Json?
+  rateLimitInfo       Json?
+  dryRun              Boolean                     @default(false)
+  snapshotId          String?                     @db.VarChar(36)
+  correlationId       String                      @unique @db.VarChar(80)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+  cancelledAt         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  discordServer       DiscordServer               @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  requestedBy         User?                       @relation("DiscordDiscoverySessionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  changes             DiscordResourceChange[]
+  reconciliationItems DiscordReconciliationItem[]
+
+  @@index([discordServerId, status])
+  @@index([guildId])
+  @@index([discoveryType, status])
+  @@index([createdAt])
+}
+
+model DiscordResourceSnapshot {
+  id                 String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId    String        @db.VarChar(36)
+  guildId            String        @db.VarChar(32)
+  discoverySessionId String?       @db.VarChar(36)
+  snapshotType       String        @db.VarChar(50)
+  resourceType       String        @db.VarChar(50)
+  resourceCount      Int           @default(0)
+  snapshot           Json
+  expiresAt          DateTime?
+  createdAt          DateTime      @default(now())
+  discordServer      DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@index([discordServerId, resourceType])
+  @@index([guildId])
+  @@index([discoverySessionId])
+  @@index([expiresAt])
+}
+
+model DiscordResourceChange {
+  id                  String                   @id @default(uuid()) @db.VarChar(36)
+  discordServerId     String                   @db.VarChar(36)
+  discoverySessionId  String?                  @db.VarChar(36)
+  guildId             String                   @db.VarChar(32)
+  resourceType        String                   @db.VarChar(50)
+  resourceId          String                   @db.VarChar(32)
+  status              String                   @db.VarChar(50)
+  priorState          Json?
+  currentState        Json?
+  changeSummary       String                   @db.VarChar(255)
+  impactSummary       String?                  @db.VarChar(500)
+  affectedMappings    Json?
+  affectedAutomations Json?
+  severity            String                   @default("info") @db.VarChar(50)
+  recommendedAction   String?                  @db.VarChar(255)
+  createdAt           DateTime                 @default(now())
+  discordServer       DiscordServer            @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  discoverySession    DiscordDiscoverySession? @relation(fields: [discoverySessionId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId, resourceType])
+  @@index([discoverySessionId])
+  @@index([status, severity])
+  @@index([resourceType, resourceId])
+}
+
+model DiscordReconciliationItem {
+  id                 String                   @id @default(uuid()) @db.VarChar(36)
+  discordServerId    String                   @db.VarChar(36)
+  discoverySessionId String?                  @db.VarChar(36)
+  guildId            String                   @db.VarChar(32)
+  resourceType       String                   @db.VarChar(50)
+  resourceId         String                   @db.VarChar(32)
+  changeStatus       String                   @db.VarChar(50)
+  status             String                   @default("open") @db.VarChar(50)
+  severity           String                   @default("info") @db.VarChar(50)
+  title              String                   @db.VarChar(160)
+  summary            String                   @db.VarChar(500)
+  recommendedAction  String                   @db.VarChar(255)
+  affectedMappings   Json?
+  affectedModules    Json?
+  resolvedAt         DateTime?
+  ignoredAt          DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  discordServer      DiscordServer            @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  discoverySession   DiscordDiscoverySession? @relation(fields: [discoverySessionId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId, status])
+  @@index([discoverySessionId])
+  @@index([resourceType, resourceId])
+  @@index([severity, status])
+  @@index([createdAt])
+}
+
+model DiscordSyncSchedule {
+  id               String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId  String        @unique @db.VarChar(36)
+  policy           String        @default("manual") @db.VarChar(50)
+  fullSyncCron     String?       @db.VarChar(80)
+  targetedSyncCron String?       @db.VarChar(80)
+  gatewayDriven    Boolean       @default(true)
+  isEnabled        Boolean       @default(false)
+  lastRunAt        DateTime?
+  nextRunAt        DateTime?
+  lastStatus       String?       @db.VarChar(50)
+  lastError        String?       @db.VarChar(255)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  discordServer    DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@index([isEnabled, nextRunAt])
+  @@index([policy])
+}
+
+model DiscordPermissionSnapshot {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId String        @db.VarChar(36)
+  guildId         String        @db.VarChar(32)
+  resourceType    String        @default("guild") @db.VarChar(50)
+  resourceId      String?       @db.VarChar(32)
+  capabilities    Json
+  status          String        @default("unknown") @db.VarChar(50)
+  summary         String        @db.VarChar(255)
+  evaluatedAt     DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  discordServer   DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@index([discordServerId, resourceType])
+  @@index([guildId])
+  @@index([status, evaluatedAt])
+}
+
+model DiscordGuildDiscoverySnapshot {
+  id                 String         @id @default(uuid()) @db.VarChar(36)
+  discordServerId    String?        @db.VarChar(36)
+  guildId            String?        @db.VarChar(32)
+  status             String         @default("completed") @db.VarChar(50)
+  discoveredGuilds   Int            @default(0)
+  discoveredChannels Int            @default(0)
+  discoveredRoles    Int            @default(0)
+  discoveredEvents   Int            @default(0)
+  discoveredEmoji    Int            @default(0)
+  discoveredStickers Int            @default(0)
+  errorMessage       String?        @db.VarChar(255)
+  snapshot           Json?
+  createdAt          DateTime       @default(now())
+  discordServer      DiscordServer? @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+
+  @@index([discordServerId])
+  @@index([guildId])
+  @@index([status, createdAt])
+}
+
+model DiscordGuildHealthCheck {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  discordServerId String        @db.VarChar(36)
+  checkType       String        @db.VarChar(80)
+  status          String        @db.VarChar(50)
+  latencyMs       Int?
+  summary         String        @db.VarChar(255)
+  errorMessage    String?       @db.VarChar(255)
+  metadata        Json?
+  checkedAt       DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  discordServer   DiscordServer @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@index([discordServerId, checkType])
+  @@index([status, checkedAt])
 }
 
 model DiscordChannelMapping {
@@ -1677,24 +2362,25 @@ model DiscordChannelMapping {
 }
 
 model DiscordRoleMapping {
-  id              String         @id @default(uuid()) @db.VarChar(36)
-  discordServerId String         @db.VarChar(36)
-  mappingType     String         @db.VarChar(50)
-  discordRoleId   String         @db.VarChar(32)
-  discordRoleName String?        @db.VarChar(120)
-  unitId          String?        @db.VarChar(36)
-  qualificationId String?        @db.VarChar(36)
-  roleId          String?        @db.VarChar(36)
-  rankId          String?        @db.VarChar(36)
-  description     String?        @db.VarChar(255)
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  discordServer   DiscordServer  @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
-  unit            Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  qualification   Qualification? @relation(fields: [qualificationId], references: [id], onDelete: SetNull)
-  role            Role?          @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  rank            Rank?          @relation(fields: [rankId], references: [id], onDelete: SetNull)
+  id                    String                        @id @default(uuid()) @db.VarChar(36)
+  discordServerId       String                        @db.VarChar(36)
+  mappingType           String                        @db.VarChar(50)
+  discordRoleId         String                        @db.VarChar(32)
+  discordRoleName       String?                       @db.VarChar(120)
+  unitId                String?                       @db.VarChar(36)
+  qualificationId       String?                       @db.VarChar(36)
+  roleId                String?                       @db.VarChar(36)
+  rankId                String?                       @db.VarChar(36)
+  description           String?                       @db.VarChar(255)
+  isActive              Boolean                       @default(true)
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  discordServer         DiscordServer                 @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  unit                  Unit?                         @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  qualification         Qualification?                @relation(fields: [qualificationId], references: [id], onDelete: SetNull)
+  role                  Role?                         @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  rank                  Rank?                         @relation(fields: [rankId], references: [id], onDelete: SetNull)
+  automationDefinitions DiscordAutomationDefinition[]
 
   @@unique([discordServerId, discordRoleId])
   @@index([discordServerId, mappingType])
@@ -1703,6 +2389,310 @@ model DiscordRoleMapping {
   @@index([roleId])
   @@index([rankId])
   @@index([isActive])
+}
+
+model DiscordAutomationDefinition {
+  id                   String                         @id @default(uuid()) @db.VarChar(36)
+  key                  String                         @unique @db.VarChar(160)
+  name                 String                         @db.VarChar(160)
+  description          String?                        @db.VarChar(500)
+  owningDomain         String                         @db.VarChar(80)
+  triggerType          String                         @db.VarChar(80)
+  enabled              Boolean                        @default(true)
+  guildScope           Json?
+  targetScope          Json?
+  conditions           Json?
+  actions              Json
+  executionMode        String                         @default("preview_only") @db.VarChar(50)
+  priority             Int                            @default(500)
+  conflictPolicy       String                         @default("manual_review") @db.VarChar(80)
+  retryPolicy          Json?
+  rollbackStrategy     String                         @default("manual_compensation") @db.VarChar(80)
+  auditPolicy          String                         @default("meaningful_events") @db.VarChar(80)
+  notificationPolicy   Json?
+  discordRoleMappingId String?                        @db.VarChar(36)
+  createdByUserId      String?                        @db.VarChar(36)
+  updatedByUserId      String?                        @db.VarChar(36)
+  archivedAt           DateTime?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+  discordRoleMapping   DiscordRoleMapping?            @relation(fields: [discordRoleMappingId], references: [id], onDelete: SetNull)
+  createdBy            User?                          @relation("DiscordAutomationDefinitionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy            User?                          @relation("DiscordAutomationDefinitionUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  executions           DiscordAutomationExecution[]
+  managedRoles         DiscordManagedRoleAssignment[]
+  exceptions           DiscordAutomationException[]
+  discordServer        DiscordServer?                 @relation(fields: [discordServerId], references: [id])
+  discordServerId      String?                        @db.VarChar(36)
+
+  @@index([owningDomain, triggerType])
+  @@index([enabled, executionMode])
+  @@index([discordRoleMappingId])
+  @@index([archivedAt])
+}
+
+model DiscordAutomationExecution {
+  id                     String                             @id @default(uuid()) @db.VarChar(36)
+  automationDefinitionId String?                            @db.VarChar(36)
+  triggerType            String                             @db.VarChar(80)
+  status                 String                             @default("planned") @db.VarChar(50)
+  executionMode          String                             @default("preview_only") @db.VarChar(50)
+  actorUserId            String?                            @db.VarChar(36)
+  approvedByUserId       String?                            @db.VarChar(36)
+  rejectedByUserId       String?                            @db.VarChar(36)
+  memberProfileId        String?                            @db.VarChar(36)
+  discordServerId        String?                            @db.VarChar(36)
+  sourceDomain           String                             @db.VarChar(80)
+  sourceEntityType       String                             @db.VarChar(80)
+  sourceEntityId         String                             @db.VarChar(80)
+  idempotencyKey         String                             @unique @db.VarChar(191)
+  correlationId          String                             @unique @db.VarChar(80)
+  plannedActions         Json
+  validationSummary      Json?
+  resultSummary          Json?
+  actionCount            Int                                @default(0)
+  succeededActionCount   Int                                @default(0)
+  failedActionCount      Int                                @default(0)
+  noChangeActionCount    Int                                @default(0)
+  retryCount             Int                                @default(0)
+  requestedAt            DateTime                           @default(now())
+  approvedAt             DateTime?
+  rejectedAt             DateTime?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  failedAt               DateTime?
+  cancelledAt            DateTime?
+  supersededAt           DateTime?
+  createdAt              DateTime                           @default(now())
+  updatedAt              DateTime                           @updatedAt
+  automationDefinition   DiscordAutomationDefinition?       @relation(fields: [automationDefinitionId], references: [id], onDelete: SetNull)
+  actor                  User?                              @relation("DiscordAutomationExecutionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  approvedBy             User?                              @relation("DiscordAutomationExecutionApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  rejectedBy             User?                              @relation("DiscordAutomationExecutionRejectedBy", fields: [rejectedByUserId], references: [id], onDelete: SetNull)
+  memberProfile          MemberProfile?                     @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  discordServer          DiscordServer?                     @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+  actionResults          DiscordAutomationActionExecution[]
+  approvals              DiscordAutomationApproval[]
+  conflicts              DiscordAutomationConflict[]
+  retries                DiscordAutomationRetry[]
+  rollbacks              DiscordAutomationRollback[]
+  roleDrifts             DiscordRoleDrift[]
+
+  @@index([automationDefinitionId])
+  @@index([triggerType, status])
+  @@index([memberProfileId])
+  @@index([discordServerId, status])
+  @@index([sourceEntityType, sourceEntityId])
+  @@index([createdAt])
+}
+
+model DiscordAutomationActionExecution {
+  id                     String                         @id @default(uuid()) @db.VarChar(36)
+  executionId            String                         @db.VarChar(36)
+  actionType             String                         @db.VarChar(80)
+  status                 String                         @default("planned") @db.VarChar(50)
+  discordServerId        String?                        @db.VarChar(36)
+  guildId                String?                        @db.VarChar(32)
+  memberProfileId        String?                        @db.VarChar(36)
+  discordUserId          String?                        @db.VarChar(32)
+  targetRoleId           String?                        @db.VarChar(32)
+  targetRoleName         String?                        @db.VarChar(120)
+  sourceDomain           String                         @db.VarChar(80)
+  sourceEntityType       String                         @db.VarChar(80)
+  sourceEntityId         String                         @db.VarChar(80)
+  reason                 String?                        @db.VarChar(255)
+  priority               Int                            @default(500)
+  idempotencyKey         String                         @unique @db.VarChar(191)
+  expectedCurrentState   Json?
+  desiredFinalState      Json?
+  rollbackInformation    Json?
+  validationStatus       String                         @default("not_evaluated") @db.VarChar(50)
+  validationMessages     Json?
+  executionResult        Json?
+  errorMessage           String?                        @db.VarChar(500)
+  retryable              Boolean                        @default(false)
+  retryCount             Int                            @default(0)
+  nextRetryAt            DateTime?
+  executedAt             DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  execution              DiscordAutomationExecution     @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  discordServer          DiscordServer?                 @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+  memberProfile          MemberProfile?                 @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  managedRoleAssignments DiscordManagedRoleAssignment[]
+  retries                DiscordAutomationRetry[]
+  rollbacks              DiscordAutomationRollback[]
+
+  @@index([executionId])
+  @@index([discordServerId, status])
+  @@index([memberProfileId])
+  @@index([actionType, status])
+  @@index([targetRoleId])
+  @@index([createdAt])
+}
+
+model DiscordManagedRoleAssignment {
+  id                     String                            @id @default(uuid()) @db.VarChar(36)
+  memberProfileId        String                            @db.VarChar(36)
+  discordServerId        String                            @db.VarChar(36)
+  guildId                String                            @db.VarChar(32)
+  discordUserId          String                            @db.VarChar(32)
+  discordRoleId          String                            @db.VarChar(32)
+  automationDefinitionId String?                           @db.VarChar(36)
+  actionExecutionId      String?                           @db.VarChar(36)
+  sourceEntityType       String                            @db.VarChar(80)
+  sourceEntityId         String                            @db.VarChar(80)
+  assignedByPortalAt     DateTime?
+  removedByPortalAt      DateTime?
+  expectedState          String                            @default("present") @db.VarChar(50)
+  observedState          String                            @default("unknown") @db.VarChar(50)
+  isCurrent              Boolean                           @default(true)
+  idempotencyKey         String                            @unique @db.VarChar(191)
+  metadata               Json?
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
+  memberProfile          MemberProfile                     @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  discordServer          DiscordServer                     @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  automationDefinition   DiscordAutomationDefinition?      @relation(fields: [automationDefinitionId], references: [id], onDelete: SetNull)
+  actionExecution        DiscordAutomationActionExecution? @relation(fields: [actionExecutionId], references: [id], onDelete: SetNull)
+
+  @@unique([memberProfileId, discordServerId, discordRoleId, sourceEntityType, sourceEntityId])
+  @@index([discordServerId, discordRoleId])
+  @@index([discordUserId, isCurrent])
+  @@index([expectedState, observedState])
+}
+
+model DiscordAutomationException {
+  id                     String                       @id @default(uuid()) @db.VarChar(36)
+  automationDefinitionId String?                      @db.VarChar(36)
+  memberProfileId        String?                      @db.VarChar(36)
+  discordServerId        String?                      @db.VarChar(36)
+  discordRoleId          String?                      @db.VarChar(32)
+  exceptionType          String                       @db.VarChar(80)
+  reason                 String                       @db.VarChar(500)
+  startsAt               DateTime                     @default(now())
+  expiresAt              DateTime?
+  isActive               Boolean                      @default(true)
+  createdByUserId        String?                      @db.VarChar(36)
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  automationDefinition   DiscordAutomationDefinition? @relation(fields: [automationDefinitionId], references: [id], onDelete: SetNull)
+  memberProfile          MemberProfile?               @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  discordServer          DiscordServer?               @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+  createdBy              User?                        @relation("DiscordAutomationExceptionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([automationDefinitionId])
+  @@index([memberProfileId])
+  @@index([discordServerId, discordRoleId])
+  @@index([isActive, expiresAt])
+}
+
+model DiscordAutomationConflict {
+  id              String                      @id @default(uuid()) @db.VarChar(36)
+  executionId     String?                     @db.VarChar(36)
+  discordServerId String?                     @db.VarChar(36)
+  memberProfileId String?                     @db.VarChar(36)
+  discordRoleId   String?                     @db.VarChar(32)
+  conflictType    String                      @db.VarChar(80)
+  status          String                      @default("open") @db.VarChar(50)
+  severity        String                      @default("warning") @db.VarChar(50)
+  summary         String                      @db.VarChar(500)
+  policy          String                      @default("manual_review") @db.VarChar(80)
+  metadata        Json?
+  resolvedAt      DateTime?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  execution       DiscordAutomationExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  discordServer   DiscordServer?              @relation(fields: [discordServerId], references: [id], onDelete: SetNull)
+
+  @@index([executionId])
+  @@index([discordServerId, status])
+  @@index([discordRoleId])
+  @@index([severity, status])
+}
+
+model DiscordAutomationApproval {
+  id          String                     @id @default(uuid()) @db.VarChar(36)
+  executionId String                     @db.VarChar(36)
+  actorUserId String?                    @db.VarChar(36)
+  decision    String                     @db.VarChar(50)
+  reason      String?                    @db.VarChar(500)
+  decidedAt   DateTime                   @default(now())
+  createdAt   DateTime                   @default(now())
+  execution   DiscordAutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  actor       User?                      @relation("DiscordAutomationApprovalActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([executionId])
+  @@index([actorUserId])
+  @@index([decision, decidedAt])
+}
+
+model DiscordRoleDrift {
+  id              String                      @id @default(uuid()) @db.VarChar(36)
+  executionId     String?                     @db.VarChar(36)
+  memberProfileId String?                     @db.VarChar(36)
+  discordServerId String                      @db.VarChar(36)
+  guildId         String                      @db.VarChar(32)
+  discordUserId   String                      @db.VarChar(32)
+  discordRoleId   String                      @db.VarChar(32)
+  driftType       String                      @db.VarChar(80)
+  status          String                      @default("open") @db.VarChar(50)
+  severity        String                      @default("warning") @db.VarChar(50)
+  summary         String                      @db.VarChar(500)
+  desiredState    Json?
+  observedState   Json?
+  detectedAt      DateTime                    @default(now())
+  resolvedAt      DateTime?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  execution       DiscordAutomationExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  memberProfile   MemberProfile?              @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  discordServer   DiscordServer               @relation(fields: [discordServerId], references: [id], onDelete: Cascade)
+
+  @@index([discordServerId, status])
+  @@index([memberProfileId])
+  @@index([discordUserId, discordRoleId])
+  @@index([driftType, status])
+}
+
+model DiscordAutomationRetry {
+  id                String                            @id @default(uuid()) @db.VarChar(36)
+  executionId       String                            @db.VarChar(36)
+  actionExecutionId String?                           @db.VarChar(36)
+  status            String                            @default("requested") @db.VarChar(50)
+  reason            String?                           @db.VarChar(500)
+  attemptNumber     Int                               @default(1)
+  requestedAt       DateTime                          @default(now())
+  completedAt       DateTime?
+  errorMessage      String?                           @db.VarChar(500)
+  createdAt         DateTime                          @default(now())
+  execution         DiscordAutomationExecution        @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  actionExecution   DiscordAutomationActionExecution? @relation(fields: [actionExecutionId], references: [id], onDelete: SetNull)
+
+  @@index([executionId])
+  @@index([actionExecutionId])
+  @@index([status, requestedAt])
+}
+
+model DiscordAutomationRollback {
+  id                String                            @id @default(uuid()) @db.VarChar(36)
+  executionId       String                            @db.VarChar(36)
+  actionExecutionId String?                           @db.VarChar(36)
+  status            String                            @default("planned") @db.VarChar(50)
+  reason            String?                           @db.VarChar(500)
+  rollbackPlan      Json?
+  result            Json?
+  requestedAt       DateTime                          @default(now())
+  completedAt       DateTime?
+  errorMessage      String?                           @db.VarChar(500)
+  createdAt         DateTime                          @default(now())
+  execution         DiscordAutomationExecution        @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  actionExecution   DiscordAutomationActionExecution? @relation(fields: [actionExecutionId], references: [id], onDelete: SetNull)
+
+  @@index([executionId])
+  @@index([actionExecutionId])
+  @@index([status, requestedAt])
 }
 
 model DiscordMemberLink {
@@ -1901,6 +2891,9 @@ model DiscordModerationAction {
   result                String         @db.VarChar(50)
   errorMessage          String?        @db.VarChar(255)
   providerActionId      String?        @db.VarChar(191)
+  approvalStatus        String         @default("not_required") @db.VarChar(50)
+  policySnapshot        Json?
+  previewSnapshot       Json?
   metadata              Json?
   requestedAt           DateTime       @default(now())
   executedAt            DateTime?
@@ -1923,7 +2916,173 @@ model DiscordModerationAction {
   @@index([targetMemberProfileId])
   @@index([targetDiscordUserId])
   @@index([action, result])
+  @@index([approvalStatus])
   @@index([createdAt])
+}
+
+model DiscordModerationPolicy {
+  id                         String   @id @default(uuid()) @db.VarChar(36)
+  discordServerId            String   @unique @db.VarChar(36)
+  guildId                    String   @db.VarChar(32)
+  warningsEnabled            Boolean  @default(true)
+  notesEnabled               Boolean  @default(true)
+  timeoutEnabled             Boolean  @default(true)
+  timeoutMaxSeconds          Int      @default(604800)
+  timeoutApprovalMode        String   @default("single_approval") @db.VarChar(60)
+  kickEnabled                Boolean  @default(true)
+  kickApprovalMode           String   @default("single_approval") @db.VarChar(60)
+  banEnabled                 Boolean  @default(true)
+  banApprovalMode            String   @default("command_approval") @db.VarChar(60)
+  unbanApprovalMode          String   @default("single_approval") @db.VarChar(60)
+  crossGuildPolicy           String   @default("manual_review") @db.VarChar(80)
+  appealEnabled              Boolean  @default(true)
+  moderatorNotifications     Boolean  @default(true)
+  evidenceRequiredForActions Json?
+  reasonRequired             Boolean  @default(true)
+  logRetentionDays           Int      @default(365)
+  communicationTemplateKey   String?  @db.VarChar(120)
+  isEnabled                  Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([guildId])
+  @@index([isEnabled])
+}
+
+model DiscordModerationApproval {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  moderationActionId String    @db.VarChar(36)
+  caseId             String    @db.VarChar(36)
+  approvalMode       String    @db.VarChar(60)
+  status             String    @default("requested") @db.VarChar(50)
+  requestedByUserId  String?   @db.VarChar(36)
+  decidedByUserId    String?   @db.VarChar(36)
+  decision           String?   @db.VarChar(50)
+  reason             String?   @db.VarChar(500)
+  requestedAt        DateTime  @default(now())
+  decidedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([moderationActionId, status])
+  @@index([caseId, status])
+  @@index([requestedByUserId])
+  @@index([decidedByUserId])
+}
+
+model DiscordModerationObservation {
+  id                   String   @id @default(uuid()) @db.VarChar(36)
+  discordServerId      String   @db.VarChar(36)
+  guildId              String   @db.VarChar(32)
+  targetDiscordUserId  String   @db.VarChar(32)
+  relatedCaseId        String?  @db.VarChar(36)
+  relatedActionId      String?  @db.VarChar(36)
+  observationType      String   @db.VarChar(80)
+  observedState        Json?
+  reconciliationStatus String   @default("observed") @db.VarChar(50)
+  summary              String   @db.VarChar(500)
+  observedAt           DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([discordServerId, observationType])
+  @@index([targetDiscordUserId])
+  @@index([relatedCaseId])
+  @@index([relatedActionId])
+  @@index([reconciliationStatus])
+}
+
+model DiscordApplicationCatalogEntry {
+  id                   String   @id @default(uuid()) @db.VarChar(36)
+  applicationTypeKey   String   @unique @db.VarChar(80)
+  displayName          String   @db.VarChar(160)
+  description          String   @db.Text
+  availability         String   @default("available") @db.VarChar(60)
+  eligibilitySummary   String?  @db.VarChar(500)
+  applicantScope       String   @default("linked_user") @db.VarChar(80)
+  owningDomain         String   @default("applications") @db.VarChar(80)
+  portalRoute          String   @db.VarChar(255)
+  discordStartBehavior String   @default("portal_continuation") @db.VarChar(80)
+  configuredGuilds     Json?
+  configuredChannels   Json?
+  reviewDestination    String?  @db.VarChar(120)
+  communicationDomain  String   @default("applications") @db.VarChar(80)
+  phase5ProviderKey    String?  @db.VarChar(120)
+  isEnabled            Boolean  @default(true)
+  maintenanceMode      Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([availability, isEnabled])
+  @@index([owningDomain])
+}
+
+model DiscordApplicationGuildPolicy {
+  id                             String   @id @default(uuid()) @db.VarChar(36)
+  discordServerId                String   @unique @db.VarChar(36)
+  guildId                        String   @db.VarChar(32)
+  applicationIntegrationEnabled  Boolean  @default(true)
+  visibleApplicationTypes        Json?
+  entryChannelId                 String?  @db.VarChar(32)
+  reviewChannelId                String?  @db.VarChar(32)
+  staffNotificationChannelId     String?  @db.VarChar(32)
+  applicationPanelEnabled        Boolean  @default(false)
+  commandAvailability            String   @default("enabled") @db.VarChar(60)
+  reviewerQuickActionsEnabled    Boolean  @default(true)
+  portalOnlyReviewMode           Boolean  @default(false)
+  applicantStatusCommandsEnabled Boolean  @default(true)
+  resultNotificationBehavior     String   @default("portal_and_discord_when_mapped") @db.VarChar(80)
+  routingPriority                String   @default("guild_then_domain") @db.VarChar(80)
+  testingMode                    Boolean  @default(true)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@index([guildId])
+  @@index([applicationIntegrationEnabled, commandAvailability])
+}
+
+model DiscordApplicationReviewMessage {
+  id              String    @id @default(uuid()) @db.VarChar(36)
+  submissionId    String    @db.VarChar(36)
+  discordServerId String?   @db.VarChar(36)
+  guildId         String?   @db.VarChar(32)
+  channelId       String?   @db.VarChar(32)
+  messageId       String?   @db.VarChar(32)
+  applicationType String    @db.VarChar(80)
+  status          String    @default("requested") @db.VarChar(60)
+  routingSummary  String?   @db.VarChar(500)
+  errorMessage    String?   @db.VarChar(500)
+  lastPublishedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([submissionId])
+  @@index([discordServerId, status])
+  @@index([guildId, applicationType])
+  @@index([messageId])
+}
+
+model DiscordApplicationContinuationToken {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  sessionId          String    @db.VarChar(36)
+  tokenHash          String    @unique @db.VarChar(128)
+  applicationTypeKey String    @db.VarChar(80)
+  discordUserId      String    @db.VarChar(32)
+  portalUserId       String?   @db.VarChar(36)
+  memberProfileId    String?   @db.VarChar(36)
+  guildId            String?   @db.VarChar(32)
+  status             String    @default("active") @db.VarChar(50)
+  expiresAt          DateTime
+  usedAt             DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([sessionId])
+  @@index([discordUserId, status])
+  @@index([portalUserId, status])
+  @@index([applicationTypeKey, status])
+  @@index([expiresAt])
 }
 
 model CommunityCase {

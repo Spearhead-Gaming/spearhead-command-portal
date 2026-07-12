@@ -69,6 +69,10 @@ export async function listDiscordServers() {
       _count: {
         select: {
           channelMappings: true,
+          discoveredChannels: true,
+          discoveredRoles: true,
+          memberStates: true,
+          roleMappings: true,
         },
       },
     },
@@ -168,14 +172,22 @@ export async function listDiscordRoleMappings() {
 
 export async function upsertDiscordServerMapping(input: UpsertDiscordServerMappingInput) {
   const payload = {
+    description: normalizeOptionalString(input.description),
     gatewayEnabled: input.gatewayEnabled ?? true,
+    guildType: normalizeOptionalString(input.guildType) ?? "community",
     guildId: normalizeRequiredString(input.guildId, "Guild ID"),
+    iconUrl: normalizeOptionalString(input.iconUrl),
     isActive: input.isActive,
     isPrimary: input.isPrimary,
+    inviteUrl: normalizeOptionalString(input.inviteUrl),
+    locale: normalizeOptionalString(input.locale) ?? "en-US",
     memberSyncPolicy: normalizeOptionalString(input.memberSyncPolicy) ?? "primary_create_secondary_link",
     name: normalizeRequiredString(input.name, "Server name"),
     nicknameSyncPolicy: normalizeOptionalString(input.nicknameSyncPolicy) ?? "disabled",
     roleSyncPolicy: normalizeOptionalString(input.roleSyncPolicy) ?? "manual",
+    shortName: normalizeOptionalString(input.shortName),
+    status: input.isActive ? "active" : "disabled",
+    timezone: normalizeOptionalString(input.timezone) ?? "America/New_York",
     unitId: normalizeOptionalId(input.unitId),
     voiceAwarenessEnabled: input.voiceAwarenessEnabled ?? false,
   };
@@ -219,6 +231,44 @@ export async function upsertDiscordServerMapping(input: UpsertDiscordServerMappi
       });
     });
 
+    await prisma.discordGuildConfiguration.upsert({
+      create: {
+        discordServerId: server.id,
+        generalConfig: {
+          portalIsSourceOfTruth: true,
+        },
+        channelConfig: {
+          allowAutomaticMapping: false,
+          discoverChannels: true,
+        },
+        roleConfig: {
+          allowUnmappedRoleModification: false,
+          discoverRoles: true,
+        },
+        synchronizationConfig: {
+          conflictWinner: "portal",
+          incrementalPreferred: true,
+          overwriteAdminConfig: false,
+        },
+        diagnosticsConfig: {
+          enabled: true,
+          exposeSecrets: false,
+        },
+        featureFlags: {
+          communications: true,
+          diagnostics: true,
+          events: true,
+          gateway: true,
+          memberSync: true,
+          roleSync: true,
+        },
+      },
+      update: {},
+      where: {
+        discordServerId: server.id,
+      },
+    });
+
     await recordAuditEvent({
       action: existing ? "discord.server.mapping.updated" : "discord.server.mapped",
       actorUserId: input.actorUserId,
@@ -228,6 +278,7 @@ export async function upsertDiscordServerMapping(input: UpsertDiscordServerMappi
       oldValue: existing
         ? {
             gatewayEnabled: existing.gatewayEnabled,
+            guildType: existing.guildType,
             guildId: existing.guildId,
             isActive: existing.isActive,
             isPrimary: existing.isPrimary,

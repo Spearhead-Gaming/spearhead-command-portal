@@ -78,7 +78,7 @@ async function notifyCaseEvent(input: {
   }).catch(() => null);
 }
 
-async function createCommunityCaseRecord(input: CaseCreateInput & { actorUserId: string }) {
+export async function createCommunityCaseRecord(input: CaseCreateInput & { actorUserId: string }) {
   const definition = getCaseTypeDefinition(input.caseType);
 
   if (!definition) {

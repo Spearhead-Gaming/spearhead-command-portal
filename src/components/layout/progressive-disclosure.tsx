@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,7 @@ export function CollapsibleSection({
 
 type AttentionItem = {
   actionLabel?: string;
+  affectedEntity?: string;
   href?: string;
   label: string;
   meta?: string;
@@ -109,6 +110,67 @@ export function AttentionPanel({
   );
 }
 
+type NeedsAttentionProps = AttentionPanelProps & {
+  description?: string;
+};
+
+export function NeedsAttention({
+  description = "Specific issues that have a next action stay visible; diagnostics and history should live below.",
+  emptyDescription = "Nothing needs immediate action right now.",
+  emptyTitle = "All clear",
+  items,
+  title = "Needs attention",
+}: NeedsAttentionProps) {
+  return (
+    <Card className="border-amber-500/25 bg-amber-500/[0.05]">
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/10 text-amber-200">
+            <AlertTriangle aria-hidden="true" className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.length === 0 ? (
+          <div className="rounded-xl border border-border/70 bg-background/35 p-4">
+            <p className="font-semibold text-foreground">{emptyTitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{emptyDescription}</p>
+          </div>
+        ) : (
+          items.map((item) => (
+            <div
+              className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+              key={`${item.label}-${item.meta ?? item.affectedEntity ?? "attention"}`}
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-foreground">{item.label}</p>
+                  <StatusBadge label={item.tone === "danger" ? "Critical" : "Review"} tone={item.tone ?? "warning"} />
+                </div>
+                {item.affectedEntity ? (
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    {item.affectedEntity}
+                  </p>
+                ) : null}
+                {item.meta ? <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p> : null}
+              </div>
+              {item.href && item.actionLabel ? (
+                <Button asChild size="sm" variant="outline">
+                  <a href={item.href}>{item.actionLabel}</a>
+                </Button>
+              ) : null}
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 type SummaryCardProps = {
   action?: ReactNode;
   description?: string;
@@ -139,6 +201,29 @@ export function SummaryCard({ action, description, status, title, value }: Summa
   );
 }
 
+type CompactMetricProps = {
+  className?: string;
+  hint?: string;
+  label: string;
+  tone?: BadgeTone;
+  value: ReactNode;
+};
+
+export function CompactMetric({ className, hint, label, tone = "muted", value }: CompactMetricProps) {
+  return (
+    <div className={cn("rounded-xl border border-border/65 bg-background/38 p-3", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+        <StatusBadge label={typeof value === "string" || typeof value === "number" ? String(value) : "Set"} tone={tone} />
+      </div>
+      {typeof value === "string" || typeof value === "number" ? null : (
+        <div className="mt-2 text-sm font-semibold text-foreground">{value}</div>
+      )}
+      {hint ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
 type MetadataListProps = {
   items: Array<{
     label: string;
@@ -156,5 +241,171 @@ export function MetadataList({ items }: MetadataListProps) {
         </div>
       ))}
     </dl>
+  );
+}
+
+type AdvancedFiltersProps = {
+  children: ReactNode;
+  className?: string;
+  description?: string;
+  resultCount?: number;
+  title?: string;
+};
+
+export function AdvancedFilters({
+  children,
+  className,
+  description = "Use these only when the default view is too broad.",
+  resultCount,
+  title = "Advanced filters",
+}: AdvancedFiltersProps) {
+  return (
+    <CollapsibleSection
+      badgeLabel={resultCount === undefined ? "Optional" : `${resultCount} result${resultCount === 1 ? "" : "s"}`}
+      badgeTone="muted"
+      className={className}
+      description={description}
+      title={title}
+    >
+      {children}
+    </CollapsibleSection>
+  );
+}
+
+type RecentActivityPreviewProps = {
+  emptyDescription?: string;
+  emptyTitle?: string;
+  items: Array<{
+    id: string;
+    meta?: string;
+    statusLabel?: string;
+    summary: string;
+    tone?: BadgeTone;
+  }>;
+  limit?: number;
+};
+
+export function RecentActivityPreview({
+  emptyDescription = "History appears here after meaningful actions are recorded.",
+  emptyTitle = "No recent activity",
+  items,
+  limit = 5,
+}: RecentActivityPreviewProps) {
+  const visibleItems = items.slice(0, limit);
+
+  if (visibleItems.length === 0) {
+    return (
+      <div className="rounded-xl border border-border/70 bg-background/35 p-4">
+        <p className="font-semibold text-foreground">{emptyTitle}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{emptyDescription}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {visibleItems.map((item) => (
+        <div key={item.id} className="rounded-xl border border-border/70 bg-background/40 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-foreground">{item.summary}</p>
+              {item.meta ? <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p> : null}
+            </div>
+            {item.statusLabel ? <StatusBadge label={item.statusLabel} tone={item.tone ?? "muted"} /> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type InspectorSummaryProps = {
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  subtitle?: string;
+  title: string;
+};
+
+export function InspectorSummary({ action, children, className, subtitle, title }: InspectorSummaryProps) {
+  return (
+    <div className={cn("rounded-2xl border border-border/70 bg-background/45 p-4", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-foreground">{title}</p>
+          {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        {action}
+      </div>
+      {children ? <div className="mt-4">{children}</div> : null}
+    </div>
+  );
+}
+
+type InlineIssueProps = {
+  action?: ReactNode;
+  description: string;
+  title: string;
+  tone?: BadgeTone;
+};
+
+export function InlineIssue({ action, description, title, tone = "warning" }: InlineIssueProps) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/45 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-foreground">{title}</p>
+          <StatusBadge label={tone === "danger" ? "Critical" : "Attention"} tone={tone} />
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+type StatusSummaryProps = {
+  items: Array<{
+    label: string;
+    tone?: BadgeTone;
+    value: ReactNode;
+  }>;
+};
+
+export function StatusSummary({ items }: StatusSummaryProps) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <CompactMetric key={item.label} label={item.label} tone={item.tone} value={item.value} />
+      ))}
+    </div>
+  );
+}
+
+type DetailTabsProps = {
+  items: Array<{
+    href: string;
+    isActive?: boolean;
+    label: string;
+  }>;
+};
+
+export function DetailTabs({ items }: DetailTabsProps) {
+  return (
+    <nav aria-label="Detail sections" className="flex gap-2 overflow-x-auto rounded-xl border border-border/70 bg-background/35 p-1">
+      {items.map((item) => (
+        <a
+          aria-current={item.isActive ? "page" : undefined}
+          className={cn(
+            "shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted/30 hover:text-foreground",
+            item.isActive ? "bg-primary/15 text-primary" : null,
+          )}
+          href={item.href}
+          key={item.href}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
   );
 }

@@ -81,6 +81,8 @@ export type OperationsCenterWidgetId =
   | "discord-voice-awareness"
   | "discord-role-sync-health"
   | "discord-gateway-error-queue"
+  | "discord-resource-reconciliation"
+  | "discord-automation"
   | "community-open-cases"
   | "community-critical-cases"
   | "community-pending-appeals"

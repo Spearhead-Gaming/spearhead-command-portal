@@ -5,6 +5,8 @@
 - AppShell
 - SidebarNav
 - TopBar
+- SectionHeader
+- ActionGroup
 - DashboardCard
 - DataTable
 - SearchInput
@@ -20,6 +22,27 @@
 - DrawerForm
 - EmptyState
 - LoadingState
+- NeedsAttention
+- SummaryCard
+- CompactList
+- CompactMetric
+- CollapsibleSection
+- AdvancedFilters
+- MetadataList
+- RecentActivityPreview
+- InspectorSummary
+- InlineIssue
+- StatusSummary
+- DetailTabs
+- WorkflowProgress
+- WorkflowStep
+- NextActionCard
+- BlockingIssueSummary
+- CompletionChecklist
+- ContextHeader
+- SaveStateIndicator
+- TransitionActions
+- HandoffSummary
 
 ## Data Table Requirements
 

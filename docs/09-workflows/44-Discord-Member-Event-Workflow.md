@@ -64,4 +64,4 @@ Member events must not overwrite:
 
 - Gateway-driven automatic role sync.
 - Nickname sync execution.
-- Moderation workflows beyond audited kick support.
+- Deeper moderation reconciliation for ban and timeout drift beyond the initial observation model.

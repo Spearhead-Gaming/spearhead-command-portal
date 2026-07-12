@@ -14,6 +14,8 @@ Move members between units or positions while preserving assignment history and 
 - Current unit and receiving unit approval may both be required.
 - Administrative transfers require reason and audit.
 - RASP transfers link to the RASP workflow.
+- Command cannot be selected as a normal transfer destination.
+- Detachment 7 is invite-only and leadership-managed.
 - Only one active primary roster assignment should exist per member.
 
 ## Goals
@@ -29,7 +31,7 @@ Member, Current Unit Leadership, Receiving Unit Leadership, S1 Staff, Discord Bo
 
 ## Entry Points
 
-`/applications`, `/administration/submissions`, `/personnel/roster`, `/personnel/members/[id]`, `/units/[unitId]`.
+`/apply info`, `/apply start`, `/apply status`, `/applications`, `/administration/submissions`, `/personnel/roster`, `/personnel/members/[id]`, `/units/[unitId]`.
 
 ## Exit Points
 
@@ -183,4 +185,3 @@ Temporary transfers, transfer windows, multi-step approval builder, automatic el
 - [Application Workflow](10-Application-Workflow.md)
 - [RASP Workflow](11-RASP-Workflow.md)
 - [ROSTER_WORKFLOW.md](../06-community/ROSTER_WORKFLOW.md)
-

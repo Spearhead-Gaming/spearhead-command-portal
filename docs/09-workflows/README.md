@@ -67,7 +67,7 @@ Use this library when planning, implementing, reviewing, testing, or documenting
 | [32-Unified-Operations-Center-Workflow.md](32-Unified-Operations-Center-Workflow.md) | Unified Operations Center widget dashboard and command refresh workflow |
 | [33-Communications-Center-Workflow.md](33-Communications-Center-Workflow.md) | Unified communication pipeline, announcements, templates, preferences, and delivery review |
 | [34-Case-Management-Workflow.md](34-Case-Management-Workflow.md) | Universal case engine lifecycle, assignment, timeline, decisions, and closure |
-| [35-Moderation-Workflow.md](35-Moderation-Workflow.md) | Portal-recorded moderation, warning, Discord kick, and provider-pending actions |
+| [35-Moderation-Workflow.md](35-Moderation-Workflow.md) | Case-backed Discord moderation, warnings, timeouts, kicks, bans, appeals, policy, and Gateway observation |
 | [36-Incident-Management.md](36-Incident-Management.md) | Incident report intake and case creation |
 | [37-Appeals-Workflow.md](37-Appeals-Workflow.md) | Appeal case creation, review, and preservation of original decisions |
 | [38-Evidence-Management.md](38-Evidence-Management.md) | Evidence metadata, file/link handling, visibility, and non-destructive history |

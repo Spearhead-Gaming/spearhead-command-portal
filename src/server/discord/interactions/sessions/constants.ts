@@ -16,6 +16,9 @@ export const discordInteractionWorkflowTypes = [
   "DEPLOYMENT_PUBLISH",
   "RESOURCE_UPLOAD",
   "APPROVAL_FLOW",
+  "APPLICATION_START",
+  "APPLICATION_REVIEW",
+  "APPLICATION_INFORMATION_REQUEST",
 ] as const;
 
 export type DiscordInteractionWorkflowType =

@@ -98,8 +98,8 @@ export function buildCampaignPublishedDiscordMessage(input: {
 }) {
   return buildCampaignUpdateDiscordMessage({
     actionUrl: input.campaignId
-      ? `${getPortalBaseUrl()}/operations/campaigns/${input.campaignId}`
-      : `${getPortalBaseUrl()}/operations/campaigns`,
+      ? `${getPortalBaseUrl()}/operations/deployments/${input.campaignId}`
+      : `${getPortalBaseUrl()}/operations/deployments`,
     campaignTitle: input.campaignTitle,
     phaseLabel: input.phaseLabel,
   });
@@ -129,6 +129,7 @@ export function buildFormWorkflowDiscordMessage(input: {
     actionUrl: input.submissionId
       ? `${getPortalBaseUrl()}/applications/${input.submissionId}`
       : `${getPortalBaseUrl()}/applications`,
+    submissionId: input.submissionId ?? null,
     statusLabel: input.actionLabel,
     summary: input.description,
     title: input.title,

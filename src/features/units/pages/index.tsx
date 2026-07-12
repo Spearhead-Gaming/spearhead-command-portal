@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
+import { ActionGroup } from "@/components/layout/layout-primitives";
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UnitBadge } from "@/components/status/unit-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PersonnelNextActionCard } from "@/features/personnel/components/personnel-workflow";
 import {
   Table,
   TableBody,
@@ -166,6 +169,32 @@ export async function UnitDetailPage({
     getUnitCampaignParticipationSummary(unit.id),
     getUnitQualificationReadiness(unit.id),
   ]);
+  const unitNextAction =
+    qualificationReadiness && qualificationReadiness.missingRequiredCount > 0
+      ? {
+          href: `/training/qualification-matrix?unitId=${unit.id}&readiness=missing`,
+          label: "Review missing qualifications",
+          reason: `${qualificationReadiness.missingRequiredCount} required qualification gap(s) are visible for ${unit.shortName}.`,
+          responsible: "Training Staff / Unit Leadership",
+          tone: "warning" as const,
+        }
+      : attendanceSummary && (attendanceSummary.missingRsvpCount > 0 || attendanceSummary.noShowCount > 0)
+        ? {
+            href: `/operations/attendance?unitId=${unit.id}`,
+            label: "Review attendance",
+            reason: `${attendanceSummary.missingRsvpCount} missing RSVP and ${attendanceSummary.noShowCount} no-show signal(s) need follow-up.`,
+            responsible: "Unit Leadership",
+            tone: "warning" as const,
+          }
+        : unit.openBillets > 0
+          ? {
+              href: `/personnel/roster?unitId=${unit.id}`,
+              label: "Manage assignments",
+              reason: `${unit.openBillets} billet(s) are currently open for ${unit.shortName}.`,
+              responsible: "Unit Leadership / S1",
+              tone: "info" as const,
+            }
+          : null;
 
   return (
     <div className="space-y-6">
@@ -185,16 +214,17 @@ export async function UnitDetailPage({
               {unit.parentUnitName ? `Part of ${unit.parentUnitName}` : "Top-level command unit"}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <ActionGroup align="end">
             <Button asChild>
               <Link href={`/personnel/roster?unitId=${unit.id}`}>View roster workspace</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/units">Back to units</Link>
             </Button>
-          </div>
+          </ActionGroup>
         </CardContent>
       </Card>
+      <PersonnelNextActionCard action={unitNextAction} title="Unit next action" />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardWidget
           description="Members currently active in this unit"
@@ -430,14 +460,12 @@ export async function UnitDetailPage({
               )}
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Deployment participation</CardTitle>
-              <CardDescription>
-                Linked deployment visibility for this unit based on hosted operations and timeline progress.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <CollapsibleSection
+            badgeLabel={campaignSummary ? `${campaignSummary.activeCount} active` : "Restricted"}
+            description="Linked deployment visibility for this unit based on hosted operations and timeline progress."
+            title="Deployment participation"
+          >
+            <div className="space-y-3">
               {campaignSummary ? (
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -498,16 +526,15 @@ export async function UnitDetailPage({
                   title="Deployments restricted"
                 />
               )}
-            </CardContent>
-          </Card>
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Billets</CardTitle>
-              <CardDescription>
-                Open-billet counts remain simple until dedicated slot management arrives.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+            </div>
+          </CollapsibleSection>
+          <CollapsibleSection
+            badgeLabel={`${unit.openBillets} open`}
+            badgeTone={unit.openBillets > 0 ? "warning" : "success"}
+            description="Position and billet detail stays available without crowding the unit health summary."
+            title="Positions / billets"
+          >
+            <div className="space-y-3">
               {unit.positions.length > 0 ? (
                 unit.positions.map((position) => (
                   <div key={position.id} className="rounded-xl border border-border/70 bg-background/45 p-3">
@@ -530,8 +557,8 @@ export async function UnitDetailPage({
                   title="No configured billets"
                 />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
         </div>
       </div>
     </div>

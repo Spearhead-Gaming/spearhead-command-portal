@@ -57,6 +57,41 @@ const defaultTemplates = [
     subjectTemplate: "{{title}}",
     title: "System Alert",
   },
+  {
+    bodyTemplate: "**Operational Release**\n\n{{body}}",
+    category: "operational_releases",
+    key: "operational_releases.release_published",
+    subjectTemplate: "{{title}}",
+    title: "Operational Release Published",
+  },
+  {
+    bodyTemplate: "**Weekend Operation**\n\n{{body}}",
+    category: "weekend_operations",
+    key: "weekend_operations.operation_published",
+    subjectTemplate: "{{title}}",
+    title: "Weekend Operation Published",
+  },
+  {
+    bodyTemplate: "**Application Update**\n\n{{body}}",
+    category: "applications",
+    key: "applications.submitted",
+    subjectTemplate: "{{title}}",
+    title: "Application Submitted",
+  },
+  {
+    bodyTemplate: "**Moderation Notice**\n\n{{body}}",
+    category: "moderation",
+    key: "moderation.case_updated",
+    subjectTemplate: "{{title}}",
+    title: "Moderation Case Updated",
+  },
+  {
+    bodyTemplate: "**Health Notice**\n\n{{body}}",
+    category: "health",
+    key: "health.alert",
+    subjectTemplate: "{{title}}",
+    title: "Health Alert",
+  },
 ] as const;
 
 function variableMapFromJson(value: unknown): Record<string, string> {

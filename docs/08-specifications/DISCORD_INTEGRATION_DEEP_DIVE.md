@@ -1,5 +1,43 @@
 # Discord Integration Deep Dive
 
+## Phase 4 Multi-Guild Platform Update
+
+Phase 4 promotes the prior single-guild-oriented Discord integration into a managed multi-guild platform.
+
+`DiscordServer` remains the canonical guild record so existing mappings, member sync state, delivery records, Gateway logs, and audit history are preserved. New guild-platform records add module configuration, discovered channel inventory, discovered role inventory, discovery snapshots, and per-guild health checks.
+
+Discovery imports reference inventory only. It must not create mappings, grant permissions, modify Discord roles, or overwrite administrator configuration. Portal permissions remain authoritative and Discord roles remain automation targets only.
+
+See:
+
+- `docs/06-integrations/discord/DISCORD_PLATFORM_ARCHITECTURE.md`
+- `docs/06-integrations/discord/MULTI_GUILD_MODEL.md`
+- `docs/06-integrations/discord/GUILD_CONFIGURATION.md`
+- `docs/06-integrations/discord/GUILD_DISCOVERY.md`
+- `docs/06-integrations/discord/GUILD_HEALTH.md`
+- `docs/06-integrations/discord/GUILD_DIAGNOSTICS.md`
+- `docs/06-integrations/discord/DISCORD_OPERATIONS_CENTER.md`
+- `docs/06-integrations/discord/GUILD_INSPECTOR.md`
+- `docs/06-integrations/discord/GUILD_DISCOVERY_WORKFLOW.md`
+- `docs/06-integrations/discord/DISCORD_HEALTH_DASHBOARD.md`
+- `docs/06-integrations/discord/DISCORD_RECOMMENDATIONS.md`
+
+## Phase 4 Epic 6 Gateway Event Platform
+
+The optional Gateway worker now uses a normalized event envelope, handler registry metadata, idempotency checks, managed-guild policy, queue-style event logging, failed-event diagnostics, and Gateway health metrics. Gateway still supplements REST/webhooks; slash commands, buttons, modals, and notification delivery remain independent of Gateway availability.
+
+Key references:
+
+- `docs/06-integrations/discord/DISCORD_GATEWAY_EVENT_PLATFORM.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_EVENT_REGISTRY.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_EVENT_ENVELOPE.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_QUEUE.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_IDEMPOTENCY.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_HEALTH.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_FAILED_EVENTS.md`
+- `docs/06-integrations/discord/DISCORD_GATEWAY_RUNBOOK.md`
+- `docs/06-integrations/discord/DISCORD_INTENTS_AND_FEATURES.md`
+
 ## Purpose
 
 This audit captures the current Discord implementation in the Spearhead Command Portal. It documents what exists, what is partial, what is missing, and what should be prioritized next.
@@ -95,7 +133,8 @@ Safe diagnostics exist in `src/server/discord/config.ts` and `scripts/discord.ts
 | `src/server/discord/service.ts` | Server/channel/role mapping CRUD and test delivery | Implemented | Prisma, audit logs, delivery provider | Channel/role mapping changes are audited. |
 | `src/server/discord/actions.ts` | Server actions for Discord admin UI | Implemented | permission helper, Discord services | Permissions enforced server-side. |
 | `src/server/discord/queries.ts` | Discord admin overview data | Implemented | Prisma, health, identity, role sync, guild sync | Powers `/administration/discord`. |
-| `src/server/discord/guild-members.ts` | Guild member sync, join/update/leave, kick moderation | Partial | Discord REST, identity, audit | Manual sync implemented; no gateway event consumer. |
+| `src/server/discord/guild-members.ts` | Guild member sync, join/update/leave, moderation observations | Implemented | Discord REST, identity, audit | Manual and Gateway-driven sync converge on canonical Discord identity; member removals create moderation observations. |
+| `src/server/discord/moderation/` | Case-backed Discord moderation platform | Implemented | Community cases, Prisma, Discord REST, permissions, audit, communications | Supports preview, policy, warnings, notes, timeouts, kick, ban, unban, approvals, rules, recommendations, and admin overview data. |
 | `src/server/discord/identity.ts` | Canonical Discord identity linking and duplicate merge | Implemented | Prisma, permissions, audit | Exact Discord ID merge exists; display-name matches are warnings. |
 | `src/server/discord/role-sync.ts` | Role sync preview and manual run | Implemented | Discord REST, role mappings | Only explicitly mapped roles are touched. |
 | `src/features/administration/components/discord-settings-page.tsx` | Discord admin UI | Implemented | Discord actions/queries, shared UI | Covers health, mappings, sync, identity, deliveries, moderation. |
@@ -345,7 +384,7 @@ Deferred:
 
 - Automatic role sync from Gateway events.
 - Nickname sync execution.
-- Moderation event ingestion.
+- Deeper moderation event ingestion for ban and timeout drift beyond the initial observation model.
 - Message content ingestion.
 - Multi-shard orchestration beyond configured shard count foundation.
 
@@ -354,18 +393,25 @@ Deferred:
 Implemented:
 
 - `/kick` command.
-- Admin UI moderation history.
+- Case-backed moderation service under `src/server/discord/moderation`.
+- Admin UI Moderation Dashboard in the Discord Operations Center.
 - Required reason.
-- Portal permission `discord.moderation.kick`.
-- Discord REST kick action.
+- Portal permissions for view, warning, timeout, kick, ban, appeals, policy management, case management, and history.
+- Discord REST timeout, remove timeout, kick, ban, and unban actions.
+- Portal-owned warnings and internal notes.
+- Guild moderation policies.
+- Preview and policy blocking issues.
+- Approval records for policy-gated actions.
+- Gateway moderation observations for member removal/leave.
+- Rule and recommendation providers for failures, approvals, and appeal backlog.
 - Audit logs for requested, succeeded, failed, and command usage.
 - Friendly bot hierarchy and permission errors.
 
 Missing:
 
-- Ban workflow.
-- Timeout workflow.
-- Moderation action form in admin UI beyond the available server action surface.
+- Rich approval decision UI.
+- Full appeal workspace integration inside Discord Operations Center.
+- Gateway reconciliation for ban and timeout drift beyond initial observation records.
 - Moderation history export.
 
 ## Admin UI Audit
@@ -381,7 +427,7 @@ Missing:
 - Role sync preview and manual run.
 - Slash command catalog.
 - Delivery status.
-- Moderation history.
+- Moderation dashboard, policies, recent actions, approvals, and observations.
 - Recent Discord audit activity.
 - Nickname sync placeholder.
 - Safety rules.
@@ -433,7 +479,7 @@ Risks to monitor:
 
 1. Add live command registration diagnostics to `/administration/discord` using the existing REST health helpers.
 2. Implement delivery retry from admin notification/Discord pages.
-3. Add ban and timeout moderation workflows only after policy and permissions are finalized.
+3. Add rich approval decision and moderation appeal review UI on top of the case-backed platform.
 4. Add Gateway-driven role sync triggers only after manual sync behavior is trusted.
 5. Add production shard supervision if the community grows beyond one guild/worker.
 
@@ -447,3 +493,67 @@ Risks to monitor:
 - No nickname sync execution.
 - No original-message RSVP count update.
 - No persisted per-interaction log table beyond audit logs and delivery records.
+
+## Phase 4 Epic 3: Resource Discovery And Reconciliation
+
+Discord resource discovery is implemented as a service-layer boundary in `src/server/discord/discovery.ts`.
+
+It adds discovery sessions, resource snapshots, resource changes, reconciliation items, channel inventory, role inventory, scheduled event inventory, emoji inventory, sticker inventory, dry-run scans, targeted scans, and admin Operations Center reconciliation views.
+
+Discord IDs are canonical for Discord resources. Names are display metadata only and must never trigger automatic remapping.
+
+## Phase 4 Epic 4: Automation And Role Action Engine
+
+Discord automation is implemented as a service-layer boundary in `src/server/discord/automation`.
+
+The engine converts approved Portal events into controlled Discord actions. New role-changing definitions default to preview or manual approval. Discord role IDs are canonical, role names are display metadata, and Discord roles never grant Portal permissions.
+
+Initial production focus:
+
+- Qualification awarded, renewed, revoked, expired, and reinstated role automation.
+- Unit assignment role automation.
+- Position, member-status, guild join/leave, and manual sync foundations.
+- Desired-state tracking for portal-managed roles.
+- Approval, retry, reconciliation, exception, conflict, and audit foundations.
+
+See:
+
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_ENGINE.md`
+- `docs/06-integrations/discord/DISCORD_ROLE_ACTIONS.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_TRIGGERS.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_CONDITIONS.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_EXECUTION.md`
+- `docs/06-integrations/discord/DISCORD_ROLE_OWNERSHIP.md`
+- `docs/06-integrations/discord/DISCORD_ROLE_DESIRED_STATE.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_RECONCILIATION.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_EXCEPTIONS.md`
+- `docs/06-integrations/discord/DISCORD_AUTOMATION_CONFLICTS.md`
+- `docs/06-integrations/discord/QUALIFICATION_ROLE_AUTOMATION.md`
+- `docs/06-integrations/discord/UNIT_ROLE_AUTOMATION.md`
+- `docs/06-integrations/discord/POSITION_ROLE_AUTOMATION.md`
+- `docs/06-integrations/discord/MEMBER_STATUS_ROLE_AUTOMATION.md`
+
+## Phase 4 Epic 5: Multi-Guild Communication Platform
+
+Communication now has a domain-driven routing layer in `src/server/communications`.
+
+The Portal decides who needs a message. Communication domains and guild configuration decide where Discord delivery should occur. Existing `Communication`, `CommunicationDelivery`, and `CommunicationAttempt` records remain the delivery queue and history source.
+
+Initial implementation adds:
+
+- communication domain catalog.
+- route preview for primary, all-guild, unit-guild, and specific-guild routing.
+- direct mapping-ID delivery support in the Discord provider.
+- communication health overview.
+- communication rule provider.
+- Discord Operations Center communication dashboard.
+
+See:
+
+- `docs/06-integrations/discord/DISCORD_COMMUNICATION_PLATFORM.md`
+- `docs/06-integrations/discord/COMMUNICATION_ROUTING_ENGINE.md`
+- `docs/06-integrations/discord/COMMUNICATION_DOMAINS.md`
+- `docs/06-integrations/discord/COMMUNICATION_TEMPLATES.md`
+- `docs/06-integrations/discord/COMMUNICATION_DELIVERY_QUEUE.md`
+- `docs/06-integrations/discord/COMMUNICATION_HISTORY.md`
+- `docs/06-integrations/discord/COMMUNICATION_HEALTH.md`

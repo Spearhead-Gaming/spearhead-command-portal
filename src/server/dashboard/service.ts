@@ -486,7 +486,7 @@ async function getMemberDashboard(user: PortalUser) {
             href:
               currentPresetVersion.sourceType === "file"
                 ? `/api/deployment-resources/${currentPresetVersion.id}/download`
-                : (currentPresetVersion.url ?? `/operations/campaigns/${activeCampaign.id}`),
+                : (currentPresetVersion.url ?? `/operations/deployments/${activeCampaign.id}`),
             id: currentPreset.id,
             label: currentPresetVersion.parsedName ?? currentPreset.displayName,
             meta: `${activeCampaign.title} / ${
@@ -936,7 +936,7 @@ async function getS3Dashboard(unitIds: string[] | null) {
 
   return {
     activeCampaigns: activeCampaigns.map((campaign) => ({
-      href: `/operations/campaigns/${campaign.id}`,
+      href: `/operations/deployments/${campaign.id}`,
       id: campaign.id,
       label: campaign.title,
       meta: campaign.phase ?? "No phase set",

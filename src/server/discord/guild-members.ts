@@ -524,6 +524,20 @@ export async function recordDiscordGuildMemberLeave(input: {
     summary: `${state.displayName ?? input.discordUserId} left ${server.name}; portal profile was preserved.`,
   });
 
+  await prisma.discordModerationObservation.create({
+    data: {
+      discordServerId: server.id,
+      guildId: server.guildId,
+      observedState: {
+        leftAt: state.leftAt?.toISOString() ?? new Date().toISOString(),
+        syncStatus: "left",
+      },
+      observationType: "member_removed_or_left",
+      summary: `${state.displayName ?? input.discordUserId} is no longer present in ${server.name}.`,
+      targetDiscordUserId: input.discordUserId,
+    },
+  });
+
   revalidateDiscordMemberSurfaces();
 
   return state;

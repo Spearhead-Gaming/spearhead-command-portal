@@ -134,6 +134,31 @@ Ephemeral.
 
 ## /aar
 
+## /apply
+
+### Purpose
+
+Expose Portal-owned application discovery, application start links, and applicant status lookup.
+
+### Subcommands
+
+- `/apply list`
+- `/apply info`
+- `/apply start`
+- `/apply status`
+
+### Permissions
+
+Applicant lookup does not require a special staff permission, but member-only application types require a linked Portal identity. Reviewer buttons use `discord.applications.*` and `forms.*` permission keys.
+
+### Response
+
+Ephemeral by default. Complex application forms continue in the Portal through signed continuation links.
+
+---
+
+## /aar
+
 ### Purpose
 
 Open a Discord modal for Patrol AAR report submission.

@@ -771,7 +771,7 @@ function buildMemberServiceTimeline(input: {
               ? "muted"
               : "warning",
       relatedLabel: campaign.title,
-      relatedHref: `/operations/campaigns/${campaign.id}`,
+      relatedHref: `/operations/deployments/${campaign.id}`,
       details: [
         ...(campaign.relatedEventTitle ? [`Related operation: ${campaign.relatedEventTitle}`] : []),
         ...(campaign.hostUnitShortName ? [`Host unit: ${campaign.hostUnitShortName}`] : []),

@@ -474,7 +474,7 @@ export function MemberCampaignSummaryCard({ dashboard }: DashboardProps) {
                       <div className="flex flex-wrap gap-2">
                         <StatusBadge label={campaign.statusLabel} tone="info" />
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/operations/campaigns/${campaign.id}`}>Open</Link>
+                          <Link href={`/operations/deployments/${campaign.id}`}>Open</Link>
                         </Button>
                       </div>
                     </div>

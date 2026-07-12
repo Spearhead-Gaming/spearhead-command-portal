@@ -5,6 +5,7 @@ import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { AttendanceBadge } from "@/components/status/attendance-badge";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
@@ -455,12 +456,12 @@ export async function EventsPage({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
-                      <TableHead>Operation Lifecycle</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Host Unit</TableHead>
-                      <TableHead>Docs</TableHead>
-                      <TableHead>RSVP</TableHead>
-                      <TableHead>Attendance</TableHead>
+                      <TableHead className="hidden xl:table-cell">Docs</TableHead>
+                      <TableHead className="hidden xl:table-cell">RSVP</TableHead>
+                      <TableHead className="hidden xl:table-cell">Attendance</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -472,6 +473,11 @@ export async function EventsPage({
                             <p className="font-semibold text-foreground">{event.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {event.eventTypeLabel} / {event.campaign?.title ?? "No deployment link"}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground xl:hidden">
+                              {event.rsvpCounts.yes}/{event.expectedCount} yes /{" "}
+                              {event.attendanceLocked ? "attendance locked" : `${event.finalCounts.pending} pending`} /{" "}
+                              {event.publishedConopCount > 0 ? "CONOP ready" : "CONOP gap"}
                             </p>
                           </div>
                         </TableCell>
@@ -496,7 +502,7 @@ export async function EventsPage({
                         <TableCell>
                           {event.hostUnit ? <UnitBadge label={event.hostUnit.shortName} /> : "Unscoped"}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden xl:table-cell">
                           <div className="space-y-1">
                             <AttendanceBadge
                               label={event.publishedConopCount > 0 ? "CONOP ready" : "No published CONOP"}
@@ -512,12 +518,12 @@ export async function EventsPage({
                             />
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden xl:table-cell">
                           <AttendanceBadge
                             label={`${event.rsvpCounts.yes}/${event.expectedCount} yes`}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden xl:table-cell">
                           <AttendanceBadge
                             label={
                               event.attendanceLocked
@@ -549,19 +555,16 @@ export async function EventsPage({
           </Card>
         </div>
         <div className="space-y-4">
-          <Card className="border-border/80 bg-card/82">
-            <CardHeader>
-              <CardTitle>Operations picture</CardTitle>
-              <CardDescription>
-                Events remain the source of truth while S3 documents and deployment context layer onto the same record.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CollapsibleSection
+            description="Events remain the source of truth while S3 documents and deployment context layer onto the same record."
+            title="Operations picture"
+          >
+            <div className="space-y-2 text-sm text-muted-foreground">
               <p>Operation lifecycle shows where each operation sits in the S3 review and publication flow.</p>
               <p>Document readiness surfaces CONOP gaps and Patrol AAR follow-up before they become operational debt.</p>
               <p>Event detail remains the workspace for publishing, attendance, Discord hooks, and deployment context.</p>
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
           <Card className="border-border/80 bg-card/82">
             <CardHeader>
               <CardTitle>Command watch</CardTitle>
@@ -1238,7 +1241,7 @@ export async function EventDetailPage({
                     </p>
                   </div>
                   <Button asChild className="w-full justify-start" variant="outline">
-                    <Link href={`/operations/campaigns/${relatedCampaign.id}`}>
+                    <Link href={`/operations/deployments/${relatedCampaign.id}`}>
                       Open deployment detail
                     </Link>
                   </Button>
@@ -1380,11 +1383,17 @@ export async function AttendancePage({
           }
         />
       </section>
-      <AttendanceFiltersCard
-        filters={filters}
-        finalStatuses={referenceData.finalStatuses}
-        reportData={reportData}
-      />
+      <CollapsibleSection
+        defaultOpen={Boolean(filters.q || filters.unitId || filters.eventId || filters.status || filters.dateFrom || filters.dateTo)}
+        description="Keep attendance focused on current follow-up first; expand filters for unit, event, status, or date-range reporting."
+        title="Attendance filters"
+      >
+        <AttendanceFiltersCard
+          filters={filters}
+          finalStatuses={referenceData.finalStatuses}
+          reportData={reportData}
+        />
+      </CollapsibleSection>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Card className="border-border/80 bg-card/88">
           <CardHeader>
@@ -1400,16 +1409,17 @@ export async function AttendancePage({
                 title="No attendance results"
               />
             ) : (
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead>Missing RSVP</TableHead>
                     <TableHead>No-show</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Lock</TableHead>
+                    <TableHead className="hidden xl:table-cell">Rate</TableHead>
+                    <TableHead className="hidden lg:table-cell">Lock</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1422,7 +1432,7 @@ export async function AttendancePage({
                           <p className="text-xs text-muted-foreground">{event.eventTypeLabel}</p>
                         </div>
                       </TableCell>
-                      <TableCell>{formatDateTime(event.startsAt)}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{formatDateTime(event.startsAt)}</TableCell>
                       <TableCell>{event.hostUnitShortName ?? "Unscoped"}</TableCell>
                       <TableCell>
                         <AttendanceBadge label={String(event.missingRsvpCount)} />
@@ -1430,12 +1440,12 @@ export async function AttendancePage({
                       <TableCell>
                         <AttendanceBadge label={String(event.noShowCount)} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <AttendanceBadge
                           label={event.attendanceRate !== null ? `${event.attendanceRate}%` : "N/A"}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <StatusBadge
                           label={event.attendanceLocked ? "Locked" : "Open"}
                           tone={event.attendanceLocked ? "success" : "warning"}
@@ -1449,7 +1459,8 @@ export async function AttendancePage({
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

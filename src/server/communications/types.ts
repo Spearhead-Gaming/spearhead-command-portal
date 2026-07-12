@@ -7,13 +7,23 @@ export type CommunicationCategory =
   | "deployments"
   | "patrols"
   | "aar"
+  | "applications"
+  | "recruitment"
+  | "training"
   | "personnel"
   | "qualifications"
   | "attendance"
   | "moderation"
   | "administration"
+  | "announcements"
+  | "alerts"
+  | "developer"
+  | "diagnostics"
+  | "emergency"
+  | "health"
   | "system"
-  | "community";
+  | "community"
+  | string;
 
 export type CommunicationPriority = "critical" | "high" | "normal" | "low" | "informational";
 
@@ -28,7 +38,12 @@ export type CommunicationAudience =
 
 export type CommunicationChannelRequest =
   | { type: "portal" }
-  | { mappingKey?: string | null; type: "discord_channel"; unitIds?: Array<string | null | undefined> }
+  | {
+      mappingId?: string | null;
+      mappingKey?: string | null;
+      type: "discord_channel";
+      unitIds?: Array<string | null | undefined>;
+    }
   | { type: "discord_dm" }
   | { type: "email" }
   | { type: "sms" };
@@ -50,6 +65,9 @@ export type CommunicationRequestInput = {
   templateVariables?: Prisma.InputJsonValue | null;
   title: string;
   type: string;
+  providerPayload?: Partial<
+    Pick<CommunicationProviderPayload, "actionUrl" | "actions" | "fields" | "footer" | "visibility">
+  >;
 };
 
 export type ResolvedCommunicationAudience = {
@@ -62,13 +80,22 @@ export type ResolvedCommunicationAudience = {
 
 export type CommunicationProviderPayload = {
   actionUrl?: string | null;
+  actions?: Array<{
+    customId?: string;
+    label: string;
+    style: "primary" | "secondary" | "danger" | "link" | "success";
+    url?: string | null;
+  }>;
   body: string;
   fields?: Array<{ label: string; value: string }>;
+  footer?: string | null;
   title: string;
+  visibility?: "public" | "staff" | "ephemeral";
 };
 
 export type CommunicationDeliveryRequest = {
   communicationId: string;
+  mappingId?: string | null;
   mappingKey?: string | null;
   notificationId: string;
   payload: CommunicationProviderPayload;

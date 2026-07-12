@@ -358,6 +358,7 @@ export function buildQualificationNoticeDiscordMessage(input: {
 
 export function buildFormApplicationAlertDiscordMessage(input: {
   actionUrl?: string | null;
+  submissionId?: string | null;
   statusLabel: string;
   summary: string;
   title: string;
@@ -374,6 +375,37 @@ export function buildFormApplicationAlertDiscordMessage(input: {
         label: "Workflow Status",
         value: input.statusLabel,
       },
+    ],
+    actions: [
+      ...(input.submissionId
+        ? [
+            {
+              customId: `application-review:open:${input.submissionId}`,
+              label: "Open Application",
+              style: "primary" as const,
+            },
+            {
+              customId: `application-review:assign:${input.submissionId}`,
+              label: "Assign to Me",
+              style: "secondary" as const,
+            },
+            {
+              customId: `application-review:request_information:${input.submissionId}`,
+              label: "Request Info",
+              style: "secondary" as const,
+            },
+            {
+              customId: `application-review:approve:${input.submissionId}`,
+              label: "Approve",
+              style: "success" as const,
+            },
+            {
+              customId: `application-review:deny:${input.submissionId}`,
+              label: "Deny",
+              style: "danger" as const,
+            },
+          ]
+        : []),
     ],
     visibility: "staff",
   } satisfies DiscordMessagePayload;

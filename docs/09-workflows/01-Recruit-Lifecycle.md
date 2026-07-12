@@ -11,9 +11,10 @@ Create a clear, auditable path from recruit interest to official member readines
 ## Business Rules
 
 - The recruit application is a configurable `FormTemplate`.
+- Discord `/apply start` may provide a secure Portal continuation link, but the form remains Portal-owned.
 - Approval must not create duplicate `MemberProfile` records.
 - Discord display name is the primary visible identity when available.
-- Unit assignment is data-driven and may be deferred.
+- Accepted recruits are assigned through Portal personnel services, with 3rd Infantry Division as the configured recruit destination.
 - Training readiness is represented through profile status, required qualifications, and onboarding tasks.
 - Discord delivery failures do not block approval or profile creation.
 
@@ -37,6 +38,7 @@ Create a clear, auditable path from recruit interest to official member readines
 ## Entry Points
 
 - Discord recruiting announcement.
+- `/apply list`, `/apply info`, `/apply start`, and `/apply status`.
 - `/applications`
 - `/applications/[id]`
 - `/administration/submissions`
@@ -225,4 +227,3 @@ Public recruiting site, Discord modal applications, automated eligibility checks
 - [DATABASE_ARCHITECTURE.md](../01-architecture/DATABASE_ARCHITECTURE.md)
 - [PERMISSIONS_MATRIX.md](../01-architecture/PERMISSIONS_MATRIX.md)
 - [ROSTER_WORKFLOW.md](../06-community/ROSTER_WORKFLOW.md)
-

@@ -11,6 +11,7 @@ import {
   queueQualificationRevokedNotificationPlaceholder,
   queueQualificationSignoffRequiredNotificationPlaceholder,
 } from "@/server/notifications/hooks";
+import { discordAutomationEngine } from "@/server/discord/automation/service";
 
 type CreateQualificationInput = {
   key: string;
@@ -355,6 +356,16 @@ export async function awardQualification(input: AwardQualificationInput) {
       recipientUserIds: member.user?.id ? [member.user.id] : [],
       targetUnitId: member.currentUnitId,
     });
+    await discordAutomationEngine
+      .planForSourceEvent({
+        actorUserId: actor.id,
+        memberProfileId: member.id,
+        sourceDomain: "qualifications",
+        sourceEntityId: input.qualificationId,
+        sourceEntityType: "Qualification",
+        triggerType: latestRecord && latestRecord.revokedAt === null ? "qualification.renewed" : "qualification.awarded",
+      })
+      .catch(() => undefined);
   }
 
   revalidateQualificationRoutes({
@@ -508,6 +519,16 @@ export async function revokeQualification(input: RevokeQualificationInput) {
     recipientUserIds: existing.memberProfile.user?.id ? [existing.memberProfile.user.id] : [],
     targetUnitId: existing.memberProfile.currentUnitId,
   });
+  await discordAutomationEngine
+    .planForSourceEvent({
+      actorUserId: actor.id,
+      memberProfileId: existing.memberProfileId,
+      sourceDomain: "qualifications",
+      sourceEntityId: existing.qualificationId,
+      sourceEntityType: "Qualification",
+      triggerType: "qualification.revoked",
+    })
+    .catch(() => undefined);
 
   revalidateQualificationRoutes({
     memberProfileId: existing.memberProfileId,

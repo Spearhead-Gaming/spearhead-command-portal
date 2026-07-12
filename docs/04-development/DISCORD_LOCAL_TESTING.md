@@ -146,6 +146,12 @@ Check safe config and Discord API reachability:
 npm run discord:health
 ```
 
+Run the full read-only platform readiness preflight:
+
+```powershell
+npm run discord:platform:preflight
+```
+
 Register commands to the configured scope:
 
 ```powershell
@@ -184,6 +190,25 @@ npm run discord:gateway:health
 If `/help` appears but fails when submitted, the command registration worked but the interaction webhook is not reachable or signature validation is misconfigured.
 
 If `/help` does not appear, the commands are not registered to the guild or the bot was invited without `applications.commands`.
+
+## Testing `/apply`
+
+Application commands are interaction-webhook compatible and do not require the Gateway worker.
+
+1. Confirm `npm run dev` is running.
+2. Confirm `DISCORD_INTERACTIONS_URL` points to the public tunnel URL.
+3. Confirm at least one Portal form template is enabled for the current application type.
+4. Run `npm run discord:commands:register`.
+5. In the dev guild, test:
+
+```text
+/apply list
+/apply info type:Recruit Application
+/apply start type:Recruit Application
+/apply status
+```
+
+The start command should return a short-lived Portal continuation link. The review message path requires a configured `staff-alerts` Discord channel mapping.
 
 ## Testing Identity Sync
 
@@ -278,6 +303,9 @@ Troubleshooting:
 | Bot appears offline | Gateway worker is disabled or not running | This is expected for webhook-only testing; set `DISCORD_GATEWAY_ENABLED=true` and run `npm run dev:gateway` when online Gateway status is required |
 | Discord Developer Portal rejects endpoint | Public key missing, route not reachable, tunnel down, invalid response | Set `DISCORD_PUBLIC_KEY`, run `npm run dev`, verify tunnel, set `/api/discord/interactions` URL |
 | Command appears but says interaction failed | Webhook route unreachable or timed out | Check tunnel, Next dev server, endpoint URL, and logs |
+| `/apply start` says application unavailable | Matching Portal `FormTemplate` is missing or disabled | Enable the recruit, RASP, or transfer form template in the Portal |
+| `/apply start` returns an expired link | Continuation token expired or was already used | Run `/apply start` again |
+| Application review alert does not post | Missing `staff-alerts` mapping or bot cannot post in mapped channel | Configure the mapping under Administration -> Discord and verify Send Messages and Embed Links |
 | `/patrol create` modal opens but submit fails | User lacks patrol create permissions or portal cannot infer deployment defaults | Grant `patrols.create`, `patrols.lead`, or `discord.patrols.create`; verify at least one active/planning deployment exists if defaults are expected |
 | Patrol announcement does not post | Missing `patrols` channel mapping or bot cannot post in mapped channel | Add an active `patrols` mapping under Administration -> Discord; verify Send Messages and Embed Links |
 | `/aar` cannot find event | Modal patrol/event field does not match a Patrol event ID or title | Use exact Patrol event ID or exact title |
@@ -295,6 +323,7 @@ Troubleshooting:
 npm run dev
 npm run dev:gateway
 npm run discord:health
+npm run discord:platform:preflight
 npm run discord:gateway:health
 npm run discord:commands:register
 npm run discord:commands:list

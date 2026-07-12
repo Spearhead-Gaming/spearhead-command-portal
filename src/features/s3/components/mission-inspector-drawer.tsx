@@ -73,7 +73,7 @@ export function MissionInspectorDrawer({
           {mission.hostUnit ? <UnitBadge label={mission.hostUnit.shortName} /> : null}
         </div>
         <Button asChild size="sm" variant="outline">
-          <Link href={`/operations/campaigns/${mission.campaign.id}`}>Open deployment detail</Link>
+          <Link href={`/operations/deployments/${mission.campaign.id}`}>Open deployment detail</Link>
         </Button>
       </CardContent>
     </Card>
@@ -289,7 +289,7 @@ export function MissionInspectorDrawer({
                   badgeLabel: mission.missionStatusLabel,
                   badgeTone: "info" as const,
                   relatedLabel: mission.campaign?.title ?? mission.hostUnit?.shortName ?? null,
-                  relatedHref: mission.campaign ? `/operations/campaigns/${mission.campaign.id}` : null,
+                  relatedHref: mission.campaign ? `/operations/deployments/${mission.campaign.id}` : null,
                   details: [
                     mission.hostUnit?.name ?? "Unscoped operation",
                     mission.eventTypeLabel,

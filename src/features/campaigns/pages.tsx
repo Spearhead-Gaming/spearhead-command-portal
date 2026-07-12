@@ -5,6 +5,7 @@ import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { AdvancedFilters, CollapsibleSection } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { UnitBadge } from "@/components/status/unit-badge";
@@ -23,6 +24,8 @@ import {
 import { DeploymentCreateDrawer } from "@/features/campaigns/components/deployment-create-drawer";
 import { DeploymentInspectorDrawer } from "@/features/campaigns/components/deployment-inspector-drawer";
 import { DeploymentResourcesCard } from "@/features/campaigns/components/deployment-resources-card";
+import { CompletionChecklist, NextActionCard } from "@/features/operations/components/workflow";
+import type { OperationsJourneyStep, OperationsNextAction } from "@/server/operations-package/journey";
 import { getCurrentUser } from "@/server/auth/current-user";
 import {
   type CampaignFilters,
@@ -149,7 +152,7 @@ function CampaignFiltersCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action="/operations/campaigns" className="space-y-4" method="get">
+        <form action="/operations/deployments" className="space-y-4" method="get">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_14rem_14rem_auto]">
             <input className={fieldClassName} defaultValue={filters.q ?? ""} name="q" placeholder="Search deployment, phase, or key" />
             <select className={fieldClassName} defaultValue={filters.status ?? ""} name="status">
@@ -170,17 +173,16 @@ function CampaignFiltersCard({
             </select>
             <div className="flex gap-3">
               <Button asChild type="button" variant="ghost">
-                <Link href="/operations/campaigns">Clear</Link>
+                <Link href="/operations/deployments">Clear</Link>
               </Button>
               <Button type="submit" variant="outline">
                 Apply
               </Button>
             </div>
           </div>
-          <details className="rounded-xl border border-border/70 bg-background/35 p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-foreground">
-              Advanced Filters
-            </summary>
+          <AdvancedFilters
+            description="Creator, Zeus, date range, operation type, and current-week filters are reserved for the next service-layer expansion."
+          >
             <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <input className={fieldClassName} disabled placeholder="Creator filter planned" />
               <input className={fieldClassName} disabled placeholder="Zeus filter planned" />
@@ -190,7 +192,7 @@ function CampaignFiltersCard({
             <p className="mt-3 text-xs text-muted-foreground">
               Creator, Zeus, date range, operation type, and current-week filters are reserved for the next service-layer expansion.
             </p>
-          </details>
+          </AdvancedFilters>
         </form>
       </CardContent>
     </Card>
@@ -513,7 +515,7 @@ function DeploymentManagementEmptyState({ canCreate }: { canCreate: boolean }) {
         </div>
         {canCreate ? (
           <Button asChild>
-            <Link href="/operations/campaigns?panel=create">Create Deployment</Link>
+            <Link href="/operations/deployments?panel=create">Create Deployment</Link>
           </Button>
         ) : null}
       </CardContent>
@@ -552,7 +554,7 @@ function DeploymentInspector({
                 <StatusBadge label={campaign.zeusName ?? "Zeus TBD"} tone="muted" />
               </div>
               <Button asChild>
-                <Link href={`/operations/campaigns/${campaign.id}`}>Open full deployment</Link>
+                <Link href={`/operations/deployments/${campaign.id}`}>Open full deployment</Link>
               </Button>
             </div>
           ),
@@ -563,7 +565,7 @@ function DeploymentInspector({
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>Deployment resources live on the detail page so OPORDs, primers, presets, maps, and radio plans stay versioned and auditable.</p>
               <Button asChild variant="outline">
-                <Link href={`/operations/campaigns/${campaign.id}#deployment-resources`}>Manage Resources</Link>
+                <Link href={`/operations/deployments/${campaign.id}#deployment-resources`}>Manage Resources</Link>
               </Button>
             </div>
           ),
@@ -628,12 +630,12 @@ export async function CampaignsListPage({
   const canCreate = user
     ? can(user, "deployments.create") || can(user, "campaigns.create")
     : false;
-  const cleanHref = buildHref("/operations/campaigns", resolvedSearchParams, {
+  const cleanHref = buildHref("/operations/deployments", resolvedSearchParams, {
     panel: undefined,
     message: undefined,
     error: undefined,
   });
-  const closeInspectHref = buildHref("/operations/campaigns", resolvedSearchParams, {
+  const closeInspectHref = buildHref("/operations/deployments", resolvedSearchParams, {
     inspect: undefined,
   });
 
@@ -655,7 +657,7 @@ export async function CampaignsListPage({
           <div className="flex flex-wrap gap-3">
             {canCreate ? (
               <Button asChild>
-                <Link href={buildHref("/operations/campaigns", resolvedSearchParams, { panel: "create" })}>
+                <Link href={buildHref("/operations/deployments", resolvedSearchParams, { panel: "create" })}>
                   Create deployment
                 </Link>
               </Button>
@@ -727,12 +729,12 @@ export async function CampaignsListPage({
                           </div>
                           <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
                             <Button asChild size="sm" variant="outline">
-                              <Link href={buildHref("/operations/campaigns", resolvedSearchParams, { inspect: campaign.id })}>
+                              <Link href={buildHref("/operations/deployments", resolvedSearchParams, { inspect: campaign.id })}>
                                 Inspect
                               </Link>
                             </Button>
                             <Button asChild size="sm">
-                              <Link href={`/operations/campaigns/${campaign.id}`}>View</Link>
+                              <Link href={`/operations/deployments/${campaign.id}`}>View</Link>
                             </Button>
                             {campaign.nextEvent ? (
                               <Button asChild size="sm" variant="ghost">
@@ -828,11 +830,116 @@ export async function CampaignDetailFoundationPage({
         })
       : Promise.resolve([]),
   ]);
-  const cleanHref = buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, {
+  const cleanHref = buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, {
     panel: undefined,
     message: undefined,
     error: undefined,
   });
+  const firstWeek = campaign.operationalWeeks[0] ?? null;
+  const firstWeekPackageHref = firstWeek
+    ? `/operations/packages/${campaign.id}/week/${firstWeek.weekNumber}`
+    : `/operations/deployments/${campaign.id}`;
+  const hasOpord = deploymentResources.some((resource) => resource.resourceType === "OPORD");
+  const hasPrimer = deploymentResources.some((resource) => resource.resourceType === "PLAYER_PRIMER");
+  const hasModPreset = deploymentResources.some((resource) => resource.resourceType === "ARMA3_PRESET");
+  const deploymentSetupSteps: OperationsJourneyStep[] = [
+    {
+      actionHref: cleanHref,
+      actionLabel: "Open deployment",
+      blockingIssues: [],
+      description: "Deployment record exists and is the parent for operational weeks.",
+      id: "deployment-created",
+      label: "Deployment created",
+      responsible: "Deployment Creator",
+      status: "complete",
+      warningMessages: [],
+    },
+    {
+      actionHref: buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "edit" }),
+      actionLabel: "Edit duration",
+      blockingIssues: [],
+      description: "Estimated duration helps staff understand the deployment arc.",
+      id: "duration-configured",
+      label: "Duration configured",
+      responsible: "Deployment Creator",
+      status: campaign.deploymentDurationWeeks ? "complete" : "warning",
+      warningMessages: campaign.deploymentDurationWeeks ? [] : ["Add estimated duration when the deployment arc is known."],
+    },
+    {
+      actionHref: firstWeekPackageHref,
+      actionLabel: "Open Week 1",
+      blockingIssues: firstWeek ? [] : ["Generate or sync operational weeks for this deployment."],
+      description: "Operational weeks provide the package workspaces.",
+      id: "weeks-generated",
+      label: "Operational weeks generated",
+      responsible: "S3",
+      status: firstWeek ? "complete" : "blocked",
+      warningMessages: [],
+    },
+    {
+      actionHref: buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "edit" }),
+      actionLabel: "Assign Zeus",
+      blockingIssues: [],
+      description: "Zeus is assigned or the creator is explicitly the Zeus.",
+      id: "zeus-configured",
+      label: "Zeus configured",
+      responsible: "S3 / Deployment Creator",
+      status: campaign.zeusName || campaign.zeusAssignmentType === "creator_is_zeus" ? "complete" : "warning",
+      warningMessages: campaign.zeusName || campaign.zeusAssignmentType === "creator_is_zeus" ? [] : ["Assign Zeus or explicitly leave unassigned."],
+    },
+    {
+      actionHref: canManageResources ? "#deployment-resources" : cleanHref,
+      actionLabel: canManageResources ? "Add resources" : "Review resources",
+      blockingIssues: [],
+      description: "OPORD, player primer, and current mod preset are available when ready.",
+      id: "resources-added",
+      label: "Core resources added",
+      responsible: "Deployment Creator / S3",
+      status: hasOpord && hasPrimer && hasModPreset ? "complete" : "warning",
+      warningMessages: [
+        hasOpord ? null : "OPORD is optional but recommended.",
+        hasPrimer ? null : "Player primer is optional but recommended.",
+        hasModPreset ? null : "Current mod preset should be added before member prep.",
+      ].filter((message): message is string => Boolean(message)),
+    },
+    {
+      actionHref: firstWeekPackageHref,
+      actionLabel: "Open package",
+      blockingIssues: [],
+      description: "Week 1 package is ready for planning, tasking, resources, readiness, and publish preview.",
+      id: "week-one-opened",
+      label: "Week 1 package opened",
+      responsible: "S3",
+      status: firstWeek ? "current" : "pending",
+      warningMessages: [],
+    },
+    {
+      actionHref: firstWeekPackageHref,
+      actionLabel: "Schedule operation",
+      blockingIssues: firstWeek?.weekendOperation ? [] : ["Schedule or link the first Weekend Operation."],
+      description: "First Weekend Operation is linked to the initial operational week.",
+      id: "weekend-operation-scheduled",
+      label: "Weekend Operation scheduled",
+      responsible: "S3",
+      status: firstWeek?.weekendOperation ? "complete" : "blocked",
+      warningMessages: [],
+    },
+  ];
+  const deploymentNextStep = deploymentSetupSteps.find((step) => step.status !== "complete");
+  const deploymentNextAction: OperationsNextAction | null = deploymentNextStep?.actionHref
+    ? {
+        href: deploymentNextStep.actionHref,
+        label: deploymentNextStep.actionLabel ?? deploymentNextStep.label,
+        reason:
+          deploymentNextStep.blockingIssues[0] ??
+          deploymentNextStep.warningMessages[0] ??
+          deploymentNextStep.description,
+        responsible: deploymentNextStep.responsible,
+        status: deploymentNextStep.status === "complete" ? "pending" : deploymentNextStep.status,
+      }
+    : null;
+  const deploymentSetupCompleteCount = deploymentSetupSteps.filter((step) => step.status === "complete").length;
+  const deploymentSetupPercent = Math.round((deploymentSetupCompleteCount / deploymentSetupSteps.length) * 100);
 
   return (
     <div className="space-y-6">
@@ -856,28 +963,28 @@ export async function CampaignDetailFoundationPage({
           <div className="flex flex-wrap gap-3">
             {canEdit ? (
               <Button asChild>
-                <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "edit" })}>
+                <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "edit" })}>
                   Edit deployment
                 </Link>
               </Button>
             ) : null}
             {canPublish && !campaign.publishedAt ? (
               <Button asChild variant="outline">
-                <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "publish" })}>
+                <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "publish" })}>
                   Publish
                 </Link>
               </Button>
             ) : null}
             {canManageTimeline ? (
               <Button asChild variant="outline">
-                <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "timeline" })}>
+                <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "timeline" })}>
                   Manage timeline
                 </Link>
               </Button>
             ) : null}
             {canArchive && campaign.status !== "archived" ? (
               <Button asChild variant="outline">
-                <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "archive" })}>
+                <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "archive" })}>
                   Archive
                 </Link>
               </Button>
@@ -892,6 +999,23 @@ export async function CampaignDetailFoundationPage({
       </Card>
       {message ? <FlashNotice message={message} tone="success" /> : null}
       {error ? <FlashNotice message={error} tone="danger" /> : null}
+      <NextActionCard action={deploymentNextAction} title="Deployment setup next action" />
+      {deploymentSetupPercent >= 80 ? (
+        <CollapsibleSection
+          badgeLabel={`${deploymentSetupPercent}% complete`}
+          badgeTone="success"
+          description="The setup path is available for review without taking over the deployment page once most handoffs are complete."
+          title="Deployment setup checklist"
+        >
+          <CompletionChecklist
+            collapsedSummary="Review the remaining handoff state before opening the operational week package."
+            steps={deploymentSetupSteps}
+            title="Setup review"
+          />
+        </CollapsibleSection>
+      ) : (
+        <CompletionChecklist steps={deploymentSetupSteps} title="Deployment setup checklist" />
+      )}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardWidget
           description="Linked event count"
@@ -1074,21 +1198,21 @@ export async function CampaignDetailFoundationPage({
             <CardContent className="space-y-3">
               {canEdit ? (
                 <Button asChild className="w-full justify-start">
-                  <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "status" })}>
+                  <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "status" })}>
                     Update status
                   </Link>
                 </Button>
               ) : null}
               {canEdit ? (
                 <Button asChild className="w-full justify-start" variant="outline">
-                  <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "phase" })}>
+                  <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "phase" })}>
                     Update phase
                   </Link>
                 </Button>
               ) : null}
               {canManageTimeline ? (
                 <Button asChild className="w-full justify-start" variant="outline">
-                  <Link href={buildHref(`/operations/campaigns/${campaign.id}`, resolvedSearchParams, { panel: "timeline" })}>
+                  <Link href={buildHref(`/operations/deployments/${campaign.id}`, resolvedSearchParams, { panel: "timeline" })}>
                     Link or unlink events
                   </Link>
                 </Button>

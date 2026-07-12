@@ -5,6 +5,7 @@ import { getDiscordGatewaySafeDiagnostics } from "@/server/discord/config";
 import { getDiscordGatewayRecommendations } from "@/server/discord/gateway/recommendations";
 import { getDiscordGatewayEventRegistry } from "@/server/discord/gateway/registry";
 import { evaluateDiscordGatewayHealthRules } from "@/server/discord/gateway/rules";
+import { getGatewayEventMetrics, listFailedGatewayEvents } from "@/server/discord/gateway/diagnostics";
 import type { DiscordGatewayHealthSummary, DiscordGatewayStatus } from "@/server/discord/gateway/types";
 
 function formatTimestamp(value: Date | null | undefined) {
@@ -47,10 +48,17 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
   let storageUnavailable = false;
   let state: Awaited<ReturnType<typeof prisma.discordGatewayState.findUnique>> = null;
   let recentEvents: Awaited<ReturnType<typeof prisma.discordGatewayEventLog.findMany>> = [];
+  let failedEvents: Awaited<ReturnType<typeof listFailedGatewayEvents>> = [];
+  let metrics = {
+    failedEventCount: 0,
+    processedEventCount: 0,
+    skippedEventCount: 0,
+    staleEventCount: 0,
+  };
 
   try {
     if (await gatewayTablesExist()) {
-      [state, recentEvents] = await Promise.all([
+      [state, recentEvents, failedEvents, metrics] = await Promise.all([
         prisma.discordGatewayState.findUnique({
           where: {
             id: "singleton",
@@ -62,6 +70,8 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
           },
           take: 8,
         }),
+        listFailedGatewayEvents(8),
+        getGatewayEventMetrics(),
       ]);
     } else {
       storageUnavailable = true;
@@ -81,9 +91,13 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
     enabled: state?.enabled ?? diagnostics.enabled,
     guildCount: state?.guildCount ?? 0,
     hasBotToken: diagnostics.botTokenPresent,
+    failedEventCount: metrics.failedEventCount,
     hasGuildMembersIntent: enabledIntents.includes("GuildMembers"),
+    hasGuildScheduledEventsIntent: enabledIntents.includes("GuildScheduledEvents"),
+    hasMessageContentIntent: enabledIntents.includes("MessageContent"),
     lastErrorSummary: state?.lastErrorSummary ?? null,
     reconnectCount: state?.reconnectCount ?? 0,
+    staleEventCount: metrics.staleEventCount,
     status,
   });
 
@@ -98,6 +112,20 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
       handlerId: handler.handlerId,
       owningDomain: handler.owningDomain,
       requiredIntents: handler.requiredIntents,
+      version: handler.version ?? "1",
+    })),
+    failedEvents: failedEvents.map((event) => ({
+      correlationId:
+        event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata) && "correlationId" in event.metadata
+          ? String(event.metadata.correlationId)
+          : null,
+      errorMessage: event.errorMessage,
+      eventName: event.eventName,
+      handlerId: event.handlerId,
+      id: event.id,
+      occurredAtLabel: formatTimestamp(event.occurredAt) ?? "Unknown",
+      retryable: Boolean(event.handlerId),
+      summary: event.summary,
     })),
     guildCount: state?.guildCount ?? 0,
     lastConnectedAtLabel: formatTimestamp(state?.lastConnectedAt),
@@ -109,6 +137,7 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
         : null),
     lastEventAtLabel: formatTimestamp(state?.lastEventAt),
     latencyMs: state?.latencyMs ?? null,
+    metrics,
     recentEvents: recentEvents.map((event) => ({
       eventName: event.eventName,
       id: event.id,
@@ -129,6 +158,7 @@ export async function getDiscordGatewayHealthSummary(): Promise<DiscordGatewayHe
         : []),
       ...getDiscordGatewayRecommendations({
         enabled: state?.enabled ?? diagnostics.enabled,
+        failedEventCount: metrics.failedEventCount,
         hasBotToken: diagnostics.botTokenPresent,
         reconnectCount: state?.reconnectCount ?? 0,
         rules: rules.results,

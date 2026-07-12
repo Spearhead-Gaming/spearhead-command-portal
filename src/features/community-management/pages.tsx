@@ -1,6 +1,7 @@
 import { AlertTriangle, BriefcaseBusiness, Gavel, HeartPulse, ShieldAlert } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { CollapsibleSection, NeedsAttention, SummaryCard } from "@/components/layout/progressive-disclosure";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge, type BadgeTone } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,38 @@ export async function CommunityManagementCenterPage() {
   const primaryCases = data.cases.filter((communityCase) =>
     ["open", "under_review", "awaiting_information", "pending_decision", "reopened"].includes(communityCase.status),
   );
+  const attentionItems = [
+    data.queues.criticalCases > 0
+      ? {
+          actionLabel: "Review cases",
+          affectedEntity: "Critical queue",
+          href: "/community-management#case-queues",
+          label: `Review ${data.queues.criticalCases} critical case${data.queues.criticalCases === 1 ? "" : "s"}`,
+          meta: "Critical cases should be handled before historical moderation or workload review.",
+          tone: "danger" as const,
+        }
+      : null,
+    data.queues.awaitingAssignment > 0
+      ? {
+          actionLabel: "Assign staff",
+          affectedEntity: "Unassigned cases",
+          href: "/community-management#case-queues",
+          label: `${data.queues.awaitingAssignment} case${data.queues.awaitingAssignment === 1 ? "" : "s"} need assignment`,
+          meta: "Assign an owner or queue so follow-up does not disappear into the backlog.",
+          tone: "warning" as const,
+        }
+      : null,
+    data.queues.pendingAppeals > 0
+      ? {
+          actionLabel: "Review appeals",
+          affectedEntity: "Appeals",
+          href: "/community-management#case-queues",
+          label: `${data.queues.pendingAppeals} appeal${data.queues.pendingAppeals === 1 ? "" : "s"} awaiting decision`,
+          meta: "Appeals remain visible until a staff decision is recorded.",
+          tone: "warning" as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <div className="space-y-6">
@@ -79,76 +112,63 @@ export async function CommunityManagementCenterPage() {
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <BriefcaseBusiness className="h-4 w-4 text-primary" />
-              <CardTitle>Open Cases</CardTitle>
-            </div>
-            <CardDescription>Active cases requiring staff awareness.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{data.queues.openCases}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-danger" />
-              <CardTitle>Critical</CardTitle>
-            </div>
-            <CardDescription>High urgency cases without sensational labels.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StatusBadge label={String(data.queues.criticalCases)} tone={data.queues.criticalCases > 0 ? "danger" : "success"} />
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <CardTitle>Awaiting Assignment</CardTitle>
-            </div>
-            <CardDescription>Cases that need a staff owner or queue.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StatusBadge label={String(data.queues.awaitingAssignment)} tone={data.queues.awaitingAssignment > 0 ? "warning" : "success"} />
-          </CardContent>
-        </Card>
-        <Card className="border-border/80 bg-card/82">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Gavel className="h-4 w-4 text-primary" />
-              <CardTitle>Pending Appeals</CardTitle>
-            </div>
-            <CardDescription>Appeals that still need review or decision.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StatusBadge label={String(data.queues.pendingAppeals)} tone={data.queues.pendingAppeals > 0 ? "warning" : "success"} />
-          </CardContent>
-        </Card>
+        <SummaryCard
+          description="Active cases requiring staff awareness."
+          status={<BriefcaseBusiness aria-hidden="true" className="h-4 w-4 text-primary" />}
+          title="Open cases"
+          value={data.queues.openCases}
+        />
+        <SummaryCard
+          description="High urgency cases without sensational labels."
+          status={<ShieldAlert aria-hidden="true" className="h-4 w-4 text-danger" />}
+          title="Critical"
+          value={data.queues.criticalCases}
+        />
+        <SummaryCard
+          description="Cases that need a staff owner or queue."
+          status={<AlertTriangle aria-hidden="true" className="h-4 w-4 text-warning" />}
+          title="Awaiting assignment"
+          value={data.queues.awaitingAssignment}
+        />
+        <SummaryCard
+          description="Appeals that still need review or decision."
+          status={<Gavel aria-hidden="true" className="h-4 w-4 text-primary" />}
+          title="Pending appeals"
+          value={data.queues.pendingAppeals}
+        />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {data.healthIndicators.map((indicator) => (
-          <Card key={indicator.label} className="border-border/80 bg-card/72">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <HeartPulse className="h-4 w-4 text-primary" />
-                <CardTitle>{indicator.label}</CardTitle>
-              </div>
-              <CardDescription>{indicator.hint}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StatusBadge label={indicator.value} tone={indicator.tone} />
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      <NeedsAttention
+        emptyDescription="No critical cases, unassigned cases, or pending appeals need immediate staff action."
+        items={attentionItems}
+      />
+
+      <CollapsibleSection
+        badgeLabel="Supporting"
+        description="Health indicators are useful context, but they should not compete with active cases."
+        title="Community health indicators"
+      >
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {data.healthIndicators.map((indicator) => (
+            <Card key={indicator.label} className="border-border/80 bg-card/72">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <HeartPulse className="h-4 w-4 text-primary" />
+                  <CardTitle>{indicator.label}</CardTitle>
+                </div>
+                <CardDescription>{indicator.hint}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StatusBadge label={indicator.value} tone={indicator.tone} />
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      </CollapsibleSection>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div className="space-y-6">
-          <Card className="border-border/80 bg-card/88">
+          <Card className="border-border/80 bg-card/88" id="case-queues">
             <CardHeader>
               <CardTitle>Case Queues</CardTitle>
               <CardDescription>Summary-first case cards. Secondary details stay inside expandable sections.</CardDescription>
@@ -248,12 +268,11 @@ export async function CommunityManagementCenterPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 bg-card/88">
-            <CardHeader>
-              <CardTitle>Moderation History</CardTitle>
-              <CardDescription>Portal-recorded Discord moderation actions and unsupported provider placeholders.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <CollapsibleSection
+            description="Portal-recorded Discord moderation actions and unsupported provider placeholders."
+            title="Moderation history"
+          >
+            <div className="space-y-3">
               {data.moderationActions.length > 0 ? (
                 data.moderationActions.map((action) => (
                   <div key={action.id} className="rounded-xl border border-border/70 bg-background/45 p-4">
@@ -269,8 +288,8 @@ export async function CommunityManagementCenterPage() {
               ) : (
                 <EmptyState description="Moderation actions appear after staff records or executes them through the portal." title="No moderation history" />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
         </div>
 
         <div className="space-y-6">

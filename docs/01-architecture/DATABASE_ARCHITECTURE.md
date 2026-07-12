@@ -72,6 +72,11 @@ Unit and position records may define readiness context such as max occupants, re
 - DiscordRoleMapping
 - DiscordMemberLink
 - DiscordGuildMemberState
+- DiscordGuildConfiguration
+- DiscordGuildChannel
+- DiscordGuildRole
+- DiscordGuildDiscoverySnapshot
+- DiscordGuildHealthCheck
 
 Discord user ID is the canonical external identity key. Discord OAuth login and guild member sync must converge on the same `User` and `MemberProfile` by Discord user ID. Discord may update identity fields such as display name, username, avatar, and link state, but it must not overwrite portal-owned operational fields such as unit, position, status, qualifications, attendance, or permissions.
 

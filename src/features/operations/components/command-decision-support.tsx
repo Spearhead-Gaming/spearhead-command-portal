@@ -60,7 +60,7 @@ function recommendationHref(recommendation: CommandRecommendationView, fallbackH
   }
 
   if (recommendation.relatedEntityType === "Campaign" && recommendation.relatedEntityId) {
-    return `/operations/campaigns/${recommendation.relatedEntityId}`;
+    return `/operations/deployments/${recommendation.relatedEntityId}`;
   }
 
   return fallbackHref;

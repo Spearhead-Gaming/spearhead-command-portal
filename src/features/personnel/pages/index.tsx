@@ -23,6 +23,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MemberReadinessCard } from "@/features/personnel/components/member-readiness-card";
+import {
+  PersonnelNextActionCard,
+  type PersonnelNextAction,
+} from "@/features/personnel/components/personnel-workflow";
 import { QualificationsCatalogPage } from "@/features/qualifications/pages";
 import { can } from "@/server/permissions/access";
 import { getCurrentUser } from "@/server/auth/current-user";
@@ -519,6 +523,39 @@ export async function MemberProfilePage({
     ? can(user, "roster.status.change", memberScope) || can(user, "roster.status.change")
     : false;
   const hasRosterActions = canChangeRank || canChangeUnit || canChangePosition || canChangeStatus;
+  const profileNextAction: PersonnelNextAction | null = !dashboard.readiness?.hasActiveUnitAssignment && canChangeUnit
+    ? {
+        href: buildHref(`/personnel/members/${member.id}`, resolvedSearchParams, { panel: "unit" }),
+        label: "Assign unit",
+        reason: "This member does not have an active unit assignment, so readiness cannot be fully evaluated.",
+        responsible: "S1 / Unit Leadership",
+        tone: "warning",
+      }
+    : dashboard.readiness && dashboard.readiness.missingRequirementCount > 0
+      ? {
+          href: `/training/qualification-matrix?memberProfileId=${member.id}`,
+          label: "Review qualifications",
+          reason: `${dashboard.readiness.missingRequirementCount} required qualification gap(s): ${dashboard.readiness.missingRequirementLabels.slice(0, 2).join(", ")}.`,
+          responsible: "Training Staff",
+          tone: "warning",
+        }
+      : dashboard.attendanceSummary && dashboard.attendanceSummary.absentCount > 0
+        ? {
+            href: "/operations/attendance",
+            label: "Review attendance",
+            reason: `${dashboard.attendanceSummary.absentCount} absence record(s) may affect readiness.`,
+            responsible: "Unit Leadership",
+            tone: "warning",
+          }
+        : canEditBasics
+          ? {
+              href: buildHref(`/personnel/members/${member.id}`, resolvedSearchParams, { panel: "edit" }),
+              label: "Review profile",
+              reason: "Profile overview is healthy; use edit only when portal-owned fields need correction.",
+              responsible: "Personnel Staff",
+              tone: "success",
+            }
+          : null;
   const cleanHref = buildHref(`/personnel/members/${member.id}`, resolvedSearchParams, {
     panel: undefined,
     message: undefined,
@@ -601,6 +638,7 @@ export async function MemberProfilePage({
       </Card>
       {message ? <FlashNotice message={message} tone="success" /> : null}
       {error ? <FlashNotice message={error} tone="danger" /> : null}
+      <PersonnelNextActionCard action={profileNextAction} title="Profile next action" />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardWidget
           description="Current unit assignment"
@@ -818,10 +856,15 @@ export async function RosterPage({
       </section>
       {managedMember ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <ChangeRankFormCard member={managedMember} options={options} returnTo={cleanHref} />
           <ChangeStatusFormCard member={managedMember} options={options} returnTo={cleanHref} />
           <AssignUnitFormCard member={managedMember} options={options} returnTo={cleanHref} />
           <AssignPositionFormCard member={managedMember} options={options} returnTo={cleanHref} />
+          <CollapsibleSection
+            description="Ranks are optional for Spearhead and stay secondary to unit, billet, and status."
+            title="Optional rank"
+          >
+            <ChangeRankFormCard member={managedMember} options={options} returnTo={cleanHref} />
+          </CollapsibleSection>
         </div>
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -854,7 +897,7 @@ export async function RosterPage({
                       <TableHead>Unit</TableHead>
                       <TableHead>Position</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Assignment Start</TableHead>
+                      <TableHead className="hidden lg:table-cell">Assignment Start</TableHead>
                       <TableHead className="hidden xl:table-cell">Last Updated</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -880,7 +923,7 @@ export async function RosterPage({
                             tone={getStatusTone(member.status.key)}
                           />
                         </TableCell>
-                        <TableCell>{formatDate(member.assignmentStartsAt)}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{formatDate(member.assignmentStartsAt)}</TableCell>
                         <TableCell className="hidden xl:table-cell">{formatDateTime(member.lastUpdatedAt)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

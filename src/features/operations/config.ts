@@ -67,7 +67,7 @@ export const operationsPageConfigs = {
       ],
       actions: [
         { label: "View Attendance", href: "/operations/attendance" },
-        { label: "Open Deployment", href: "/operations/campaigns", variant: "secondary" },
+        { label: "Open Deployment", href: "/operations/deployments", variant: "secondary" },
       ],
     },
   },
@@ -126,11 +126,11 @@ export const operationsPageConfigs = {
     ],
   },
   campaignsList: {
-    route: "/operations/campaigns",
+    route: "/operations/deployments",
     title: "Deployments",
     description: "Show planning, preparing, active, completed, and archived deployments with reusable card and badge patterns.",
     breadcrumbs: ["Operations", "Deployments"],
-    primaryAction: { label: "Create Deployment", href: "/operations/campaigns?panel=create" },
+    primaryAction: { label: "Create Deployment", href: "/operations/deployments?panel=create" },
     secondaryActions: [{ label: "Archive Placeholder", variant: "outline" }],
     requiredPermissions: operationsPermissions.campaignsList,
     quickActionMenuItems: ["Inspect deployment", "Open timeline", "Queue publish update"],
@@ -146,7 +146,7 @@ export const operationsPageConfigs = {
         description: "Deployment metadata is summarized now so richer stories and timelines can arrive later.",
         items: [
           "Status, phase, progress, and next-event fields have a consistent placeholder language.",
-          "Opening a deployment uses the standard detail route scaffold under /operations/campaigns/[id].",
+          "Opening a deployment uses the standard detail route scaffold under /operations/deployments/[id].",
           "No deployment management services or publication flows are active yet.",
         ],
       },
@@ -157,7 +157,7 @@ export const operationsPageConfigs = {
     },
   },
   campaignDetail: {
-    route: "/operations/campaigns/[id]",
+    route: "/operations/deployments/[id]",
     title: "Deployment Detail",
     description: "Present deployment overview, operational weeks, related operations, and media placeholders in a readable web layout.",
     breadcrumbs: ["Operations", "Deployments", "Detail"],
@@ -235,10 +235,10 @@ export const operationsPageConfigs = {
   },
   s3: {
     route: "/operations/s3",
-    title: "S3 Dashboard",
+    title: "Operations Center",
     description: "Provide S3 with deployment and operation oversight through placeholder widgets and route scaffolding.",
     breadcrumbs: ["Operations", "S3"],
-    primaryAction: { label: "Create Deployment", href: "/operations/campaigns?panel=create" },
+    primaryAction: { label: "Create Deployment", href: "/operations/deployments?panel=create" },
     secondaryActions: [{ label: "Review Queue", href: "/operations/s3", variant: "outline" }],
     requiredPermissions: operationsPermissions.s3,
     quickActionMenuItems: ["Inspect operation queue", "Open CONOP review", "Check patrol AAR backlog"],

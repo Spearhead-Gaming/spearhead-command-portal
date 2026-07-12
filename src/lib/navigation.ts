@@ -19,26 +19,85 @@ import {
 } from "lucide-react";
 
 import { hasAllPermissions } from "@/server/permissions/access";
+import type { WorkspaceId } from "@/server/personas/types";
 import type { NavigationGroup } from "@/types/navigation";
 
 const navigationGroups: NavigationGroup[] = [
   {
-    title: "Dashboard",
+    title: "Home",
+    preferredWorkspaces: ["my_portal", "command"],
     items: [
       {
-        title: "Dashboard",
+        title: "Command Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
         exact: true,
         requiredPermissions: ["core.dashboard.view"],
       },
+      {
+        title: "Applications",
+        href: "/applications",
+        icon: ClipboardList,
+        exact: true,
+        requiredPermissions: ["forms.view"],
+      },
+    ],
+  },
+  {
+    title: "Operations",
+    preferredWorkspaces: ["operations", "deployment_creator", "patrol_leader", "zeus", "command"],
+    items: [
+      {
+        title: "Operations Center",
+        href: "/operations",
+        icon: LayoutDashboard,
+        exact: true,
+        requiredPermissions: ["s3.dashboard.view"],
+      },
+      {
+        title: "Deployments",
+        href: "/operations/deployments",
+        icon: Swords,
+        requiredPermissions: ["campaigns.view"],
+      },
+      {
+        title: "Current Week",
+        href: "/operations/this-week",
+        icon: Flag,
+        requiredPermissions: ["events.view"],
+      },
+      {
+        title: "Patrols",
+        href: "/operations/patrols",
+        icon: ShieldUser,
+        requiredPermissions: ["events.view"],
+      },
+      {
+        title: "Weekly Tasking",
+        href: "/operations/weekly-tasking",
+        icon: ClipboardList,
+        requiredPermissions: ["operations.package.view"],
+      },
+      {
+        title: "AAR Queue",
+        href: "/operations/aar-queue",
+        icon: BookText,
+        requiredPermissions: ["s3.aars.view"],
+      },
+      {
+        title: "Attendance",
+        href: "/operations/attendance",
+        icon: ClipboardCheck,
+        requiredPermissions: ["attendance.rsvp.view"],
+      },
     ],
   },
   {
     title: "Personnel",
+    preferredWorkspaces: ["personnel", "unit_leadership", "command"],
     items: [
       {
-        title: "Readiness Center",
+        title: "Personnel Center",
         href: "/personnel",
         icon: ShieldCheck,
         exact: true,
@@ -57,123 +116,29 @@ const navigationGroups: NavigationGroup[] = [
         requiredPermissions: ["roster.member.view"],
       },
       {
-        title: "Qualifications",
-        href: "/personnel/qualifications",
-        icon: Trophy,
-        requiredPermissions: ["qualifications.view"],
-      },
-    ],
-  },
-  {
-    title: "Units",
-    items: [
-      {
-        title: "All Units",
+        title: "Units",
         href: "/units",
         icon: Shield,
         exact: true,
         requiredPermissions: ["units.view"],
       },
-      {
-        title: "Spearhead Command",
-        href: "/units/spearhead-command",
-        icon: Shield,
-        requiredPermissions: ["units.dashboard.view"],
-      },
-      {
-        title: "Reaper",
-        href: "/units/reaper",
-        icon: ShieldEllipsis,
-        requiredPermissions: ["units.dashboard.view"],
-      },
-      {
-        title: "Misfit",
-        href: "/units/misfit",
-        icon: ShieldUser,
-        requiredPermissions: ["units.dashboard.view"],
-      },
-      {
-        title: "Gambler",
-        href: "/units/gambler",
-        icon: ShieldPlus,
-        requiredPermissions: ["units.dashboard.view"],
-      },
-      {
-        title: "Viking",
-        href: "/units/viking",
-        icon: Shield,
-        requiredPermissions: ["units.dashboard.view"],
-      },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
-      {
-        title: "Operations Center",
-        href: "/operations",
-        icon: LayoutDashboard,
-        exact: true,
-        requiredPermissions: ["s3.dashboard.view"],
-      },
-      {
-        title: "Deployments",
-        href: "/operations/campaigns",
-        icon: Swords,
-        requiredPermissions: ["campaigns.view"],
-      },
-      {
-        title: "This Week",
-        href: "/operations/this-week",
-        icon: Flag,
-        requiredPermissions: ["events.view"],
-      },
-      {
-        title: "Patrols",
-        href: "/operations/patrols",
-        icon: ShieldUser,
-        requiredPermissions: ["events.view"],
-      },
-      {
-        title: "Planning Packages",
-        href: "/operations/campaigns",
-        icon: ClipboardList,
-        requiredPermissions: ["operations.package.view"],
-      },
-      {
-        title: "Zeus",
-        href: "/operations/zeus",
-        icon: RadioTower,
-        requiredPermissions: ["s3.zeus.assign"],
-      },
-      {
-        title: "CONOPs",
-        href: "/operations/conops",
-        icon: FileText,
-        requiredPermissions: ["s3.conops.view"],
-      },
-      {
-        title: "AAR Queue",
-        href: "/operations/aar-queue",
-        icon: BookText,
-        requiredPermissions: ["s3.aars.view"],
-      },
-      {
-        title: "Attendance",
-        href: "/operations/attendance",
-        icon: ClipboardCheck,
-        requiredPermissions: ["attendance.rsvp.view"],
-      },
     ],
   },
   {
     title: "Training",
+    preferredWorkspaces: ["training", "unit_leadership"],
     items: [
       {
         title: "Qualification Matrix",
         href: "/training/qualification-matrix",
         icon: Trophy,
         requiredPermissions: ["qualifications.matrix.view"],
+      },
+      {
+        title: "Qualification Catalog",
+        href: "/personnel/qualifications",
+        icon: Trophy,
+        requiredPermissions: ["qualifications.view"],
       },
       {
         title: "Training Events",
@@ -190,7 +155,32 @@ const navigationGroups: NavigationGroup[] = [
     ],
   },
   {
+    title: "Communications",
+    preferredWorkspaces: ["community", "administration", "command"],
+    items: [
+      {
+        title: "Communications Center",
+        href: "/communications",
+        icon: Bell,
+        requiredPermissions: ["communications.view"],
+      },
+      {
+        title: "Deliveries",
+        href: "/administration/notifications",
+        icon: ClipboardCheck,
+        requiredPermissions: ["notifications.delivery.view"],
+      },
+      {
+        title: "Discord Settings",
+        href: "/administration/discord",
+        icon: RadioTower,
+        requiredPermissions: ["discord.view"],
+      },
+    ],
+  },
+  {
     title: "Documents",
+    preferredWorkspaces: ["my_portal", "zeus", "operations"],
     items: [
       {
         title: "Documents",
@@ -201,22 +191,11 @@ const navigationGroups: NavigationGroup[] = [
     ],
   },
   {
-    title: "Applications",
+    title: "Community Management",
+    preferredWorkspaces: ["community", "command"],
     items: [
       {
-        title: "Applications",
-        href: "/applications",
-        icon: ClipboardList,
-        exact: true,
-        requiredPermissions: ["forms.view"],
-      },
-    ],
-  },
-  {
-    title: "Community",
-    items: [
-      {
-        title: "Management Center",
+        title: "Community Center",
         href: "/community-management",
         icon: Gavel,
         requiredPermissions: ["community.view"],
@@ -225,6 +204,7 @@ const navigationGroups: NavigationGroup[] = [
   },
   {
     title: "Administration",
+    preferredWorkspaces: ["administration"],
     items: [
       {
         title: "Users",
@@ -237,12 +217,6 @@ const navigationGroups: NavigationGroup[] = [
         href: "/administration/roles",
         icon: ShieldEllipsis,
         requiredPermissions: ["admin.roles.view"],
-      },
-      {
-        title: "Builder",
-        href: "/administration/builder",
-        icon: ShieldPlus,
-        requiredPermissions: ["builder.view"],
       },
       {
         title: "Forms",
@@ -263,42 +237,67 @@ const navigationGroups: NavigationGroup[] = [
         requiredPermissions: ["discord.view"],
       },
       {
-        title: "Notifications",
-        href: "/administration/notifications",
-        icon: Bell,
-        requiredPermissions: ["notifications.delivery.view"],
-      },
-      {
-        title: "Communications",
-        href: "/communications",
-        icon: Bell,
-        requiredPermissions: ["communications.view"],
-      },
-      {
         title: "Audit Logs",
         href: "/administration/audit-logs",
         icon: ClipboardCheck,
         requiredPermissions: ["audit.view"],
       },
+    ],
+  },
+  {
+    title: "Developer Tools",
+    preferredWorkspaces: ["developer"],
+    items: [
+      {
+        title: "Platform Builder",
+        href: "/administration/builder",
+        icon: ShieldPlus,
+        requiredPermissions: ["builder.view"],
+      },
+      {
+        title: "Diagnostics",
+        href: "/administration/discord",
+        icon: RadioTower,
+        requiredPermissions: ["discord.diagnostics.view"],
+      },
       {
         title: "System Settings",
         href: "/administration/settings",
         icon: FileText,
-        requiredPermissions: ["admin.users.view"],
+        requiredPermissions: ["admin.settings.view"],
       },
     ],
   },
 ];
 
-export function filterNavigationGroups(grantedPermissions: readonly string[]) {
+function workspaceRank(preferredWorkspaces: readonly WorkspaceId[] | undefined, workspaceId?: WorkspaceId) {
+  if (!workspaceId) {
+    return 1;
+  }
+
+  return preferredWorkspaces?.includes(workspaceId) ? 0 : 1;
+}
+
+export function filterNavigationGroups(grantedPermissions: readonly string[], workspaceId?: WorkspaceId) {
   return navigationGroups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>
         hasAllPermissions(grantedPermissions, item.requiredPermissions),
+      ).sort(
+        (left, right) =>
+          workspaceRank(left.preferredWorkspaces, workspaceId) -
+            workspaceRank(right.preferredWorkspaces, workspaceId) ||
+          left.title.localeCompare(right.title),
       ),
     }))
-    .filter((group) => group.items.length > 0);
+    .filter((group) => group.items.length > 0)
+    .sort(
+      (left, right) =>
+        workspaceRank(left.preferredWorkspaces, workspaceId) -
+          workspaceRank(right.preferredWorkspaces, workspaceId) ||
+        left.title.localeCompare(right.title),
+    );
 }
 
 export function isNavigationItemActive(
