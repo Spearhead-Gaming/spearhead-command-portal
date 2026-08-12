@@ -4,7 +4,7 @@ FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 FROM deps AS builder
 WORKDIR /app
