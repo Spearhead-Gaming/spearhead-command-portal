@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: ci
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/spearhead_ci
+      AUTH_SECRET: ci-only-auth-secret-for-build-validation
+      AUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_NAME: Spearhead Command Portal
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Build production application
+        run: npm run build
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build production Docker image
+        run: |
+          docker build \
+            --target runner \
+            --tag spearhead-command-portal:ci-${{ github.sha }} \
+            .
