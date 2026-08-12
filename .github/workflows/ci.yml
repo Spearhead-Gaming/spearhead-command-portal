@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NODE_ENV: production
       APP_ENV: ci
       DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/spearhead_ci
       AUTH_SECRET: ci-only-auth-secret-for-build-validation
