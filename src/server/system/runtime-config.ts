@@ -1,13 +1,9 @@
 import packageJson from "../../../package.json";
 
-export const applicationEnvironments = [
-  "development",
-  "staging",
-  "production",
-] as const;
-
-export type ApplicationEnvironment =
-  (typeof applicationEnvironments)[number];
+import {
+  applicationEnvironments,
+  type ApplicationEnvironment,
+} from "@/server/system/config-schema";
 
 function getTrimmedEnvValue(value: string | undefined) {
   return value?.trim() ?? "";
@@ -16,12 +12,8 @@ function getTrimmedEnvValue(value: string | undefined) {
 function resolveApplicationEnvironment(): ApplicationEnvironment {
   const value = getTrimmedEnvValue(process.env.APP_ENV).toLowerCase();
 
-  if (value === "production") {
-    return "production";
-  }
-
-  if (value === "staging") {
-    return "staging";
+  if (applicationEnvironments.includes(value as ApplicationEnvironment)) {
+    return value as ApplicationEnvironment;
   }
 
   return "development";
