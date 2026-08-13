@@ -1,72 +1,35 @@
-import packageJson from "../../../package.json";
-
 import type {
-  ApplicationEnvironment,
   SystemConfig,
   SystemInfo,
 } from "@/server/system/config-schema";
-import { getApplicationVersion } from "@/server/system/version";
-
-function getTrimmedEnvValue(value: string | undefined) {
-  return value?.trim() ?? "";
-}
-
-function resolveApplicationEnvironment(): ApplicationEnvironment {
-  const value = getTrimmedEnvValue(process.env.APP_ENV).toLowerCase();
-
-  if (value === "production") {
-    return "production";
-  }
-
-  if (value === "staging") {
-    return "staging";
-  }
-
-  return "development";
-}
-
-function resolveAppUrl() {
-  return (
-    getTrimmedEnvValue(process.env.NEXT_PUBLIC_APP_URL) ||
-    getTrimmedEnvValue(process.env.AUTH_URL) ||
-    getTrimmedEnvValue(process.env.NEXTAUTH_URL) ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
-}
-
-function resolveAuthUrl() {
-  return (
-    getTrimmedEnvValue(process.env.AUTH_URL) ||
-    getTrimmedEnvValue(process.env.NEXTAUTH_URL) ||
-    resolveAppUrl()
-  ).replace(/\/+$/, "");
-}
+import { getSystemRuntimeConfig } from "@/server/system/runtime-config";
 
 export function getSystemConfig(): SystemConfig {
+  const runtime = getSystemRuntimeConfig();
+
   return {
-    appEnv: resolveApplicationEnvironment(),
-    appUrl: resolveAppUrl(),
-    authUrl: resolveAuthUrl(),
-    nodeEnv: process.env.NODE_ENV ?? "development",
+    appEnv: runtime.appEnv,
+    appUrl: runtime.appUrl,
+    authUrl: runtime.authUrl,
+    nodeEnv: runtime.nodeEnv,
   };
 }
 
 export function getSystemInfo(): SystemInfo {
-  const config = getSystemConfig();
-  const version = getApplicationVersion();
+  const runtime = getSystemRuntimeConfig();
 
   return {
     application: {
-      name: version.name || packageJson.name,
-      version: version.version,
+      name: runtime.applicationName,
+      version: runtime.applicationVersion,
     },
     environment: {
-      appEnv: config.appEnv,
-      nodeEnv: config.nodeEnv,
+      appEnv: runtime.appEnv,
+      nodeEnv: runtime.nodeEnv,
     },
     urls: {
-      appUrl: config.appUrl,
-      authUrl: config.authUrl,
+      appUrl: runtime.appUrl,
+      authUrl: runtime.authUrl,
     },
   };
 }
