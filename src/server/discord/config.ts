@@ -1,4 +1,5 @@
 import { getDiscordInteractionSessionTtlMinutes } from "@/server/discord/interactions/sessions/constants";
+import { getSystemRuntimeConfig } from "@/server/system/runtime-config";
 
 declare global {
   var __spearheadDiscordProductionWarningShown__: boolean | undefined;
@@ -41,35 +42,40 @@ function isLikelyDiscordSnowflake(value: string) {
 }
 
 export function getDiscordIntegrationConfig() {
+  const runtime = getSystemRuntimeConfig();
+
   const clientId =
     getTrimmedEnvValue(process.env.DISCORD_CLIENT_ID) ||
     getTrimmedEnvValue(process.env.AUTH_DISCORD_ID);
+
   const clientSecret =
     getTrimmedEnvValue(process.env.DISCORD_CLIENT_SECRET) ||
     getTrimmedEnvValue(process.env.AUTH_DISCORD_SECRET);
+
   const botToken = getTrimmedEnvValue(process.env.DISCORD_BOT_TOKEN);
   const publicKey = getTrimmedEnvValue(process.env.DISCORD_PUBLIC_KEY);
+
   const applicationId =
     getTrimmedEnvValue(process.env.DISCORD_APPLICATION_ID) || clientId;
+
   const registerMode = normalizeDiscordRegisterMode(
     getTrimmedEnvValue(process.env.DISCORD_REGISTER_MODE),
   );
+
   const devGuildId =
     getTrimmedEnvValue(process.env.DISCORD_DEV_GUILD_ID) ||
     getTrimmedEnvValue(process.env.DISCORD_GUILD_ID);
+
   const legacyGuildId = getTrimmedEnvValue(process.env.DISCORD_GUILD_ID);
-  const publicAppUrl = (
-    getTrimmedEnvValue(process.env.NEXT_PUBLIC_APP_URL) ||
-    getTrimmedEnvValue(process.env.AUTH_URL) ||
-    getTrimmedEnvValue(process.env.NEXTAUTH_URL) ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
+
+  const publicAppUrl = runtime.appUrl;
+
   const interactionsUrl =
     getTrimmedEnvValue(process.env.DISCORD_INTERACTIONS_URL) ||
     `${publicAppUrl}/api/discord/interactions`;
 
   if (
-    process.env.NODE_ENV === "production" &&
+    runtime.nodeEnv === "production" &&
     registerMode === "guild" &&
     !globalThis.__spearheadDiscordProductionWarningShown__
   ) {
@@ -95,22 +101,13 @@ export function getDiscordIntegrationConfig() {
 }
 
 export function getPortalBaseUrl() {
-  const candidate =
-    getTrimmedEnvValue(process.env.AUTH_URL) ||
-    getTrimmedEnvValue(process.env.NEXT_PUBLIC_APP_URL) ||
-    getTrimmedEnvValue(process.env.NEXTAUTH_URL) ||
-    "http://localhost:3000";
-
-  return candidate.replace(/\/+$/, "");
+  return getSystemRuntimeConfig().authUrl;
 }
 
 export function isDiscordBotConfigured() {
   const config = getDiscordIntegrationConfig();
 
-  return (
-    config.applicationId.length > 0 &&
-    config.botToken.length > 0
-  );
+  return config.applicationId.length > 0 && config.botToken.length > 0;
 }
 
 export function isDiscordInteractionValidationConfigured() {
@@ -126,6 +123,7 @@ export function isDiscordCommandRegistrationConfigured() {
 export function getDiscordSafeConfigDiagnostics() {
   const config = getDiscordIntegrationConfig();
   const interactionUrl = config.interactionsUrl;
+
   const usesLocalInteractionUrl =
     interactionUrl.includes("localhost") ||
     interactionUrl.includes("127.0.0.1") ||
@@ -138,7 +136,9 @@ export function getDiscordSafeConfigDiagnostics() {
     clientIdPresent: config.clientId.length > 0,
     clientSecretPresent: config.clientSecret.length > 0,
     devGuildIdPresent: config.devGuildId.length > 0,
-    devGuildIdLooksValid: config.devGuildId.length === 0 || isLikelyDiscordSnowflake(config.devGuildId),
+    devGuildIdLooksValid:
+      config.devGuildId.length === 0 ||
+      isLikelyDiscordSnowflake(config.devGuildId),
     interactionEndpointPath: "/api/discord/interactions",
     interactionsUrlConfigured: config.interactionsUrl.length > 0,
     interactionsUrlIsLocalhost: usesLocalInteractionUrl,
@@ -151,37 +151,55 @@ export function getDiscordSafeConfigDiagnostics() {
       botToken: config.botToken.length > 0,
       devGuildId:
         config.registerMode === "global" ||
-        (config.devGuildId.length > 0 && isLikelyDiscordSnowflake(config.devGuildId)),
+        (config.devGuildId.length > 0 &&
+          isLikelyDiscordSnowflake(config.devGuildId)),
     },
     requiredForInteractionWebhook: {
       publicKey: config.publicKey.length > 0,
-      reachableHttpsUrl: config.interactionsUrl.startsWith("https://") && !usesLocalInteractionUrl,
+      reachableHttpsUrl:
+        config.interactionsUrl.startsWith("https://") &&
+        !usesLocalInteractionUrl,
     },
   };
 }
 
 export function shouldSyncDiscordBotAccounts() {
-  return getTrimmedEnvValue(process.env.SYNC_DISCORD_BOTS).toLowerCase() === "true";
+  return (
+    getTrimmedEnvValue(process.env.SYNC_DISCORD_BOTS).toLowerCase() === "true"
+  );
 }
 
 export function getDiscordGatewayConfig() {
   const config = getDiscordIntegrationConfig();
-  const enabled = normalizeBoolean(getTrimmedEnvValue(process.env.DISCORD_GATEWAY_ENABLED));
-  const intents = normalizeIntents(getTrimmedEnvValue(process.env.DISCORD_GATEWAY_INTENTS));
+
+  const enabled = normalizeBoolean(
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_ENABLED),
+  );
+
+  const intents = normalizeIntents(
+    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_INTENTS),
+  );
+
   const shardCount = normalizePositiveInteger(
     getTrimmedEnvValue(process.env.DISCORD_GATEWAY_SHARD_COUNT),
     1,
   );
+
   const heartbeatTimeoutMs = normalizePositiveInteger(
     getTrimmedEnvValue(process.env.DISCORD_GATEWAY_HEARTBEAT_TIMEOUT),
     45000,
   );
+
   const reconnectMaxDelayMs = normalizePositiveInteger(
     getTrimmedEnvValue(process.env.DISCORD_GATEWAY_RECONNECT_MAX_DELAY),
     30000,
   );
+
   const eventLogLevel =
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_EVENT_LOG_LEVEL).toLowerCase() || "summary";
+    getTrimmedEnvValue(
+      process.env.DISCORD_GATEWAY_EVENT_LOG_LEVEL,
+    ).toLowerCase() || "summary";
+
   const primaryGuildId =
     getTrimmedEnvValue(process.env.DISCORD_PRIMARY_GUILD_ID) ||
     config.devGuildId ||
@@ -212,7 +230,8 @@ export function getDiscordGatewaySafeDiagnostics() {
     intents: config.intents,
     primaryGuildConfigured: config.primaryGuildId.length > 0,
     primaryGuildLooksValid:
-      config.primaryGuildId.length === 0 || isLikelyDiscordSnowflake(config.primaryGuildId),
+      config.primaryGuildId.length === 0 ||
+      isLikelyDiscordSnowflake(config.primaryGuildId),
     reconnectMaxDelayMs: config.reconnectMaxDelayMs,
     shardCount: config.shardCount,
   };
