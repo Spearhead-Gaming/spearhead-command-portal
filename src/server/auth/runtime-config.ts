@@ -1,19 +1,15 @@
+import { getAuthRuntimeConfig } from "@/server/system/auth-runtime-config";
+
 declare global {
   var __spearheadDevLoginProductionWarningShown__: boolean | undefined;
 }
 
-function getTrimmedEnvValue(value: string | undefined) {
-  return value?.trim() ?? "";
-}
-
 export function getDiscordOAuthConfig() {
+  const config = getAuthRuntimeConfig();
+
   return {
-    clientId:
-      getTrimmedEnvValue(process.env.DISCORD_CLIENT_ID) ||
-      getTrimmedEnvValue(process.env.AUTH_DISCORD_ID),
-    clientSecret:
-      getTrimmedEnvValue(process.env.DISCORD_CLIENT_SECRET) ||
-      getTrimmedEnvValue(process.env.AUTH_DISCORD_SECRET),
+    clientId: config.discordClientId,
+    clientSecret: config.discordClientSecret,
   };
 }
 
@@ -24,28 +20,31 @@ export function isDiscordOAuthConfigured() {
 }
 
 export function getDeveloperBootstrapConfig() {
-  const enabled = getTrimmedEnvValue(process.env.ENABLE_DEV_LOGIN).toLowerCase() === "true";
-  const email = getTrimmedEnvValue(process.env.DEV_LOGIN_EMAIL).toLowerCase();
-  const secret = getTrimmedEnvValue(process.env.DEV_LOGIN_SECRET);
+  const config = getAuthRuntimeConfig();
 
   if (
-    enabled &&
-    process.env.NODE_ENV === "production" &&
+    config.developerLoginEnabled &&
+    config.nodeEnv === "production" &&
     !globalThis.__spearheadDevLoginProductionWarningShown__
   ) {
     globalThis.__spearheadDevLoginProductionWarningShown__ = true;
+
     console.warn(
       "Developer bootstrap login is enabled in production. Disable ENABLE_DEV_LOGIN as soon as Discord OAuth access is restored.",
     );
   }
 
   return {
-    enabled: enabled && email.length > 0 && secret.length > 0,
-    email,
-    secret,
+    enabled:
+      config.developerLoginEnabled &&
+      config.developerLoginEmail.length > 0 &&
+      config.developerLoginSecret.length > 0,
+    email: config.developerLoginEmail,
+    secret: config.developerLoginSecret,
   };
 }
 
 export function isDeveloperBootstrapEnabled() {
   return getDeveloperBootstrapConfig().enabled;
 }
+
