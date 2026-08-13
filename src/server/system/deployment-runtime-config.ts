@@ -33,9 +33,7 @@ export function getDeploymentRuntimeConfig(): DeploymentRuntimeConfig {
   return {
     databaseUrl: getTrimmedEnvValue(process.env.DATABASE_URL),
 
-    authSecret:
-      getTrimmedEnvValue(process.env.AUTH_SECRET) ||
-      getTrimmedEnvValue(process.env.NEXTAUTH_SECRET),
+    authSecret: getTrimmedEnvValue(process.env.AUTH_SECRET),
 
     fileStorageRoot: getTrimmedEnvValue(process.env.FILE_STORAGE_ROOT),
 

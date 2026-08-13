@@ -1,4 +1,6 @@
-import { checkFileStorageWritable, getFileStorageRoot } from "@/server/deployment/storage";
+import { checkFileStorageWritable } from "@/server/deployment/storage";
+import { getDeploymentRuntimeConfig } from "@/server/system/deployment-runtime-config";
+import { getSystemRuntimeConfig } from "@/server/system/runtime-config";
 
 type DeploymentTarget = "web" | "gateway" | "staging" | "production";
 
@@ -29,10 +31,6 @@ const placeholderPatterns = [
   /placeholder/i,
 ];
 
-function getEnv(name: string) {
-  return process.env[name]?.trim() ?? "";
-}
-
 function isPlaceholder(value: string) {
   return placeholderPatterns.some((pattern) => pattern.test(value));
 }
@@ -41,17 +39,12 @@ function isSnowflake(value: string) {
   return /^\d{17,20}$/.test(value);
 }
 
-function parseBoolean(value: string) {
-  return value.toLowerCase() === "true";
-}
-
 function addRequiredSecret(
   errors: ValidationIssue[],
   variable: string,
+  value: string,
   minimumLength = 1,
 ) {
-  const value = getEnv(variable);
-
   if (value.length < minimumLength || isPlaceholder(value)) {
     errors.push({
       message: `${variable} is required and must not be a placeholder.`,
@@ -60,11 +53,17 @@ function addRequiredSecret(
   }
 }
 
-function addRequiredUrl(errors: ValidationIssue[], variable: string, options?: { httpsOnly?: boolean }) {
-  const value = getEnv(variable);
-
+function addRequiredUrl(
+  errors: ValidationIssue[],
+  variable: string,
+  value: string,
+  options?: { httpsOnly?: boolean },
+) {
   if (isPlaceholder(value)) {
-    errors.push({ message: `${variable} is required and must not be a placeholder.`, variable });
+    errors.push({
+      message: `${variable} is required and must not be a placeholder.`,
+      variable,
+    });
     return;
   }
 
@@ -72,25 +71,37 @@ function addRequiredUrl(errors: ValidationIssue[], variable: string, options?: {
     const url = new URL(value);
 
     if (options?.httpsOnly && url.protocol !== "https:") {
-      errors.push({ message: `${variable} must use HTTPS for staging/production.`, variable });
+      errors.push({
+        message: `${variable} must use HTTPS for staging/production.`,
+        variable,
+      });
     }
   } catch {
-    errors.push({ message: `${variable} must be a valid URL.`, variable });
+    errors.push({
+      message: `${variable} must be a valid URL.`,
+      variable,
+    });
   }
 }
 
-function addOptionalSnowflakeWarning(warnings: ValidationIssue[], variable: string) {
-  const value = getEnv(variable);
-
+function addOptionalSnowflakeWarning(
+  warnings: ValidationIssue[],
+  variable: string,
+  value: string,
+) {
   if (value.length > 0 && !isPlaceholder(value) && !isSnowflake(value)) {
-    warnings.push({ message: `${variable} is present but does not look like a Discord snowflake.`, variable });
+    warnings.push({
+      message: `${variable} is present but does not look like a Discord snowflake.`,
+      variable,
+    });
   }
 }
 
-function validateDatabaseUrl(errors: ValidationIssue[]) {
-  const value = getEnv("DATABASE_URL");
-
-  if (isPlaceholder(value)) {
+function validateDatabaseUrl(
+  errors: ValidationIssue[],
+  databaseUrl: string,
+) {
+  if (isPlaceholder(databaseUrl)) {
     errors.push({
       message: "DATABASE_URL is required and must not be a placeholder.",
       variable: "DATABASE_URL",
@@ -99,82 +110,147 @@ function validateDatabaseUrl(errors: ValidationIssue[]) {
   }
 
   try {
-    const url = new URL(value);
+    const url = new URL(databaseUrl);
 
     if (url.protocol !== "mysql:" && url.protocol !== "mariadb:") {
       errors.push({
-        message: "DATABASE_URL must use a mysql:// or mariadb:// URL for MariaDB.",
+        message:
+          "DATABASE_URL must use a mysql:// or mariadb:// URL for MariaDB.",
         variable: "DATABASE_URL",
       });
     }
   } catch {
-    errors.push({ message: "DATABASE_URL must be a valid database URL.", variable: "DATABASE_URL" });
+    errors.push({
+      message: "DATABASE_URL must be a valid database URL.",
+      variable: "DATABASE_URL",
+    });
   }
 }
 
-function validateFileStorage(warnings: ValidationIssue[], errors: ValidationIssue[], target: DeploymentTarget) {
-  const root = getFileStorageRoot();
+function validateFileStorage(
+  warnings: ValidationIssue[],
+  errors: ValidationIssue[],
+  target: DeploymentTarget,
+  fileStorageRoot: string,
+  fileStoragePath: string,
+) {
   const isProductionLike = target === "staging" || target === "production";
 
-  if (isProductionLike && /^[A-Za-z]:\\/.test(root)) {
+  if (isProductionLike && /^[A-Za-z]:\\/.test(fileStorageRoot)) {
     errors.push({
-      message: "FILE_STORAGE_ROOT must be a Linux path inside Plesk/Docker staging or production.",
+      message:
+        "FILE_STORAGE_ROOT must be a Linux path inside Plesk/Docker staging or production.",
       variable: "FILE_STORAGE_ROOT",
     });
   }
 
-  if (!getEnv("FILE_STORAGE_ROOT") && getEnv("FILE_STORAGE_PATH")) {
+  if (!fileStorageRoot && fileStoragePath) {
     warnings.push({
-      message: "FILE_STORAGE_PATH is supported as a compatibility alias. Prefer FILE_STORAGE_ROOT.",
+      message:
+        "FILE_STORAGE_PATH is supported as a compatibility alias. Prefer FILE_STORAGE_ROOT.",
       variable: "FILE_STORAGE_PATH",
     });
   }
 }
 
-function validateDiscord(warnings: ValidationIssue[], errors: ValidationIssue[], target: DeploymentTarget) {
-  const isProductionLike = target === "staging" || target === "production";
-  const registerMode = getEnv("DISCORD_REGISTER_MODE").toLowerCase() || "guild";
-  const gatewayEnabled = parseBoolean(getEnv("DISCORD_GATEWAY_ENABLED"));
+function validateDiscord(
+  warnings: ValidationIssue[],
+  errors: ValidationIssue[],
+  target: DeploymentTarget,
+  config: ReturnType<typeof getDeploymentRuntimeConfig>,
+) {
+  const isProductionLike =
+    target === "staging" || target === "production";
+
+  const registerMode = config.discordRegisterMode.toLowerCase() || "guild";
+  const gatewayEnabled = config.discordGatewayEnabled;
 
   if (isProductionLike) {
-    addRequiredSecret(errors, "DISCORD_CLIENT_ID");
-    addRequiredSecret(errors, "DISCORD_CLIENT_SECRET");
-    addRequiredSecret(errors, "DISCORD_APPLICATION_ID");
-    addRequiredSecret(errors, "DISCORD_PUBLIC_KEY");
+    addRequiredSecret(errors, "DISCORD_CLIENT_ID", config.discordClientId);
+    addRequiredSecret(
+      errors,
+      "DISCORD_CLIENT_SECRET",
+      config.discordClientSecret,
+    );
+    addRequiredSecret(
+      errors,
+      "DISCORD_APPLICATION_ID",
+      config.discordApplicationId,
+    );
+    addRequiredSecret(
+      errors,
+      "DISCORD_PUBLIC_KEY",
+      config.discordPublicKey,
+    );
   }
 
   if (target === "gateway" || gatewayEnabled) {
-    addRequiredSecret(errors, "DISCORD_BOT_TOKEN");
-    addRequiredSecret(errors, "DISCORD_APPLICATION_ID");
+    addRequiredSecret(
+      errors,
+      "DISCORD_BOT_TOKEN",
+      config.discordBotToken,
+    );
+    addRequiredSecret(
+      errors,
+      "DISCORD_APPLICATION_ID",
+      config.discordApplicationId,
+    );
   }
 
-  if (registerMode === "guild" && !getEnv("DISCORD_DEV_GUILD_ID") && !getEnv("DISCORD_GUILD_ID")) {
+  if (
+    registerMode === "guild" &&
+    !config.discordDevGuildId &&
+    !config.discordGuildId
+  ) {
     warnings.push({
-      message: "Guild command registration needs DISCORD_DEV_GUILD_ID for local/staging testing.",
+      message:
+        "Guild command registration needs DISCORD_DEV_GUILD_ID for local/staging testing.",
       variable: "DISCORD_DEV_GUILD_ID",
     });
   }
 
   if (target === "production" && registerMode === "guild") {
     warnings.push({
-      message: "DISCORD_REGISTER_MODE=guild is intended for development/staging, not normal production rollout.",
+      message:
+        "DISCORD_REGISTER_MODE=guild is intended for development/staging, not normal production rollout.",
       variable: "DISCORD_REGISTER_MODE",
     });
   }
 
-  addOptionalSnowflakeWarning(warnings, "DISCORD_CLIENT_ID");
-  addOptionalSnowflakeWarning(warnings, "DISCORD_APPLICATION_ID");
-  addOptionalSnowflakeWarning(warnings, "DISCORD_DEV_GUILD_ID");
-  addOptionalSnowflakeWarning(warnings, "DISCORD_GUILD_ID");
-  addOptionalSnowflakeWarning(warnings, "DISCORD_PRIMARY_GUILD_ID");
+  addOptionalSnowflakeWarning(
+    warnings,
+    "DISCORD_CLIENT_ID",
+    config.discordClientId,
+  );
+  addOptionalSnowflakeWarning(
+    warnings,
+    "DISCORD_APPLICATION_ID",
+    config.discordApplicationId,
+  );
+  addOptionalSnowflakeWarning(
+    warnings,
+    "DISCORD_DEV_GUILD_ID",
+    config.discordDevGuildId,
+  );
+  addOptionalSnowflakeWarning(
+    warnings,
+    "DISCORD_GUILD_ID",
+    config.discordGuildId,
+  );
+  addOptionalSnowflakeWarning(
+    warnings,
+    "DISCORD_PRIMARY_GUILD_ID",
+    config.discordPrimaryGuildId,
+  );
 }
 
-function resolveTarget(target?: DeploymentTarget): DeploymentTarget {
+function resolveTarget(
+  target: DeploymentTarget | undefined,
+  appEnv: ReturnType<typeof getSystemRuntimeConfig>["appEnv"],
+): DeploymentTarget {
   if (target) {
     return target;
   }
-
-  const appEnv = getEnv("APP_ENV").toLowerCase();
 
   if (appEnv === "staging" || appEnv === "production") {
     return appEnv;
@@ -186,35 +262,66 @@ function resolveTarget(target?: DeploymentTarget): DeploymentTarget {
 export async function validateDeploymentEnvironment(
   options: ValidationOptions = {},
 ): Promise<DeploymentEnvironmentValidation> {
-  const target = resolveTarget(options.target);
+  const runtime = getDeploymentRuntimeConfig();
+  const systemRuntime = getSystemRuntimeConfig();
+
+  const target = resolveTarget(options.target, systemRuntime.appEnv);
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
-  const isProductionLike = target === "staging" || target === "production";
 
-  validateDatabaseUrl(errors);
+  const isProductionLike =
+    target === "staging" || target === "production";
+
+  validateDatabaseUrl(errors, runtime.databaseUrl);
 
   if (isProductionLike) {
-    addRequiredUrl(errors, "AUTH_URL", { httpsOnly: true });
-    addRequiredUrl(errors, "NEXT_PUBLIC_APP_URL", { httpsOnly: true });
-    addRequiredSecret(errors, "AUTH_SECRET", 32);
+    addRequiredUrl(errors, "AUTH_URL", runtime.authUrl, {
+      httpsOnly: true,
+    });
+
+    addRequiredUrl(
+      errors,
+      "NEXT_PUBLIC_APP_URL",
+      runtime.appUrl,
+      {
+        httpsOnly: true,
+      },
+    );
+
+    addRequiredSecret(errors, "AUTH_SECRET", runtime.authSecret, 32);
   } else {
-    addRequiredSecret(errors, "AUTH_SECRET", 16);
+    addRequiredSecret(errors, "AUTH_SECRET", runtime.authSecret, 16);
   }
 
-  validateFileStorage(warnings, errors, target);
-  validateDiscord(warnings, errors, target);
+  validateFileStorage(
+    warnings,
+    errors,
+    target,
+    runtime.fileStorageRoot,
+    runtime.fileStoragePath,
+  );
 
-  if (target === "production" && parseBoolean(getEnv("ENABLE_DEV_LOGIN"))) {
+  validateDiscord(warnings, errors, target, runtime);
+
+  if (target === "production" && runtime.enableDevLogin) {
     errors.push({
-      message: "ENABLE_DEV_LOGIN must be false for production deployments.",
+      message:
+        "ENABLE_DEV_LOGIN must be false for production deployments.",
       variable: "ENABLE_DEV_LOGIN",
     });
   }
 
-  if (parseBoolean(getEnv("ENABLE_DEV_LOGIN"))) {
-    addRequiredSecret(errors, "DEV_LOGIN_SECRET", 24);
+  if (runtime.enableDevLogin) {
+    addRequiredSecret(
+      errors,
+      "DEV_LOGIN_SECRET",
+      runtime.devLoginSecret,
+      24,
+    );
+
     warnings.push({
-      message: "Developer bootstrap login is enabled. Disable it after access is restored.",
+      message:
+        "Developer bootstrap login is enabled. Disable it after access is restored.",
       variable: "ENABLE_DEV_LOGIN",
     });
   }
@@ -224,7 +331,8 @@ export async function validateDeploymentEnvironment(
       await checkFileStorageWritable();
     } catch {
       errors.push({
-        message: "FILE_STORAGE_ROOT is not writable by the current process.",
+        message:
+          "FILE_STORAGE_ROOT is not writable by the current process.",
         variable: "FILE_STORAGE_ROOT",
       });
     }
