@@ -1,40 +1,9 @@
 import { getDiscordInteractionSessionTtlMinutes } from "@/server/discord/interactions/sessions/constants";
+import { getDiscordRuntimeConfig } from "@/server/system/discord-runtime-config";
 import { getSystemRuntimeConfig } from "@/server/system/runtime-config";
 
 declare global {
   var __spearheadDiscordProductionWarningShown__: boolean | undefined;
-}
-
-function getTrimmedEnvValue(value: string | undefined) {
-  return value?.trim() ?? "";
-}
-
-function normalizeDiscordRegisterMode(value: string): "global" | "guild" {
-  return value.toLowerCase() === "global" ? "global" : "guild";
-}
-
-function normalizeBoolean(value: string, defaultValue = false) {
-  if (!value) {
-    return defaultValue;
-  }
-
-  return value.toLowerCase() === "true";
-}
-
-function normalizePositiveInteger(value: string, defaultValue: number) {
-  const parsed = Number(value);
-
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : defaultValue;
-}
-
-function normalizeIntents(value: string) {
-  const defaultIntents = ["Guilds", "GuildMembers", "GuildVoiceStates"] as const;
-  const raw = value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  return raw.length > 0 ? raw : Array.from(defaultIntents);
 }
 
 function isLikelyDiscordSnowflake(value: string) {
@@ -42,61 +11,33 @@ function isLikelyDiscordSnowflake(value: string) {
 }
 
 export function getDiscordIntegrationConfig() {
-  const runtime = getSystemRuntimeConfig();
-
-  const clientId =
-    getTrimmedEnvValue(process.env.DISCORD_CLIENT_ID) ||
-    getTrimmedEnvValue(process.env.AUTH_DISCORD_ID);
-
-  const clientSecret =
-    getTrimmedEnvValue(process.env.DISCORD_CLIENT_SECRET) ||
-    getTrimmedEnvValue(process.env.AUTH_DISCORD_SECRET);
-
-  const botToken = getTrimmedEnvValue(process.env.DISCORD_BOT_TOKEN);
-  const publicKey = getTrimmedEnvValue(process.env.DISCORD_PUBLIC_KEY);
-
-  const applicationId =
-    getTrimmedEnvValue(process.env.DISCORD_APPLICATION_ID) || clientId;
-
-  const registerMode = normalizeDiscordRegisterMode(
-    getTrimmedEnvValue(process.env.DISCORD_REGISTER_MODE),
-  );
-
-  const devGuildId =
-    getTrimmedEnvValue(process.env.DISCORD_DEV_GUILD_ID) ||
-    getTrimmedEnvValue(process.env.DISCORD_GUILD_ID);
-
-  const legacyGuildId = getTrimmedEnvValue(process.env.DISCORD_GUILD_ID);
-
-  const publicAppUrl = runtime.appUrl;
-
-  const interactionsUrl =
-    getTrimmedEnvValue(process.env.DISCORD_INTERACTIONS_URL) ||
-    `${publicAppUrl}/api/discord/interactions`;
+  const runtime = getDiscordRuntimeConfig();
+  const systemRuntime = getSystemRuntimeConfig();
 
   if (
-    runtime.nodeEnv === "production" &&
-    registerMode === "guild" &&
+    systemRuntime.nodeEnv === "production" &&
+    runtime.registerMode === "guild" &&
     !globalThis.__spearheadDiscordProductionWarningShown__
   ) {
     globalThis.__spearheadDiscordProductionWarningShown__ = true;
+
     console.warn(
       "DISCORD_REGISTER_MODE=guild is set in production. Prefer global slash-command registration unless you are actively testing a guild-scoped rollout.",
     );
   }
 
   return {
-    applicationId,
-    botToken,
-    clientId,
-    clientSecret,
-    devGuildId,
-    guildId: devGuildId,
-    interactionsUrl,
-    legacyGuildId,
-    publicKey,
-    publicAppUrl,
-    registerMode,
+    applicationId: runtime.applicationId,
+    botToken: runtime.botToken,
+    clientId: runtime.clientId,
+    clientSecret: runtime.clientSecret,
+    devGuildId: runtime.devGuildId,
+    guildId: runtime.devGuildId,
+    interactionsUrl: runtime.interactionsUrl,
+    legacyGuildId: runtime.legacyGuildId,
+    publicKey: runtime.publicKey,
+    publicAppUrl: systemRuntime.appUrl,
+    registerMode: runtime.registerMode,
   };
 }
 
@@ -164,57 +105,22 @@ export function getDiscordSafeConfigDiagnostics() {
 }
 
 export function shouldSyncDiscordBotAccounts() {
-  return (
-    getTrimmedEnvValue(process.env.SYNC_DISCORD_BOTS).toLowerCase() === "true"
-  );
+  return getDiscordRuntimeConfig().syncBotAccounts;
 }
 
 export function getDiscordGatewayConfig() {
-  const config = getDiscordIntegrationConfig();
-
-  const enabled = normalizeBoolean(
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_ENABLED),
-  );
-
-  const intents = normalizeIntents(
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_INTENTS),
-  );
-
-  const shardCount = normalizePositiveInteger(
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_SHARD_COUNT),
-    1,
-  );
-
-  const heartbeatTimeoutMs = normalizePositiveInteger(
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_HEARTBEAT_TIMEOUT),
-    45000,
-  );
-
-  const reconnectMaxDelayMs = normalizePositiveInteger(
-    getTrimmedEnvValue(process.env.DISCORD_GATEWAY_RECONNECT_MAX_DELAY),
-    30000,
-  );
-
-  const eventLogLevel =
-    getTrimmedEnvValue(
-      process.env.DISCORD_GATEWAY_EVENT_LOG_LEVEL,
-    ).toLowerCase() || "summary";
-
-  const primaryGuildId =
-    getTrimmedEnvValue(process.env.DISCORD_PRIMARY_GUILD_ID) ||
-    config.devGuildId ||
-    config.legacyGuildId;
+  const runtime = getDiscordRuntimeConfig();
 
   return {
-    applicationId: config.applicationId,
-    botToken: config.botToken,
-    enabled,
-    eventLogLevel,
-    heartbeatTimeoutMs,
-    intents,
-    primaryGuildId,
-    reconnectMaxDelayMs,
-    shardCount,
+    applicationId: runtime.applicationId,
+    botToken: runtime.botToken,
+    enabled: runtime.gatewayEnabled,
+    eventLogLevel: runtime.gatewayEventLogLevel,
+    heartbeatTimeoutMs: runtime.gatewayHeartbeatTimeoutMs,
+    intents: runtime.gatewayIntents,
+    primaryGuildId: runtime.primaryGuildId,
+    reconnectMaxDelayMs: runtime.gatewayReconnectMaxDelayMs,
+    shardCount: runtime.gatewayShardCount,
   };
 }
 
