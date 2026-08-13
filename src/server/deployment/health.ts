@@ -1,6 +1,10 @@
 import { prisma } from "@/server/database/client";
 import { checkFileStorageWritable } from "@/server/deployment/storage";
-import { getDiscordGatewaySafeDiagnostics, getDiscordSafeConfigDiagnostics } from "@/server/discord/config";
+import {
+  getDiscordGatewaySafeDiagnostics,
+  getDiscordSafeConfigDiagnostics,
+} from "@/server/discord/config";
+import { getSystemRuntimeConfig } from "@/server/system/runtime-config";
 
 type CheckStatus = "ok" | "degraded" | "error";
 
@@ -43,14 +47,16 @@ function getStatus(checks: HealthReport["checks"]): CheckStatus {
 }
 
 export function getLivenessReport(): HealthReport {
+  const runtime = getSystemRuntimeConfig();
+
   return {
     checks: {},
-    environment: process.env.APP_ENV ?? process.env.NODE_ENV ?? "development",
-    service: "spearhead-command-portal",
+    environment: runtime.appEnv,
+    service: runtime.applicationName,
     status: "ok",
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
-    version: process.env.APP_VERSION ?? process.env.npm_package_version ?? "0.1.0",
+    version: runtime.applicationVersion,
   };
 }
 
@@ -75,13 +81,19 @@ export async function getReadinessReport(): Promise<HealthReport> {
   checks.discord =
     discord.botTokenPresent && discord.applicationIdPresent
       ? { status: "ok" }
-      : { detail: "Discord bot credentials are not fully configured.", status: "degraded" };
+      : {
+          detail: "Discord bot credentials are not fully configured.",
+          status: "degraded",
+        };
 
   const gateway = getDiscordGatewaySafeDiagnostics();
   checks.gateway =
     gateway.enabled && gateway.botTokenPresent
       ? { status: "ok" }
-      : { detail: "Discord Gateway worker is disabled or not configured.", status: "degraded" };
+      : {
+          detail: "Discord Gateway worker is disabled or not configured.",
+          status: "degraded",
+        };
 
   const baseReport = getLivenessReport();
 

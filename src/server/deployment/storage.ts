@@ -1,8 +1,10 @@
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { getResolvedFileStorageRoot } from "@/server/system/deployment-runtime-config";
+
 export function getFileStorageRoot() {
-  return process.env.FILE_STORAGE_ROOT ?? process.env.FILE_STORAGE_PATH ?? path.join(process.cwd(), "storage");
+  return getResolvedFileStorageRoot();
 }
 
 export async function ensureFileStorageRoot() {
@@ -15,7 +17,10 @@ export async function ensureFileStorageRoot() {
 
 export async function checkFileStorageWritable() {
   const storageRoot = await ensureFileStorageRoot();
-  const probePath = path.join(storageRoot, `.healthcheck-${process.pid}-${Date.now()}`);
+  const probePath = path.join(
+    storageRoot,
+    `.healthcheck-${process.pid}-${Date.now()}`,
+  );
 
   await writeFile(probePath, "ok", { encoding: "utf8" });
   await access(probePath);
