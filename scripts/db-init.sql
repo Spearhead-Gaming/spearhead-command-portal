@@ -1,0 +1,2 @@
+GRANT CREATE ON *.* TO 'spearhead'@'%';
+FLUSH PRIVILEGES;
