@@ -1,3 +1,5 @@
+import { getDiscordRuntimeConfig } from "@/server/system/discord-runtime-config";
+
 export const discordInteractionSessionStatuses = [
   "ACTIVE",
   "COMPLETED",
@@ -27,14 +29,7 @@ export type DiscordInteractionWorkflowType =
 export const DEFAULT_DISCORD_INTERACTION_SESSION_TTL_MINUTES = 15;
 
 export function getDiscordInteractionSessionTtlMinutes() {
-  const rawValue = process.env.DISCORD_INTERACTION_SESSION_TTL_MINUTES?.trim();
-  const parsed = rawValue ? Number(rawValue) : NaN;
-
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return DEFAULT_DISCORD_INTERACTION_SESSION_TTL_MINUTES;
-  }
-
-  return Math.min(Math.max(Math.round(parsed), 1), 24 * 60);
+  return getDiscordRuntimeConfig().interactionSessionTtlMinutes;
 }
 
 export function getDiscordInteractionSessionExpiration(ttlMinutes?: number) {
