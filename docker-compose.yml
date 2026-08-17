@@ -6,78 +6,157 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - ${COMPOSE_ENV_FILE:-.env}
+      migrate:
+        condition: service_completed_successfully
     environment:
       APP_ENV: ${APP_ENV:-staging}
-      DATABASE_URL: ${DATABASE_URL:-mysql://spearhead:spearhead@db:3306/spearhead_command_portal}
-      FILE_STORAGE_ROOT: /app/storage
       NODE_ENV: production
       PORT: 3000
+
+      # Application URLs
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      AUTH_URL: ${AUTH_URL:-${NEXT_PUBLIC_APP_URL}}
+
+      # Database
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-spearhead_command_portal}
+      MARIADB_USER: ${MARIADB_USER:-spearhead}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-spearhead}
+      DATABASE_URL: mysql://${MARIADB_USER:-spearhead}:${MARIADB_PASSWORD:-spearhead}@db:3306/${MARIADB_DATABASE:-spearhead_command_portal}
+
+      # Persistent application storage
+      FILE_STORAGE_ROOT: /app/storage
+
+      # Discord
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID}
+      DISCORD_REGISTER_MODE: ${DISCORD_REGISTER_MODE:-global}
+      DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      DISCORD_INTERACTIONS_URL: ${DISCORD_INTERACTIONS_URL:-}
+      SYNC_DISCORD_BOTS: ${SYNC_DISCORD_BOTS:-false}
+
+      # Discord interaction sessions
+      DISCORD_INTERACTION_SESSION_TTL_MINUTES: ${DISCORD_INTERACTION_SESSION_TTL_MINUTES:-15}
+
+      # Discord Gateway
+      DISCORD_GATEWAY_ENABLED: ${DISCORD_GATEWAY_ENABLED:-false}
+      DISCORD_GATEWAY_INTENTS: ${DISCORD_GATEWAY_INTENTS:-Guilds,GuildMembers,GuildVoiceStates}
+      DISCORD_GATEWAY_SHARD_COUNT: ${DISCORD_GATEWAY_SHARD_COUNT:-1}
+      DISCORD_GATEWAY_HEARTBEAT_TIMEOUT: ${DISCORD_GATEWAY_HEARTBEAT_TIMEOUT:-45000}
+      DISCORD_GATEWAY_RECONNECT_MAX_DELAY: ${DISCORD_GATEWAY_RECONNECT_MAX_DELAY:-30000}
+      DISCORD_GATEWAY_EVENT_LOG_LEVEL: ${DISCORD_GATEWAY_EVENT_LOG_LEVEL:-summary}
+      DISCORD_PRIMARY_GUILD_ID: ${DISCORD_PRIMARY_GUILD_ID:-}
+
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/live').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health/live').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 30s
+
     ports:
-      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3000}:3000"
+      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-3080}:3000"
+
     restart: unless-stopped
+
     volumes:
       - uploads:/app/storage
 
-  gateway:
-    build:
-      context: .
-      target: worker
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - ${COMPOSE_ENV_FILE:-.env}
+
+  db:
+    image: mariadb:11.4
+
     environment:
-      APP_ENV: ${APP_ENV:-staging}
-      DATABASE_URL: ${DATABASE_URL:-mysql://spearhead:spearhead@db:3306/spearhead_command_portal}
-      DISCORD_GATEWAY_ENABLED: ${DISCORD_GATEWAY_ENABLED:-false}
-      FILE_STORAGE_ROOT: /app/storage
-      NODE_ENV: production
-    profiles:
-      - gateway
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-spearhead_command_portal}
+      MARIADB_USER: ${MARIADB_USER:-spearhead}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-spearhead}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "healthcheck.sh",
+          "--connect",
+          "--innodb_initialized"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
     restart: unless-stopped
+
     volumes:
-      - uploads:/app/storage
+      - mariadb-data:/var/lib/mysql
+
 
   migrate:
     build:
       context: .
       target: worker
+
     command: npm run db:migrate:deploy
+
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - ${COMPOSE_ENV_FILE:-.env}
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql://spearhead:spearhead@db:3306/spearhead_command_portal}
-      NODE_ENV: production
-    profiles:
-      - tools
 
-  db:
-    image: mariadb:11.4
     environment:
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-spearhead_command_portal}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-spearhead}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-spearhead-root}
-      MARIADB_USER: ${MARIADB_USER:-spearhead}
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MARIADB_USER:-spearhead}:${MARIADB_PASSWORD:-spearhead}@db:3306/${MARIADB_DATABASE:-spearhead_command_portal}
+
+    restart: "no"
+
+
+  gateway:
+    build:
+      context: .
+      target: worker
+
+    command: npm run gateway:start
+
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+    environment:
+      APP_ENV: ${APP_ENV:-staging}
+      NODE_ENV: production
+
+      DATABASE_URL: mysql://${MARIADB_USER:-spearhead}:${MARIADB_PASSWORD:-spearhead}@db:3306/${MARIADB_DATABASE:-spearhead_command_portal}
+
+      FILE_STORAGE_ROOT: /app/storage
+
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID}
+      DISCORD_GATEWAY_ENABLED: ${DISCORD_GATEWAY_ENABLED:-false}
+      DISCORD_GATEWAY_INTENTS: ${DISCORD_GATEWAY_INTENTS:-Guilds,GuildMembers,GuildVoiceStates}
+      DISCORD_GATEWAY_SHARD_COUNT: ${DISCORD_GATEWAY_SHARD_COUNT:-1}
+      DISCORD_GATEWAY_HEARTBEAT_TIMEOUT: ${DISCORD_GATEWAY_HEARTBEAT_TIMEOUT:-45000}
+      DISCORD_GATEWAY_RECONNECT_MAX_DELAY: ${DISCORD_GATEWAY_RECONNECT_MAX_DELAY:-30000}
+      DISCORD_GATEWAY_EVENT_LOG_LEVEL: ${DISCORD_GATEWAY_EVENT_LOG_LEVEL:-summary}
+      DISCORD_PRIMARY_GUILD_ID: ${DISCORD_PRIMARY_GUILD_ID:-}
+
+    profiles:
+      - gateway
+
     restart: unless-stopped
+
     volumes:
-      - mariadb-data:/var/lib/mysql
+      - uploads:/app/storage
+
 
 volumes:
   mariadb-data:
