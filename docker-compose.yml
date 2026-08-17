@@ -16,6 +16,7 @@ services:
       # Application URLs
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       AUTH_URL: ${AUTH_URL:-${NEXT_PUBLIC_APP_URL}}
+      AUTH_SECRET: ${AUTH_SECRET:-$(openssl rand -hex 32)}
 
       # Database
       MARIADB_DATABASE: ${MARIADB_DATABASE:-spearhead_command_portal}
@@ -27,15 +28,15 @@ services:
       FILE_STORAGE_ROOT: /app/storage
 
       # Discord
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-1522435710865641543}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
       DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY}
-      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-1522435710865641543}
       DISCORD_REGISTER_MODE: ${DISCORD_REGISTER_MODE:-global}
-      DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-}
+      DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-1342320572272476192}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
-      DISCORD_INTERACTIONS_URL: ${DISCORD_INTERACTIONS_URL:-}
+      DISCORD_INTERACTIONS_URL: ${DISCORD_INTERACTIONS_URL:-74.208.40.84:3080/api/discord/interactions"}
       SYNC_DISCORD_BOTS: ${SYNC_DISCORD_BOTS:-false}
 
       # Discord interaction sessions
@@ -49,6 +50,11 @@ services:
       DISCORD_GATEWAY_RECONNECT_MAX_DELAY: ${DISCORD_GATEWAY_RECONNECT_MAX_DELAY:-30000}
       DISCORD_GATEWAY_EVENT_LOG_LEVEL: ${DISCORD_GATEWAY_EVENT_LOG_LEVEL:-summary}
       DISCORD_PRIMARY_GUILD_ID: ${DISCORD_PRIMARY_GUILD_ID:-}
+
+      # Development
+      ENABLE_DEV_LOGIN: ${ENABLE_DEV_LOGIN:-true}
+      DEV_LOGIN_SECRET: ${DEV_LOGIN_SECRET:-HammerTime}
+      DEV_LOGIN_EMAIL: ${DEV_LOGIN_EMAIL:-admin@mdev.net}
 
     healthcheck:
       test:
@@ -74,6 +80,9 @@ services:
 
   db:
     image: mariadb:11.4
+
+    ports:
+      - "3307:3306"
 
     environment:
       MARIADB_DATABASE: ${MARIADB_DATABASE:-spearhead_command_portal}
@@ -106,7 +115,7 @@ services:
       context: .
       target: worker
 
-    command: npm run db:migrate:deploy
+    command: sh -c "npm run db:migrate:deploy && npm run db:seed"
 
     depends_on:
       db:
