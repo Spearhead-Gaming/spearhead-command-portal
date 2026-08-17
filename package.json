@@ -24,6 +24,7 @@
     "health": "tsx scripts/staging-verify.ts",
     "db:status": "prisma migrate status",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
     "db:validate": "prisma validate",
     "discord:commands:clear:guild": "tsx scripts/discord.ts commands:clear:guild",
     "discord:commands:list": "tsx scripts/discord.ts commands:list",
