@@ -98,6 +98,7 @@ services:
 
     volumes:
       - mariadb-data:/var/lib/mysql
+      - ./scripts/db-init.sql:/docker-entrypoint-initdb.d/grants.sql
 
 
   migrate:
